@@ -35,18 +35,12 @@ class Options:
         self.dictOptions={}
         self.config = ConfigParser.ConfigParser()
         self.config.read(path)
-        
+
     def getOptions(self,i):
         section=self.config.sections()[i]
         options = self.config.options(section)
         for option in options:
-            try:
-                self.dictOptions[option] = self.config.get(section, option)
-                if self.dictOptions[option] == -1:
-                    DebugPrint("skip: %s" % option)
-            except:
-                print("exception on %s!" % option)
-                self.dictOptions[option] = None
+            self.dictOptions[option] = self.config.get(section, option)
         self.formateFields()
 
     def formateFields(self):
@@ -55,7 +49,7 @@ class Options:
 
     def turnAsBoolean(self,key):
         self.dictOptions[key]=(self.dictOptions[key]=="true")
-                
+
     def implodeTags(self,key):
         array=self.dictOptions[key].split(",")
         self.dictOptions[key]=array
@@ -73,7 +67,7 @@ class Anki:
             count+=1
         self.stopEditing()
         return count
-    
+
     def addNote(self, deckName, modelName, fields, tags=list()):
         note = self.createNote(deckName, modelName, fields, tags)
         if note is not None:
@@ -83,7 +77,7 @@ class Anki:
             self.startEditing()
             showTooltip("Note added.", 1000);
             return note.id
-        
+
     def createNote(self, deckName, modelName, fields, tags=list()):
         idDeck=self.decks().id(deckName)
         model=self.models().byName(modelName)
@@ -95,7 +89,7 @@ class Anki:
         for name, value in fields.items():
             note[name] = value
         return note
-        
+
     def add_evernote_model(self): #adapted from the IREAD plug-in from Frank
         col = self.collection()
         mm = col.models
@@ -230,27 +224,27 @@ class EvernoteCard:
         self.front=q
         self.back=a
         self.guid=g
-        
+
 class Evernote:
-      
+
     def __init__(self,token):
         self.token=token
-        self.client=client = EvernoteClient(token=token, sandbox=False)
+        self.client= EvernoteClient(token=token, sandbox=False)
         self.noteStore=self.client.get_note_store()
-    
+
     def findTagGuid(self,tag):
         listtags = self.noteStore.listTags()
         for evtag in listtags:
             if(evtag.name==tag):
                 return evtag.guid
-            
+
     def createEvernoteCards(self,guidSet):
         cards=[]
         for g in guidSet:
             title,content=self.getNoteInformations(g)
             cards.append(EvernoteCard(title,content,g))
         return cards
-            
+
 
     def findNotesFilterByTagGuids(self,guidsList):
         Evfilter = NoteFilter()
@@ -266,8 +260,8 @@ class Evernote:
         return guids
 
     def getNoteInformations(self,noteguid):
-         wholeNote = self.noteStore.getNote(self.token, noteguid,True,True,False,False)
-         return wholeNote.title, wholeNote.content
+        wholeNote = self.noteStore.getNote(self.token, noteguid,True,True,False,False)
+        return wholeNote.title, wholeNote.content
 
 
 class Controller:
@@ -291,13 +285,13 @@ class Controller:
             noteGuidsToImport=set(evernote_guids)-set(anki_guids)
             n=self.ImportIntoAnki(noteGuidsToImport,self.deck,self.ankiTag)
             showTooltip(str(n) +" cards have been imported")
-        
-        
+
+
     def ImportIntoAnki(self,guidSet,deck,tag):
         cards=self.evernote.createEvernoteCards(guidSet)
         number=self.anki.addEvernoteCards(cards,deck,tag)
         return number
-        
+
 
     def getEvernoteGuidsFromTag(self,tags):
         noteGuids=[]
@@ -306,26 +300,26 @@ class Controller:
             if(tagGuid is not None):
                 noteGuids=noteGuids+self.evernote.findNotesFilterByTagGuids([tagGuid])
         return noteGuids
-        
 
 
-    
-    
+
+
+
 
 def showTooltip(text, timeOut=3000):
     aqt.utils.tooltip(text, timeOut)
 
 
 
-  
+
 
 def main():
     showTooltip(str())
     controller=Controller()
     controller.proceed()
-       
+
     #controller.addNoteToDeck(c)
-    
+
 
 ##ev=Evernote(EVERNOTE_TOKEN)
 ##userStore = ev.client.get_user_store()
