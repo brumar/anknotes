@@ -2,12 +2,12 @@
 **Forks and suggestions are very welcome.**
 
 ## Description
-An Anki plug-in aiming for syncing evernote account with anki directly from anki.
+An Anki plug-in aiming for syncing evernote account with anki directly from anki. It aims to replace a Java standalone application [available here] (https://code.google.com/p/evernote2anki/)
 Very rudimentary for the moment. I wait for suggestions according to the needs of evernote/anki users.
 
 ####Help Needed :
 - Considering the normal Oauth flowchart of evernote this plug-in is not evernote-friendly. Asking an user its developper token is clearly not a good practice.
-More informations on the [evernote documentation](https://dev.evernote.com/doc/articles/authentication.php). I believe[something like this would be better](https://gist.github.com/inkedmn/5041037).
+More informations on the [evernote documentation](https://dev.evernote.com/doc/articles/authentication.php). I believe [something like this would be better](https://gist.github.com/inkedmn/5041037).
 As anki does ship a python environment, oauth2 module should be locally installed. Sadly, after many trials I did not succeed to make it work.
 
 ## Users : How to use it
