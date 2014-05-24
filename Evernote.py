@@ -141,11 +141,6 @@ class Anki:
         showTooltip(ids)
         return ids
 
-    def browseNote(self, noteId):
-        browser = aqt.dialogs.open('Browser', self.window())
-        browser.form.searchEdit.lineEdit().setText('nid:{0}'.format(noteId))
-        browser.onSearch()
-
 
     def startEditing(self):
         self.window().requireReset()
@@ -159,62 +154,15 @@ class Anki:
     def window(self):
         return aqt.mw
 
-
-    def addUiAction(self, action):
-        self.window().form.menuTools.addAction(action)
-
-
     def collection(self):
         return self.window().col
-
-    def manager(self):
-        return self.decks().DeckManager(self.window())
-
 
     def models(self):
         return self.collection().models
 
-
-    def modelNames(self):
-        return self.models().allNames()
-
-
-    def modelFieldNames(self, modelName):
-        model = self.models().byName(modelName)
-        if model is not None:
-            return [field['name'] for field in model['flds']]
-
-
     def decks(self):
         return self.collection().decks
 
-
-    def deckNames(self):
-        return self.decks().allNames()
-
-
-    def curModelID(self):
-        return self.collection().conf['curModel']
-
-
-    def curDeckID(self):
-        return self.collection().conf['curDeck']
-
-
-    def curModel(self):
-        return self.models().get(self.curModelID())
-
-
-    def curDeck(self):
-        return self.decks().get(self.curDeckID())
-
-
-    def curModelName(self):
-        return self.curModel()['name']
-
-
-    def curDeckName(self):
-        return self.curDeck()['name']
 
 class EvernoteCard:
     front=""
@@ -301,32 +249,14 @@ class Controller:
                 noteGuids=noteGuids+self.evernote.findNotesFilterByTagGuids([tagGuid])
         return noteGuids
 
-
-
-
-
-
 def showTooltip(text, timeOut=3000):
     aqt.utils.tooltip(text, timeOut)
-
-
-
-
 
 def main():
     showTooltip(str())
     controller=Controller()
     controller.proceed()
 
-    #controller.addNoteToDeck(c)
-
-
-##ev=Evernote(EVERNOTE_TOKEN)
-##userStore = ev.client.get_user_store()
-##s=set(["facts","fact","inspirationnal","important"])
-##ev.findTagGuids(s)
-##ev.getNoteInformations("49f7e51d-904e-40d1-b381-bab26d1dc5f1")
-# create a new menu item
 action = aqt.qt.QAction("Import from Evernote", aqt.mw)
 aqt.mw.connect(action,  aqt.qt.SIGNAL("triggered()"), main)
 aqt.mw.form.menuTools.addAction(action)
