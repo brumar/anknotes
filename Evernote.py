@@ -6,6 +6,7 @@ if cmd_subfolder not in sys.path:
 
 import re
 import ConfigParser
+import uuid
 import anki
 import hashlib
 import binascii
