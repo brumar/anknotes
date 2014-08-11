@@ -16,9 +16,11 @@ from evernote.api.client import EvernoteClient
 import os, re, codecs
 import PyQt4.QtNetwork
 import aqt
+from anki.hooks import wrap
+from aqt.preferences import Preferences
 from aqt.utils import showInfo
-
-
+from aqt.qt import *
+from aqt import mw
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
@@ -29,30 +31,6 @@ EVERNOTE_MODEL="evernote_note"
 TITLE_FIELD_NAME="title"
 CONTENT_FIELD_NAME="content"
 GUID_FIELD_NAME="Evernote Guid"
-
-class Options:
-    def __init__(self,path):
-        self.dictOptions={}
-        self.config = ConfigParser.ConfigParser()
-        self.config.read(path)
-
-    def getOptions(self,i):
-        section=self.config.sections()[i]
-        options = self.config.options(section)
-        for option in options:
-            self.dictOptions[option] = self.config.get(section, option)
-        self.formateFields()
-
-    def formateFields(self):
-        self.implodeTags("tags_to_import_from_evernote")
-        self.turnAsBoolean("keep_evernote_tag_in_anki")
-
-    def turnAsBoolean(self,key):
-        self.dictOptions[key]=(self.dictOptions[key]=="true")
-
-    def implodeTags(self,key):
-        array=self.dictOptions[key].split(",")
-        self.dictOptions[key]=array
 
 class Anki:
     def addEvernoteCards(self, evernoteCards,deck,tag):
@@ -214,13 +192,11 @@ class Evernote:
 
 class Controller:
     def __init__(self):
-        self.options=Options(PATH+"/evernoteLib/options.cfg")
-        self.options.getOptions(0)
-        self.evernoteTags=self.options.dictOptions["tags_to_import_from_evernote"]
-        self.ankiTag=self.options.dictOptions["default_tag_in_anki"]
-        self.evernoteToken=self.options.dictOptions["evernote_token"]
-        self.keepTags=self.options.dictOptions["keep_evernote_tag_in_anki"]
-        self.deck=self.options.dictOptions["default_deck"]
+        self.evernoteTags=mw.col.conf.get('evernoteTagsToImport', "").split(",")
+        self.ankiTag=mw.col.conf.get('evernoteDefaultTag', "")
+        self.evernoteToken=mw.col.conf.get('evernoteDevKey', "")
+        self.keepTags= mw.col.conf.get('evernoteKeepTags', False)=="True"
+        self.deck = mw.col.conf.get('evernoteDefaultDeck', "")
         self.anki = Anki()
         self.anki.add_evernote_model()
         self.evernote = Evernote(self.evernoteToken)
@@ -260,3 +236,71 @@ def main():
 action = aqt.qt.QAction("Import from Evernote", aqt.mw)
 aqt.mw.connect(action,  aqt.qt.SIGNAL("triggered()"), main)
 aqt.mw.form.menuTools.addAction(action)
+
+def setupEverNote(self):
+        global evernoteDevKey
+        global evernoteDefaultDeck
+        global evernoteDefaultTag
+        global evernoteTagsToImport
+        global keepEvernoteTags
+
+        layoutTab = self.form.tab_1.layout()
+        groupBox = QGroupBox("Evernote Importer")
+        layout = QVBoxLayout()
+
+        #Default Deck
+        evernoteDefaultDeckLabel = QLabel("Default Deck:")
+        evernoteDefaultDeck = QLineEdit()
+        evernoteDefaultDeck.setText(mw.col.conf.get('evernoteDefaultDeck', ""))
+        layout.insertWidget(int(layout.count())+1, evernoteDefaultDeckLabel)
+        layout.insertWidget(int(layout.count())+2, evernoteDefaultDeck)
+        evernoteDefaultDeck.connect(evernoteDefaultDeck, SIGNAL("editingFinished()"), updateEvernoteDefaultDeck)
+
+        #Default Tag
+        evernoteDefaultTagLabel = QLabel("Default Tag:")
+        evernoteDefaultTag = QLineEdit()
+        evernoteDefaultTag.setText(mw.col.conf.get('evernoteDefaultTag', ""))
+        layout.insertWidget(int(layout.count())+1, evernoteDefaultTagLabel)
+        layout.insertWidget(int(layout.count())+2, evernoteDefaultTag)
+        evernoteDefaultTag.connect(evernoteDefaultTag, SIGNAL("editingFinished()"), updateEvernoteDefaultTag)
+
+        #Tags to import
+        evernoteTagsToImportLabel = QLabel("Tags to import:")
+        evernoteTagsToImport = QLineEdit()
+        evernoteTagsToImport.setText(mw.col.conf.get('evernoteTagsToImport', ""))
+        layout.insertWidget(int(layout.count())+1, evernoteTagsToImportLabel)
+        layout.insertWidget(int(layout.count())+2, evernoteTagsToImport)
+        evernoteTagsToImport.connect(evernoteTagsToImport, SIGNAL("editingFinished()"), updateEvernoteTagsToImport)
+
+        #Dev Token
+        evernoteDevKeyLabel = QLabel("Evernote Development Key:")
+        evernoteDevKey = QLineEdit()
+        evernoteDevKey.setText(mw.col.conf.get('evernoteDevKey', ""))
+        layout.insertWidget(int(layout.count())+1, evernoteDevKeyLabel)
+        layout.insertWidget(int(layout.count())+2, evernoteDevKey)
+        evernoteDevKey.connect(evernoteDevKey, SIGNAL("editingFinished()"), updateEvernoteDevKey)
+
+        #keep evernote tags
+        keepEvernoteTags = QCheckBox("Keep Evernote Tags", self)
+        keepEvernoteTags.setChecked(mw.col.conf.get('evernoteKeepTags', False))
+        keepEvernoteTags.stateChanged.connect(updateEvernoteKeepTags)
+        layout.insertWidget(int(layout.count())+1, keepEvernoteTags)
+        groupBox.setLayout(layout)
+        layoutTab.insertWidget(int(layout.count())+1, groupBox)
+
+def updateEvernoteDefaultDeck():
+        mw.col.conf['evernoteDefaultDeck'] = evernoteDefaultDeck.text()
+
+def updateEvernoteDefaultTag():
+        mw.col.conf['evernoteDefaultTag'] = evernoteDefaultTag.text()
+
+def updateEvernoteTagsToImport():
+        mw.col.conf['evernoteTagsToImport'] = evernoteTagsToImport.text()
+
+def updateEvernoteDevKey():
+        mw.col.conf['evernoteDevKey'] = evernoteDevKey.text()
+
+def updateEvernoteKeepTags():
+        mw.col.conf['evernoteKeepTags'] = keepEvernoteTags.isChecked()
+
+Preferences.setupOptions = wrap(Preferences.setupOptions, setupEverNote)
