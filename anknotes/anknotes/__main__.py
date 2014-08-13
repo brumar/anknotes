@@ -271,7 +271,6 @@ aqt.mw.connect(action,  aqt.qt.SIGNAL("triggered()"), main)
 aqt.mw.form.menuTools.addAction(action)
 
 def setupEverNote(self):
-        global evernoteDevKey
         global evernoteDefaultDeck
         global evernoteDefaultTag
         global evernoteTagsToImport
@@ -305,14 +304,6 @@ def setupEverNote(self):
         layout.insertWidget(int(layout.count())+2, evernoteTagsToImport)
         evernoteTagsToImport.connect(evernoteTagsToImport, SIGNAL("editingFinished()"), updateEvernoteTagsToImport)
 
-        #Dev Token
-        evernoteDevKeyLabel = QLabel("Evernote Development Key:")
-        evernoteDevKey = QLineEdit()
-        evernoteDevKey.setText(mw.col.conf.get('evernoteDevKey', ""))
-        layout.insertWidget(int(layout.count())+1, evernoteDevKeyLabel)
-        layout.insertWidget(int(layout.count())+2, evernoteDevKey)
-        evernoteDevKey.connect(evernoteDevKey, SIGNAL("editingFinished()"), updateEvernoteDevKey)
-
         #keep evernote tags
         keepEvernoteTags = QCheckBox("Keep Evernote Tags", self)
         keepEvernoteTags.setChecked(mw.col.conf.get('evernoteKeepTags', False))
@@ -329,9 +320,6 @@ def updateEvernoteDefaultTag():
 
 def updateEvernoteTagsToImport():
         mw.col.conf['evernoteTagsToImport'] = evernoteTagsToImport.text()
-
-def updateEvernoteDevKey():
-        mw.col.conf['evernoteDevKey'] = evernoteDevKey.text()
 
 def updateEvernoteKeepTags():
         mw.col.conf['evernoteKeepTags'] = keepEvernoteTags.isChecked()
