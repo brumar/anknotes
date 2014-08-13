@@ -21,6 +21,7 @@ from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import *
 from aqt import mw
+from anki import db
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
@@ -161,18 +162,15 @@ class Evernote:
                 consumer_secret='3bf7025133a7e276',
                 sandbox=True
             )
-            request_token = client.get_request_token('http://localhost')
+            request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
             url = client.get_authorize_url(request_token)
             showInfo("We will open a Evernote Tab in your browser so you can allow acces to your account")
             openLink(url)
-            authurl = getText(prompt="Please copy the url that showed up after allowing access in here")[0]
-
-            #authurl = raw_input()
-            vals = self.parse_query_string(authurl)
+            oauth_verifier = getText(prompt="Please copy the code that showed up, after allowing access, in here")[0]
             auth_token = client.get_access_token(
                         request_token.get('oauth_token'),
                         request_token.get('oauth_token_secret'),
-                        vals.get('oauth_verifier')
+                        oauth_verifier
                     )
             mw.col.conf['evernoteToken'] = auth_token
         else:
