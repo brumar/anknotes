@@ -17,12 +17,18 @@ from evernote.api.client import EvernoteClient
 import os, re, codecs
 import PyQt4.QtNetwork
 import aqt
+<<<<<<< HEAD:Evernote.py
+from aqt.utils import showInfo
+
+
+=======
 from anki.hooks import wrap
 from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import *
 from aqt import mw
 from anki import db
+>>>>>>> 3b3bacf2d0ed6081eca520d9a329fd6b876e167c:anknotes/anknotes/__main__.py
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
@@ -248,7 +254,7 @@ class Evernote:
 
 class Controller:
     def __init__(self):
-        self.options=Options(PATH+"/evernoteLib/options.cfg")
+        self.options=Options(PATH+"/anknotes/options.cfg")
         self.options.getOptions(0)
         self.evernoteTags=self.options.dictOptions["tags_to_import_from_evernote"]
         self.ankiTag=self.options.dictOptions["default_tag_in_anki"]
@@ -294,6 +300,8 @@ def main():
 action = aqt.qt.QAction("Import from Evernote", aqt.mw)
 aqt.mw.connect(action,  aqt.qt.SIGNAL("triggered()"), main)
 aqt.mw.form.menuTools.addAction(action)
+<<<<<<< HEAD:Evernote.py
+=======
 
 def setupEverNote(self):
         global evernoteDefaultDeck
@@ -350,3 +358,4 @@ def updateEvernoteKeepTags():
         mw.col.conf['evernoteKeepTags'] = keepEvernoteTags.isChecked()
 
 Preferences.setupOptions = wrap(Preferences.setupOptions, setupEverNote)
+>>>>>>> 3b3bacf2d0ed6081eca520d9a329fd6b876e167c:anknotes/anknotes/__main__.py
