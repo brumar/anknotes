@@ -158,8 +158,8 @@ class Evernote:
         if not mw.col.conf.get('evernoteToken', False):
             #First run of the Plugin we did not save the access key yet
             client = EvernoteClient(
-                consumer_key='scriptkiddi',
-                consumer_secret='3bf7025133a7e276',
+                consumer_key='scriptkiddi-2682',
+                consumer_secret='965f1873e4df583c',
                 sandbox=True
             )
             request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
