@@ -6,17 +6,17 @@
 #  options string: py:new_style
 #
 
-from thrift.Thrift import TType, TMessageType, TException, TApplicationException
-import evernote.edam.userstore.ttypes
-import evernote.edam.type.ttypes
-import evernote.edam.error.ttypes
-import evernote.edam.limits.ttypes
+from anknotes.thrift.Thrift import TType, TMessageType, TException, TApplicationException
+import anknotes.evernote.edam.userstore.ttypes
+import anknotes.evernote.edam.type.ttypes
+import anknotes.evernote.edam.error.ttypes
+import anknotes.evernote.edam.limits.ttypes
 
 
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol, TProtocol
+from anknotes.thrift.transport import TTransport
+from anknotes.thrift.protocol import TBinaryProtocol, TProtocol
 try:
-  from thrift.protocol import fastbinary
+  from anknotes.thrift.protocol import fastbinary
 except:
   fastbinary = None
 
@@ -292,16 +292,16 @@ class SyncChunk(object):
     (1, TType.I64, 'currentTime', None, None, ), # 1
     (2, TType.I32, 'chunkHighUSN', None, None, ), # 2
     (3, TType.I32, 'updateCount', None, None, ), # 3
-    (4, TType.LIST, 'notes', (TType.STRUCT,(evernote.edam.type.ttypes.Note, evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 4
-    (5, TType.LIST, 'notebooks', (TType.STRUCT,(evernote.edam.type.ttypes.Notebook, evernote.edam.type.ttypes.Notebook.thrift_spec)), None, ), # 5
-    (6, TType.LIST, 'tags', (TType.STRUCT,(evernote.edam.type.ttypes.Tag, evernote.edam.type.ttypes.Tag.thrift_spec)), None, ), # 6
-    (7, TType.LIST, 'searches', (TType.STRUCT,(evernote.edam.type.ttypes.SavedSearch, evernote.edam.type.ttypes.SavedSearch.thrift_spec)), None, ), # 7
-    (8, TType.LIST, 'resources', (TType.STRUCT,(evernote.edam.type.ttypes.Resource, evernote.edam.type.ttypes.Resource.thrift_spec)), None, ), # 8
+    (4, TType.LIST, 'notes', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Note, anknotes.evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 4
+    (5, TType.LIST, 'notebooks', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Notebook, anknotes.evernote.edam.type.ttypes.Notebook.thrift_spec)), None, ), # 5
+    (6, TType.LIST, 'tags', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Tag, anknotes.evernote.edam.type.ttypes.Tag.thrift_spec)), None, ), # 6
+    (7, TType.LIST, 'searches', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.SavedSearch, anknotes.evernote.edam.type.ttypes.SavedSearch.thrift_spec)), None, ), # 7
+    (8, TType.LIST, 'resources', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Resource, anknotes.evernote.edam.type.ttypes.Resource.thrift_spec)), None, ), # 8
     (9, TType.LIST, 'expungedNotes', (TType.STRING,None), None, ), # 9
     (10, TType.LIST, 'expungedNotebooks', (TType.STRING,None), None, ), # 10
     (11, TType.LIST, 'expungedTags', (TType.STRING,None), None, ), # 11
     (12, TType.LIST, 'expungedSearches', (TType.STRING,None), None, ), # 12
-    (13, TType.LIST, 'linkedNotebooks', (TType.STRUCT,(evernote.edam.type.ttypes.LinkedNotebook, evernote.edam.type.ttypes.LinkedNotebook.thrift_spec)), None, ), # 13
+    (13, TType.LIST, 'linkedNotebooks', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.LinkedNotebook, anknotes.evernote.edam.type.ttypes.LinkedNotebook.thrift_spec)), None, ), # 13
     (14, TType.LIST, 'expungedLinkedNotebooks', (TType.STRING,None), None, ), # 14
   )
 
@@ -350,7 +350,7 @@ class SyncChunk(object):
           self.notes = []
           (_etype3, _size0) = iprot.readListBegin()
           for _i4 in xrange(_size0):
-            _elem5 = evernote.edam.type.ttypes.Note()
+            _elem5 = anknotes.evernote.edam.type.ttypes.Note()
             _elem5.read(iprot)
             self.notes.append(_elem5)
           iprot.readListEnd()
@@ -361,7 +361,7 @@ class SyncChunk(object):
           self.notebooks = []
           (_etype9, _size6) = iprot.readListBegin()
           for _i10 in xrange(_size6):
-            _elem11 = evernote.edam.type.ttypes.Notebook()
+            _elem11 = anknotes.evernote.edam.type.ttypes.Notebook()
             _elem11.read(iprot)
             self.notebooks.append(_elem11)
           iprot.readListEnd()
@@ -372,7 +372,7 @@ class SyncChunk(object):
           self.tags = []
           (_etype15, _size12) = iprot.readListBegin()
           for _i16 in xrange(_size12):
-            _elem17 = evernote.edam.type.ttypes.Tag()
+            _elem17 = anknotes.evernote.edam.type.ttypes.Tag()
             _elem17.read(iprot)
             self.tags.append(_elem17)
           iprot.readListEnd()
@@ -383,7 +383,7 @@ class SyncChunk(object):
           self.searches = []
           (_etype21, _size18) = iprot.readListBegin()
           for _i22 in xrange(_size18):
-            _elem23 = evernote.edam.type.ttypes.SavedSearch()
+            _elem23 = anknotes.evernote.edam.type.ttypes.SavedSearch()
             _elem23.read(iprot)
             self.searches.append(_elem23)
           iprot.readListEnd()
@@ -394,7 +394,7 @@ class SyncChunk(object):
           self.resources = []
           (_etype27, _size24) = iprot.readListBegin()
           for _i28 in xrange(_size24):
-            _elem29 = evernote.edam.type.ttypes.Resource()
+            _elem29 = anknotes.evernote.edam.type.ttypes.Resource()
             _elem29.read(iprot)
             self.resources.append(_elem29)
           iprot.readListEnd()
@@ -445,7 +445,7 @@ class SyncChunk(object):
           self.linkedNotebooks = []
           (_etype57, _size54) = iprot.readListBegin()
           for _i58 in xrange(_size54):
-            _elem59 = evernote.edam.type.ttypes.LinkedNotebook()
+            _elem59 = anknotes.evernote.edam.type.ttypes.LinkedNotebook()
             _elem59.read(iprot)
             self.linkedNotebooks.append(_elem59)
           iprot.readListEnd()
@@ -1157,7 +1157,7 @@ class NoteList(object):
     None, # 0
     (1, TType.I32, 'startIndex', None, None, ), # 1
     (2, TType.I32, 'totalNotes', None, None, ), # 2
-    (3, TType.LIST, 'notes', (TType.STRUCT,(evernote.edam.type.ttypes.Note, evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 3
+    (3, TType.LIST, 'notes', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Note, anknotes.evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 3
     (4, TType.LIST, 'stoppedWords', (TType.STRING,None), None, ), # 4
     (5, TType.LIST, 'searchedWords', (TType.STRING,None), None, ), # 5
     (6, TType.I32, 'updateCount', None, None, ), # 6
@@ -1195,7 +1195,7 @@ class NoteList(object):
           self.notes = []
           (_etype87, _size84) = iprot.readListBegin()
           for _i88 in xrange(_size84):
-            _elem89 = evernote.edam.type.ttypes.Note()
+            _elem89 = anknotes.evernote.edam.type.ttypes.Note()
             _elem89.read(iprot)
             self.notes.append(_elem89)
           iprot.readListEnd()
@@ -1347,7 +1347,7 @@ class NoteMetadata(object):
     (11, TType.STRING, 'notebookGuid', None, None, ), # 11
     (12, TType.LIST, 'tagGuids', (TType.STRING,None), None, ), # 12
     None, # 13
-    (14, TType.STRUCT, 'attributes', (evernote.edam.type.ttypes.NoteAttributes, evernote.edam.type.ttypes.NoteAttributes.thrift_spec), None, ), # 14
+    (14, TType.STRUCT, 'attributes', (anknotes.evernote.edam.type.ttypes.NoteAttributes, anknotes.evernote.edam.type.ttypes.NoteAttributes.thrift_spec), None, ), # 14
     None, # 15
     None, # 16
     None, # 17
@@ -1432,7 +1432,7 @@ class NoteMetadata(object):
           iprot.skip(ftype)
       elif fid == 14:
         if ftype == TType.STRUCT:
-          self.attributes = evernote.edam.type.ttypes.NoteAttributes()
+          self.attributes = anknotes.evernote.edam.type.ttypes.NoteAttributes()
           self.attributes.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2123,7 +2123,7 @@ class NoteEmailParameters(object):
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'guid', None, None, ), # 1
-    (2, TType.STRUCT, 'note', (evernote.edam.type.ttypes.Note, evernote.edam.type.ttypes.Note.thrift_spec), None, ), # 2
+    (2, TType.STRUCT, 'note', (anknotes.evernote.edam.type.ttypes.Note, anknotes.evernote.edam.type.ttypes.Note.thrift_spec), None, ), # 2
     (3, TType.LIST, 'toAddresses', (TType.STRING,None), None, ), # 3
     (4, TType.LIST, 'ccAddresses', (TType.STRING,None), None, ), # 4
     (5, TType.STRING, 'subject', None, None, ), # 5
@@ -2154,7 +2154,7 @@ class NoteEmailParameters(object):
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.note = evernote.edam.type.ttypes.Note()
+          self.note = anknotes.evernote.edam.type.ttypes.Note()
           self.note.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2630,10 +2630,10 @@ class RelatedResult(object):
 
   thrift_spec = (
     None, # 0
-    (1, TType.LIST, 'notes', (TType.STRUCT,(evernote.edam.type.ttypes.Note, evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 1
-    (2, TType.LIST, 'notebooks', (TType.STRUCT,(evernote.edam.type.ttypes.Notebook, evernote.edam.type.ttypes.Notebook.thrift_spec)), None, ), # 2
-    (3, TType.LIST, 'tags', (TType.STRUCT,(evernote.edam.type.ttypes.Tag, evernote.edam.type.ttypes.Tag.thrift_spec)), None, ), # 3
-    (4, TType.LIST, 'containingNotebooks', (TType.STRUCT,(evernote.edam.type.ttypes.NotebookDescriptor, evernote.edam.type.ttypes.NotebookDescriptor.thrift_spec)), None, ), # 4
+    (1, TType.LIST, 'notes', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Note, anknotes.evernote.edam.type.ttypes.Note.thrift_spec)), None, ), # 1
+    (2, TType.LIST, 'notebooks', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Notebook, anknotes.evernote.edam.type.ttypes.Notebook.thrift_spec)), None, ), # 2
+    (3, TType.LIST, 'tags', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.Tag, anknotes.evernote.edam.type.ttypes.Tag.thrift_spec)), None, ), # 3
+    (4, TType.LIST, 'containingNotebooks', (TType.STRUCT,(anknotes.evernote.edam.type.ttypes.NotebookDescriptor, anknotes.evernote.edam.type.ttypes.NotebookDescriptor.thrift_spec)), None, ), # 4
   )
 
   def __init__(self, notes=None, notebooks=None, tags=None, containingNotebooks=None,):
@@ -2656,7 +2656,7 @@ class RelatedResult(object):
           self.notes = []
           (_etype168, _size165) = iprot.readListBegin()
           for _i169 in xrange(_size165):
-            _elem170 = evernote.edam.type.ttypes.Note()
+            _elem170 = anknotes.evernote.edam.type.ttypes.Note()
             _elem170.read(iprot)
             self.notes.append(_elem170)
           iprot.readListEnd()
@@ -2667,7 +2667,7 @@ class RelatedResult(object):
           self.notebooks = []
           (_etype174, _size171) = iprot.readListBegin()
           for _i175 in xrange(_size171):
-            _elem176 = evernote.edam.type.ttypes.Notebook()
+            _elem176 = anknotes.evernote.edam.type.ttypes.Notebook()
             _elem176.read(iprot)
             self.notebooks.append(_elem176)
           iprot.readListEnd()
@@ -2678,7 +2678,7 @@ class RelatedResult(object):
           self.tags = []
           (_etype180, _size177) = iprot.readListBegin()
           for _i181 in xrange(_size177):
-            _elem182 = evernote.edam.type.ttypes.Tag()
+            _elem182 = anknotes.evernote.edam.type.ttypes.Tag()
             _elem182.read(iprot)
             self.tags.append(_elem182)
           iprot.readListEnd()
@@ -2689,7 +2689,7 @@ class RelatedResult(object):
           self.containingNotebooks = []
           (_etype186, _size183) = iprot.readListBegin()
           for _i187 in xrange(_size183):
-            _elem188 = evernote.edam.type.ttypes.NotebookDescriptor()
+            _elem188 = anknotes.evernote.edam.type.ttypes.NotebookDescriptor()
             _elem188.read(iprot)
             self.containingNotebooks.append(_elem188)
           iprot.readListEnd()

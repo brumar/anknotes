@@ -17,7 +17,7 @@
 # under the License.
 #
 
-from thrift.Thrift import *
+from anknotes.thrift.Thrift import *
 
 class TProtocolException(TException):
 
