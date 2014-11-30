@@ -14,5 +14,5 @@ try:
     __version__ = pyutil_Version(verstr)
 except (ImportError, ValueError):
     # Maybe there is no pyutil installed.
-    from distutils.version import LooseVersion as distutils_Version
+    from anknotes.distutils.version import LooseVersion as distutils_Version
     __version__ = distutils_Version(verstr)

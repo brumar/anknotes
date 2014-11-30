@@ -3,7 +3,6 @@ import os, sys, inspect
 
 
 import re
-import ConfigParser
 import anki
 import hashlib
 import binascii
