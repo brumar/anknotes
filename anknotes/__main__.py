@@ -161,7 +161,7 @@ class Evernote:
             client = EvernoteClient(
                 consumer_key='scriptkiddi-2682',
                 consumer_secret='965f1873e4df583c',
-                sandbox=True
+                sandbox=False
             )
             request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
             url = client.get_authorize_url(request_token)
@@ -177,7 +177,7 @@ class Evernote:
         else:
             auth_token = mw.col.conf.get('evernoteToken', False)
         self.token = auth_token
-        self.client= EvernoteClient(token=auth_token, sandbox=True)
+        self.client= EvernoteClient(token=auth_token, sandbox=False)
         self.noteStore=self.client.get_note_store()
 
     def parse_query_string(self, authorize_url):
