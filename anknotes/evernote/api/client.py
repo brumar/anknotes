@@ -2,7 +2,7 @@ import sys
 import functools
 import inspect
 import re
-import oauthlib.oauth2 as oauth
+import anknotes.oauth2 as oauth
 import urllib
 import urlparse
 
