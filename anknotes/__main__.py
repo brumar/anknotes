@@ -176,6 +176,7 @@ class Evernote:
             mw.col.conf['evernoteToken'] = auth_token
         else:
             auth_token = mw.col.conf.get('evernoteToken', False)
+        self.token = auth_token
         self.client= EvernoteClient(token=auth_token, sandbox=True)
         self.noteStore=self.client.get_note_store()
 
