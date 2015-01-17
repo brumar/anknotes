@@ -676,8 +676,9 @@ class Client(httplib2.Http):
             uri = req.to_url()
         else:
             headers.update(req.to_header(realm=realm))
-
-        return httplib2.Http.request(self, uri, method=method, body=body,
+        h = httplib2.Http()
+        h.disable_ssl_certificate_validation = True
+        return h.request(uri, method=method, body=body,
             headers=headers, redirections=redirections,
             connection_type=connection_type)
 
