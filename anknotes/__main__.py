@@ -1,75 +1,65 @@
-import os, sys, inspect
- # use this if you want to include modules from a subforder
+import os
 
-
-import re
-import anki
-import hashlib
-import binascii
-import thrift
 from thrift.Thrift import *
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
-import evernote.edam.userstore.constants as UserStoreConstants
-import evernote.edam.type.ttypes as Types
 from evernote.api.client import EvernoteClient
-import os, re, codecs
-import PyQt4.QtNetwork
+
+import anki
 import aqt
 from anki.hooks import wrap
 from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
-from aqt.qt import *
+from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox
 from aqt import mw
-from anki import db
 
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
 
-PATH=os.path.dirname(os.path.abspath(__file__))
-ONLY_ADD_NEW=True
-EVERNOTE_MODEL="evernote_note"
-TITLE_FIELD_NAME="title"
-CONTENT_FIELD_NAME="content"
-GUID_FIELD_NAME="Evernote Guid"
+PATH = os.path.dirname(os.path.abspath(__file__))
+ONLY_ADD_NEW = True
+EVERNOTE_MODEL = "evernote_note"
+TITLE_FIELD_NAME = "title"
+CONTENT_FIELD_NAME = "content"
+GUID_FIELD_NAME = "Evernote Guid"
+
 
 class Anki:
-    def addEvernoteCards(self, evernoteCards,deck,tag):
-        count=0
-        modelName=EVERNOTE_MODEL
-        for card in evernoteCards:
-            ankiFieldInfo = {}
-            ankiFieldInfo[TITLE_FIELD_NAME] = card.front.decode('utf-8')
-            ankiFieldInfo[CONTENT_FIELD_NAME] = card.back.decode('utf-8')
-            ankiFieldInfo[GUID_FIELD_NAME]=card.guid
-            noteId = self.addNote(deck, modelName,ankiFieldInfo, tag)
-            count+=1
-        self.stopEditing()
+    def add_evernote_cards(self, evernote_cards, deck, tag):
+        count = 0
+        model_name = EVERNOTE_MODEL
+        for card in evernote_cards:
+            anki_field_info = {"TITLE_FIELD_NAME": card.front.decode('utf-8'),
+                               "CONTENT_FIELD_NAME": card.back.decode('utf-8'),
+                               "GUID_FIELD_NAME": card.guid}
+            note_id = self.add_note(deck, model_name, anki_field_info, tag)
+            count += 1
+        self.stop_editing()
         return count
 
-    def addNote(self, deckName, modelName, fields, tags=list()):
-        note = self.createNote(deckName, modelName, fields, tags)
+    def add_note(self, deck_name, model_name, fields, tags=list()):
+        note = self.create_note(deck_name, model_name, fields, tags)
         if note is not None:
             collection = self.collection()
-            collection.addNote(note)
+            collection.add_note(note)
             collection.autosave()
-            self.startEditing()
-            showTooltip("Note added.", 1000);
+            self.start_editing()
+            show_tooltip("Note added.", 1000)
             return note.id
 
-    def createNote(self, deckName, modelName, fields, tags=list()):
-        idDeck=self.decks().id(deckName)
-        model=self.models().byName(modelName)
-        col=self.collection()
-        note = anki.notes.Note(col,model)
-        note.model()['did'] = idDeck
-        tags=[tags]
+    def create_note(self, deck_name, model_name, fields, tags=list()):
+        id_deck = self.decks().id(deck_name)
+        model = self.models().byName(model_name)
+        col = self.collection()
+        note = anki.notes.Note(col, model)
+        note.model()['did'] = id_deck
+        tags = [tags]
         note.tags = tags
         for name, value in fields.items():
             note[name] = value
         return note
 
-    def add_evernote_model(self): #adapted from the IREAD plug-in from Frank
+    def add_evernote_model(self):  # adapted from the IREAD plug-in from Frank
         col = self.collection()
         mm = col.models
         evernote_model = mm.byName(EVERNOTE_MODEL)
@@ -99,36 +89,30 @@ class Anki:
             source_ord, source_field = fmap[GUID_FIELD_NAME]
             source_field['sticky'] = False
 
-    def getGuidsFromAnkiId(self,ids):
-        guids=[]
+    def get_guids_from_anki_id(self,ids):
+        guids = []
         for a_id in ids:
             card = self.collection().getCard(a_id)
-            items=card.note().items()
-            if(len(items)==3):
-                guids.append(items[2][1])#not a very smart access
+            items = card.note().items()
+            if len(items) == 3:
+                guids.append(items[2][1])  # not a very smart access
         return guids
 
-    def canAddNote(self, deckName, modelName, fields):
-        return bool(self.createNote(deckName, modelName, fields))
+    def can_add_note(self, deck_name, model_name, fields):
+        return bool(self.create_note(deck_name, model_name, fields))
 
-
-
-
-    def getCardsIdFromTag(self,tag):
-        query="tag:"+tag
+    def get_cards_id_from_tag(self, tag):
+        query = "tag:"+tag
         ids = self.collection().findCards(query)
-        showTooltip(ids)
+        show_tooltip(ids)
         return ids
 
-
-    def startEditing(self):
+    def start_editing(self):
         self.window().requireReset()
 
-
-    def stopEditing(self):
+    def stop_editing(self):
         if self.collection():
             self.window().maybeReset()
-
 
     def window(self):
         return aqt.mw
@@ -144,19 +128,21 @@ class Anki:
 
 
 class EvernoteCard:
-    front=""
-    back=""
-    guid=""
-    def __init__(self, q, a,g):
-        self.front=q
-        self.back=a
-        self.guid=g
+    front = ""
+    back = ""
+    guid = ""
+
+    def __init__(self, q, a, g):
+        self.front = q
+        self.back = a
+        self.guid = g
+
 
 class Evernote:
 
-    def __init__(self,token):
+    def __init__(self):
         if not mw.col.conf.get('evernoteToken', False):
-            #First run of the Plugin we did not save the access key yet
+            # First run of the Plugin we did not save the access key yet
             client = EvernoteClient(
                 consumer_key='scriptkiddi-2682',
                 consumer_secret='965f1873e4df583c',
@@ -164,163 +150,155 @@ class Evernote:
             )
             request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
             url = client.get_authorize_url(request_token)
-            showInfo("We will open a Evernote Tab in your browser so you can allow acces to your account")
+            showInfo("We will open a Evernote Tab in your browser so you can allow access to your account")
             openLink(url)
             oauth_verifier = getText(prompt="Please copy the code that showed up, after allowing access, in here")[0]
             auth_token = client.get_access_token(
-                        request_token.get('oauth_token'),
-                        request_token.get('oauth_token_secret'),
-                        oauth_verifier
-                    )
+                request_token.get('oauth_token'),
+                request_token.get('oauth_token_secret'),
+                oauth_verifier)
             mw.col.conf['evernoteToken'] = auth_token
         else:
             auth_token = mw.col.conf.get('evernoteToken', False)
         self.token = auth_token
-        self.client= EvernoteClient(token=auth_token, sandbox=False)
-        self.noteStore=self.client.get_note_store()
+        self.client = EvernoteClient(token=auth_token, sandbox=False)
+        self.noteStore = self.client.get_note_store()
 
-    def parse_query_string(self, authorize_url):
-        """Extract the oauth_verifier from the passed url."""
-        uargs = authorize_url.split('?')
-        vals = {}
-        if len(uargs) == 1:
-            raise Exception('Invalid Authorization URL')
-        for pair in uargs[1].split('&'):
-            key, value = pair.split('=', 1)
-            vals.update({key:value})
-        return vals
+    def find_tag_guid(self, tag):
+        list_tags = self.noteStore.listTags()
+        for evernote_tag in list_tags:
+            if str(evernote_tag.name).strip() == str(tag).strip():
+                return evernote_tag.guid
 
-    def findTagGuid(self,tag):
-        listtags = self.noteStore.listTags()
-        for evtag in listtags:
-            if(evtag.name==tag):
-                return evtag.guid
-
-    def createEvernoteCards(self,guidSet):
-        cards=[]
-        for g in guidSet:
-            title,content=self.getNoteInformations(g)
-            cards.append(EvernoteCard(title,content,g))
+    def create_evernote_cards(self, guid_set):
+        cards = []
+        for g in guid_set:
+            title, content = self.get_note_informations(g)
+            cards.append(EvernoteCard(title, content, g))
         return cards
 
-
-    def findNotesFilterByTagGuids(self,guidsList):
-        Evfilter = NoteFilter()
-        Evfilter.ascending = False
-        Evfilter.tagGuids = guidsList
+    def find_notes_filter_by_tag_guids(self, guids_list):
+        evernote_filter = NoteFilter()
+        evernote_filter.ascending = False
+        evernote_filter.tagGuids = guids_list
         spec = NotesMetadataResultSpec()
         spec.includeTitle = True
-        noteList=self.noteStore.findNotesMetadata(self.token, Evfilter, 0, 10000, spec)
-        guids=[]
-        for note in noteList.notes:
+        note_list = self.noteStore.findNotesMetadata(self.token, evernote_filter, 0, 10000, spec)
+        guids = []
+        for note in note_list.notes:
             guids.append(note.guid)
-            print(note.guid)
         return guids
 
-    def getNoteInformations(self,noteguid):
-        wholeNote = self.noteStore.getNote(self.token, noteguid,True,True,False,False)
-        return wholeNote.title, wholeNote.content
+    def get_note_informations(self, note_guid):
+        whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
+        return whole_note.title, whole_note.content
 
 
 class Controller:
     def __init__(self):
-        self.evernoteTags=mw.col.conf.get('evernoteTagsToImport', "").split(",")
-        self.ankiTag=mw.col.conf.get('evernoteDefaultTag', "")
-        self.evernoteToken=mw.col.conf.get('evernoteDevKey', "")
-        self.keepTags= mw.col.conf.get('evernoteKeepTags', False)=="True"
+        self.evernoteTags = mw.col.conf.get('evernoteTagsToImport', "").split(",")
+        self.ankiTag = mw.col.conf.get('evernoteDefaultTag', "")
+        self.keepTags = mw.col.conf.get('evernoteKeepTags', False) == "True"
         self.deck = mw.col.conf.get('evernoteDefaultDeck', "")
         self.anki = Anki()
         self.anki.add_evernote_model()
-        self.evernote = Evernote(self.evernoteToken)
+        self.evernote = Evernote()
 
     def proceed(self):
-        anki_ids=self.anki.getCardsIdFromTag(self.ankiTag)
-        anki_guids=self.anki.getGuidsFromAnkiId(anki_ids)
-        evernote_guids=self.getEvernoteGuidsFromTag(self.evernoteTags)
-        if (ONLY_ADD_NEW):
-            noteGuidsToImport=set(evernote_guids)-set(anki_guids)
-            n=self.ImportIntoAnki(noteGuidsToImport,self.deck,self.ankiTag)
-            showTooltip(str(n) +" cards have been imported")
+        anki_ids = self.anki.get_cards_id_from_tag(self.ankiTag)
+        anki_guids = self.anki.get_guids_from_anki_id(anki_ids)
+        evernote_guids = self.get_evernote_guids_from_tag(self.evernoteTags)
+        if ONLY_ADD_NEW:
+            note_guids_to_import = set(evernote_guids)-set(anki_guids)
+            n = self.import_into_anki(note_guids_to_import, self.deck, self.ankiTag)
+            show_tooltip(str(n) + " cards have been imported")
 
-
-    def ImportIntoAnki(self,guidSet,deck,tag):
-        cards=self.evernote.createEvernoteCards(guidSet)
-        number=self.anki.addEvernoteCards(cards,deck,tag)
+    def import_into_anki(self, guid_set, deck, tag):
+        cards = self.evernote.create_evernote_cards(guid_set)
+        number = self.anki.add_evernote_cards(cards, deck, tag)
         return number
 
-
-    def getEvernoteGuidsFromTag(self,tags):
-        noteGuids=[]
+    def get_evernote_guids_from_tag(self,tags):
+        note_guids = []
         for tag in tags:
-            tagGuid=self.evernote.findTagGuid(tag)
-            if(tagGuid is not None):
-                noteGuids=noteGuids+self.evernote.findNotesFilterByTagGuids([tagGuid])
-        return noteGuids
+            tag_guid = self.evernote.find_tag_guid(tag)
+            if tag_guid is not None:
+                note_guids = note_guids+self.evernote.find_notes_filter_by_tag_guids([tag_guid])
+        return note_guids
 
-def showTooltip(text, timeOut=3000):
-    aqt.utils.tooltip(text, timeOut)
+
+def show_tooltip(text, time_out=3000):
+    aqt.utils.tooltip(text, time_out)
+
 
 def main():
-    showTooltip(str())
-    controller=Controller()
+    show_tooltip(str())
+    controller = Controller()
     controller.proceed()
 
 action = aqt.qt.QAction("Import from Evernote", aqt.mw)
-aqt.mw.connect(action,  aqt.qt.SIGNAL("triggered()"), main)
+aqt.mw.connect(action, aqt.qt.SIGNAL("triggered()"), main)
 aqt.mw.form.menuTools.addAction(action)
 
-def setupEverNote(self):
-        global evernoteDefaultDeck
-        global evernoteDefaultTag
-        global evernoteTagsToImport
-        global keepEvernoteTags
 
-        layoutTab = self.form.tab_1.layout()
-        groupBox = QGroupBox("Evernote Importer")
+def setup_evernote(self):
+        global evernote_default_deck
+        global evernote_default_tag
+        global evernote_tags_to_import
+        global keep_evernote_tags
+
+        layout_tab = self.form.tab_1.layout()
+        group_box = QGroupBox("Evernote Importer")
         layout = QVBoxLayout()
 
-        #Default Deck
-        evernoteDefaultDeckLabel = QLabel("Default Deck:")
-        evernoteDefaultDeck = QLineEdit()
-        evernoteDefaultDeck.setText(mw.col.conf.get('evernoteDefaultDeck', ""))
-        layout.insertWidget(int(layout.count())+1, evernoteDefaultDeckLabel)
-        layout.insertWidget(int(layout.count())+2, evernoteDefaultDeck)
-        evernoteDefaultDeck.connect(evernoteDefaultDeck, SIGNAL("editingFinished()"), updateEvernoteDefaultDeck)
+        # Default Deck
+        evernote_default_deck_label = QLabel("Default Deck:")
+        evernote_default_deck = QLineEdit()
+        evernote_default_deck.setText(mw.col.conf.get('evernoteDefaultDeck', ""))
+        layout.insertWidget(int(layout.count())+1, evernote_default_deck_label)
+        layout.insertWidget(int(layout.count())+2, evernote_default_deck)
+        evernote_default_deck.connect(evernote_default_deck, SIGNAL("editingFinished()"), update_evernote_default_deck)
 
-        #Default Tag
-        evernoteDefaultTagLabel = QLabel("Default Tag:")
-        evernoteDefaultTag = QLineEdit()
-        evernoteDefaultTag.setText(mw.col.conf.get('evernoteDefaultTag', ""))
-        layout.insertWidget(int(layout.count())+1, evernoteDefaultTagLabel)
-        layout.insertWidget(int(layout.count())+2, evernoteDefaultTag)
-        evernoteDefaultTag.connect(evernoteDefaultTag, SIGNAL("editingFinished()"), updateEvernoteDefaultTag)
+        # Default Tag
+        evernote_default_tag_label = QLabel("Default Tag:")
+        evernote_default_tag = QLineEdit()
+        evernote_default_tag.setText(mw.col.conf.get('evernoteDefaultTag', ""))
+        layout.insertWidget(int(layout.count())+1, evernote_default_tag_label)
+        layout.insertWidget(int(layout.count())+2, evernote_default_tag)
+        evernote_default_tag.connect(evernote_default_tag, SIGNAL("editingFinished()"), update_evernote_default_tag)
 
-        #Tags to import
-        evernoteTagsToImportLabel = QLabel("Tags to import:")
-        evernoteTagsToImport = QLineEdit()
-        evernoteTagsToImport.setText(mw.col.conf.get('evernoteTagsToImport', ""))
-        layout.insertWidget(int(layout.count())+1, evernoteTagsToImportLabel)
-        layout.insertWidget(int(layout.count())+2, evernoteTagsToImport)
-        evernoteTagsToImport.connect(evernoteTagsToImport, SIGNAL("editingFinished()"), updateEvernoteTagsToImport)
+        # Tags to import
+        evernote_tags_to_import_label = QLabel("Tags to import:")
+        evernote_tags_to_import = QLineEdit()
+        evernote_tags_to_import.setText(mw.col.conf.get('evernoteTagsToImport', ""))
+        layout.insertWidget(int(layout.count())+1, evernote_tags_to_import_label)
+        layout.insertWidget(int(layout.count())+2, evernote_tags_to_import)
+        evernote_tags_to_import.connect(evernote_tags_to_import,
+                                        SIGNAL("editingFinished()"),
+                                        update_evernote_tags_to_import)
 
-        #keep evernote tags
-        keepEvernoteTags = QCheckBox("Keep Evernote Tags", self)
-        keepEvernoteTags.setChecked(mw.col.conf.get('evernoteKeepTags', False))
-        keepEvernoteTags.stateChanged.connect(updateEvernoteKeepTags)
-        layout.insertWidget(int(layout.count())+1, keepEvernoteTags)
-        groupBox.setLayout(layout)
-        layoutTab.insertWidget(int(layout.count())+1, groupBox)
+        # keep evernote tags
+        keep_evernote_tags = QCheckBox("Keep Evernote Tags", self)
+        keep_evernote_tags.setChecked(mw.col.conf.get('evernoteKeepTags', False))
+        keep_evernote_tags.stateChanged.connect(update_evernote_keep_tags)
+        layout.insertWidget(int(layout.count())+1, keep_evernote_tags)
+        group_box.setLayout(layout)
+        layout_tab.insertWidget(int(layout.count())+1, group_box)
 
-def updateEvernoteDefaultDeck():
-        mw.col.conf['evernoteDefaultDeck'] = evernoteDefaultDeck.text()
 
-def updateEvernoteDefaultTag():
-        mw.col.conf['evernoteDefaultTag'] = evernoteDefaultTag.text()
+def update_evernote_default_deck():
+        mw.col.conf['evernoteDefaultDeck'] = evernote_default_deck.text()
 
-def updateEvernoteTagsToImport():
-        mw.col.conf['evernoteTagsToImport'] = evernoteTagsToImport.text()
 
-def updateEvernoteKeepTags():
-        mw.col.conf['evernoteKeepTags'] = keepEvernoteTags.isChecked()
+def update_evernote_default_tag():
+        mw.col.conf['evernoteDefaultTag'] = evernote_default_tag.text()
 
-Preferences.setupOptions = wrap(Preferences.setupOptions, setupEverNote)
+
+def update_evernote_tags_to_import():
+        mw.col.conf['evernoteTagsToImport'] = evernote_tags_to_import.text()
+
+
+def update_evernote_keep_tags():
+        mw.col.conf['evernoteKeepTags'] = keep_evernote_tags.isChecked()
+
+Preferences.setupOptions = wrap(Preferences.setupOptions, setup_evernote)

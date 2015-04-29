@@ -7837,7 +7837,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = createNote_result()
     try:
-      result.success = self._handler.createNote(args.authenticationToken, args.note)
+      result.success = self._handler.create_note(args.authenticationToken, args.note)
     except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
     except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
