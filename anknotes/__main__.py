@@ -29,9 +29,9 @@ class Anki:
         count = 0
         model_name = EVERNOTE_MODEL
         for card in evernote_cards:
-            anki_field_info = {"TITLE_FIELD_NAME": card.front.decode('utf-8'),
-                               "CONTENT_FIELD_NAME": card.back.decode('utf-8'),
-                               "GUID_FIELD_NAME": card.guid}
+            anki_field_info = {TITLE_FIELD_NAME: card.front.decode('utf-8'),
+                               CONTENT_FIELD_NAME: card.back.decode('utf-8'),
+                               GUID_FIELD_NAME: card.guid}
             note_id = self.add_note(deck, model_name, anki_field_info, tag)
             count += 1
         self.stop_editing()
@@ -41,7 +41,7 @@ class Anki:
         note = self.create_note(deck_name, model_name, fields, tags)
         if note is not None:
             collection = self.collection()
-            collection.add_note(note)
+            collection.addNote(note)
             collection.autosave()
             self.start_editing()
             show_tooltip("Note added.", 1000)
