@@ -11,7 +11,7 @@ from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox
 from aqt import mw
-
+from pprint import pprint
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
@@ -32,7 +32,8 @@ class Anki:
             anki_field_info = {TITLE_FIELD_NAME: card.front.decode('utf-8'),
                                CONTENT_FIELD_NAME: card.back.decode('utf-8'),
                                GUID_FIELD_NAME: card.guid}
-            note_id = self.add_note(deck, model_name, anki_field_info, tag)
+            card.tags.append(tag)
+            note_id = self.add_note(deck, model_name, anki_field_info, ','.join(card.tags))
             count += 1
         self.stop_editing()
         return count
@@ -132,10 +133,11 @@ class EvernoteCard:
     back = ""
     guid = ""
 
-    def __init__(self, q, a, g):
+    def __init__(self, q, a, g, tags):
         self.front = q
         self.back = a
         self.guid = g
+        self.tags = tags
 
 
 class Evernote:
@@ -173,8 +175,8 @@ class Evernote:
     def create_evernote_cards(self, guid_set):
         cards = []
         for g in guid_set:
-            title, content = self.get_note_informations(g)
-            cards.append(EvernoteCard(title, content, g))
+            title, content, tags = self.get_note_informations(g)
+            cards.append(EvernoteCard(title, content, g, tags))
         return cards
 
     def find_notes_filter_by_tag_guids(self, guids_list):
@@ -191,15 +193,16 @@ class Evernote:
 
     def get_note_informations(self, note_guid):
         whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
-        return whole_note.title, whole_note.content
+        if mw.col.conf.get('evernoteKeepTags', False) == "True":
+            tags = self.noteStore.getNoteTagNames(self.token, note_guid)
+        return whole_note.title, whole_note.content, tags
 
 
 class Controller:
     def __init__(self):
         self.evernoteTags = mw.col.conf.get('evernoteTagsToImport', "").split(",")
-        self.ankiTag = mw.col.conf.get('evernoteDefaultTag', "")
-        self.keepTags = mw.col.conf.get('evernoteKeepTags', False) == "True"
-        self.deck = mw.col.conf.get('evernoteDefaultDeck', "")
+        self.ankiTag = mw.col.conf.get('evernoteDefaultTag', "anknotes")
+        self.deck = mw.col.conf.get('evernoteDefaultDeck', "Default")
         self.anki = Anki()
         self.anki.add_evernote_model()
         self.evernote = Evernote()
@@ -218,7 +221,7 @@ class Controller:
         number = self.anki.add_evernote_cards(cards, deck, tag)
         return number
 
-    def get_evernote_guids_from_tag(self,tags):
+    def get_evernote_guids_from_tag(self, tags):
         note_guids = []
         for tag in tags:
             tag_guid = self.evernote.find_tag_guid(tag)
