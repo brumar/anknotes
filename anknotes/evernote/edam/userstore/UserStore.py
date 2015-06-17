@@ -3236,7 +3236,7 @@ class getNoteStoreUrl_result(object):
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
