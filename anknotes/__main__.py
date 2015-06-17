@@ -3,6 +3,7 @@ import os
 from thrift.Thrift import *
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 from evernote.api.client import EvernoteClient
+from evernote.edam.type.ttypes import SavedSearch
 
 import anki
 import aqt
@@ -12,6 +13,7 @@ from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox
 from aqt import mw
 from pprint import pprint
+
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
 #.. itself adapted from Yomichan plugin by Alex Yatskov.
@@ -105,7 +107,7 @@ class Anki:
     def get_cards_id_from_tag(self, tag):
         query = "tag:"+tag
         ids = self.collection().findCards(query)
-        show_tooltip(ids)
+        #show_tooltip(ids)
         return ids
 
     def start_editing(self):
@@ -193,6 +195,7 @@ class Evernote:
 
     def get_note_informations(self, note_guid):
         whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
+        tags = []
         if mw.col.conf.get('evernoteKeepTags', False) == "True":
             tags = self.noteStore.getNoteTagNames(self.token, note_guid)
         return whole_note.title, whole_note.content, tags
