@@ -196,7 +196,7 @@ class Evernote:
     def get_note_informations(self, note_guid):
         whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
         tags = []
-        if mw.col.conf.get('evernoteKeepTags', False) == "True":
+        if mw.col.conf.get('evernoteKeepTags', False):
             tags = self.noteStore.getNoteTagNames(self.token, note_guid)
         return whole_note.title, whole_note.content, tags
 
