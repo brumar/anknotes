@@ -35,7 +35,7 @@ class Anki:
                                CONTENT_FIELD_NAME: card.back.decode('utf-8'),
                                GUID_FIELD_NAME: card.guid}
             card.tags.append(tag)
-            note_id = self.add_note(deck, model_name, anki_field_info, ','.join(card.tags))
+            self.add_note(deck, model_name, anki_field_info, card.tags)
             count += 1
         self.stop_editing()
         return count
@@ -47,7 +47,6 @@ class Anki:
             collection.addNote(note)
             collection.autosave()
             self.start_editing()
-            show_tooltip("Note added.", 1000)
             return note.id
 
     def create_note(self, deck_name, model_name, fields, tags=list()):
