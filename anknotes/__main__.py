@@ -53,22 +53,18 @@ class Anki:
         self.stop_editing()
         return count
 
-    def delete_anki_cards(self, guid_ids):
-        count = 0
-        col = self.collection()
-        card_ids = []
-        for card_id, guid in guid_ids.iteritems():
-            card_ids.append(long(card_id))
-        col.remCards(card_ids)
-        return count
-
     def update_note(self, fields, tags=list()):
         col = self.collection()
         note_id = col.findNotes(fields[GUID_FIELD_NAME])[0]
         note = anki.notes.Note(col, None, note_id)
         note.tags = tags
-        for name, value in fields.items():
-            note[name] = value
+        for fld in note._model['flds']:
+            if TITLE_FIELD_NAME in fld.get('name'):
+                note.fields[fld.get('ord')] = fields[TITLE_FIELD_NAME]
+            elif CONTENT_FIELD_NAME in fld.get('name'):
+                note.fields[fld.get('ord')] = fields[CONTENT_FIELD_NAME]
+            # we dont have to update the evernote guid because if it changes we wont find this note anyway
+        note.flush()
         return note.id
 
     def add_note(self, deck_name, model_name, fields, tags=list()):
@@ -247,27 +243,27 @@ class Controller:
             n = self.import_into_anki(cards_to_add_or_update['add'], self.deck, self.ankiTag)
             n2 = 0
             if DO_UPDATE_NOTES:
-                self.anki.delete_anki_cards(cards_to_add_or_update['update'])
-                self.anki.collection().autosave()
                 self.anki.start_editing()
-                n2 = self.update_in_anki(cards_to_add_or_update['update'], self.ankiTag)
+                self.update_in_anki(cards_to_add_or_update['update'], self.ankiTag)
+                n2 = len(cards_to_add_or_update['update'])
 
-            show_tooltip(str(n2) + " existing card(s) have been updated (deleted and re-added) and " + str(n) + " new card(s) have been imported.")
+            show_tooltip("{} existing card(s) have been updated (deleted and re-added) and {} new card(s) have been imported.".format(str(n2), str(n)))
         self.anki.stop_editing()
 
     def dict_remove_duplicates(self, evernote_guids, anki_guids):
         notes_to_add = []
-        notes_to_update = {}
+        notes_to_update = []
         for evernote_guid in evernote_guids:
             for anki_id, anki_guid in anki_guids.items():
                 if anki_guid == evernote_guid:
-                    notes_to_update[anki_id] = anki_guid
+                    notes_to_update.append(evernote_guid)
                     break
             else:
                 notes_to_add.append(evernote_guid)
         return {'add': notes_to_add, 'update': notes_to_update}
 
     def update_in_anki(self, guid_set, tag):
+
         cards = self.evernote.create_evernote_cards(guid_set)
         number = self.anki.update_evernote_cards(cards, tag)
         return number
