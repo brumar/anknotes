@@ -6,14 +6,14 @@
 #  options string: py:new_style
 #
 
-from thrift.Thrift import TType, TMessageType, TException, TApplicationException
-import evernote.edam.limits.ttypes
+from anknotes.thrift.Thrift import TType, TMessageType, TException, TApplicationException
+import anknotes.evernote.edam.limits.ttypes
 
 
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol, TProtocol
+from anknotes.thrift.transport import TTransport
+from anknotes.thrift.protocol import TBinaryProtocol, TProtocol
 try:
-  from thrift.protocol import fastbinary
+  from anknotes.thrift.protocol import fastbinary
 except:
   fastbinary = None
 
