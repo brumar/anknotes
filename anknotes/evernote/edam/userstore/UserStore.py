@@ -6,13 +6,13 @@
 #  options string: py:new_style
 #
 
-from thrift.Thrift import TType, TMessageType, TException, TApplicationException
+from anknotes.thrift.Thrift import TType, TMessageType, TException, TApplicationException
 from ttypes import *
-from thrift.Thrift import TProcessor
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol, TProtocol
+from anknotes.thrift.Thrift import TProcessor
+from anknotes.thrift.transport import TTransport
+from anknotes.thrift.protocol import TBinaryProtocol, TProtocol
 try:
-  from thrift.protocol import fastbinary
+  from anknotes.thrift.protocol import fastbinary
 except:
   fastbinary = None
 
@@ -1259,9 +1259,9 @@ class Processor(Iface, TProcessor):
     result = authenticateLongSession_result()
     try:
       result.success = self._handler.authenticateLongSession(args.username, args.password, args.consumerKey, args.consumerSecret, args.deviceIdentifier, args.deviceDescription, args.supportsTwoFactor)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("authenticateLongSession", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1275,9 +1275,9 @@ class Processor(Iface, TProcessor):
     result = completeTwoFactorAuthentication_result()
     try:
       result.success = self._handler.completeTwoFactorAuthentication(args.authenticationToken, args.oneTimeCode, args.deviceIdentifier, args.deviceDescription)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("completeTwoFactorAuthentication", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1291,9 +1291,9 @@ class Processor(Iface, TProcessor):
     result = revokeLongSession_result()
     try:
       self._handler.revokeLongSession(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("revokeLongSession", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1307,9 +1307,9 @@ class Processor(Iface, TProcessor):
     result = authenticateToBusiness_result()
     try:
       result.success = self._handler.authenticateToBusiness(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("authenticateToBusiness", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1323,9 +1323,9 @@ class Processor(Iface, TProcessor):
     result = refreshAuthentication_result()
     try:
       result.success = self._handler.refreshAuthentication(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("refreshAuthentication", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1339,9 +1339,9 @@ class Processor(Iface, TProcessor):
     result = getUser_result()
     try:
       result.success = self._handler.getUser(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("getUser", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1355,11 +1355,11 @@ class Processor(Iface, TProcessor):
     result = getPublicUserInfo_result()
     try:
       result.success = self._handler.getPublicUserInfo(args.username)
-    except evernote.edam.error.ttypes.EDAMNotFoundException, notFoundException:
+    except anknotes.evernote.edam.error.ttypes.EDAMNotFoundException, notFoundException:
       result.notFoundException = notFoundException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
     oprot.writeMessageBegin("getPublicUserInfo", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1373,9 +1373,9 @@ class Processor(Iface, TProcessor):
     result = getPremiumInfo_result()
     try:
       result.success = self._handler.getPremiumInfo(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("getPremiumInfo", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1389,9 +1389,9 @@ class Processor(Iface, TProcessor):
     result = getNoteStoreUrl_result()
     try:
       result.success = self._handler.getNoteStoreUrl(args.authenticationToken)
-    except evernote.edam.error.ttypes.EDAMUserException, userException:
+    except anknotes.evernote.edam.error.ttypes.EDAMUserException, userException:
       result.userException = userException
-    except evernote.edam.error.ttypes.EDAMSystemException, systemException:
+    except anknotes.evernote.edam.error.ttypes.EDAMSystemException, systemException:
       result.systemException = systemException
     oprot.writeMessageBegin("getNoteStoreUrl", TMessageType.REPLY, seqid)
     result.write(oprot)
@@ -1782,8 +1782,8 @@ class authenticate_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (AuthenticationResult, AuthenticationResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -1808,13 +1808,13 @@ class authenticate_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2000,8 +2000,8 @@ class authenticateLongSession_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (AuthenticationResult, AuthenticationResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -2026,13 +2026,13 @@ class authenticateLongSession_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2182,8 +2182,8 @@ class completeTwoFactorAuthentication_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (AuthenticationResult, AuthenticationResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -2208,13 +2208,13 @@ class completeTwoFactorAuthentication_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2327,8 +2327,8 @@ class revokeLongSession_result(object):
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, userException=None, systemException=None,):
@@ -2346,13 +2346,13 @@ class revokeLongSession_result(object):
         break
       if fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2462,8 +2462,8 @@ class authenticateToBusiness_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (AuthenticationResult, AuthenticationResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -2488,13 +2488,13 @@ class authenticateToBusiness_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2608,8 +2608,8 @@ class refreshAuthentication_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (AuthenticationResult, AuthenticationResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -2634,13 +2634,13 @@ class refreshAuthentication_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2753,9 +2753,9 @@ class getUser_result(object):
   """
 
   thrift_spec = (
-    (0, TType.STRUCT, 'success', (evernote.edam.type.ttypes.User, evernote.edam.type.ttypes.User.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (0, TType.STRUCT, 'success', (anknotes.evernote.edam.type.ttypes.User, anknotes.evernote.edam.type.ttypes.User.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -2774,19 +2774,19 @@ class getUser_result(object):
         break
       if fid == 0:
         if ftype == TType.STRUCT:
-          self.success = evernote.edam.type.ttypes.User()
+          self.success = anknotes.evernote.edam.type.ttypes.User()
           self.success.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2901,9 +2901,9 @@ class getPublicUserInfo_result(object):
 
   thrift_spec = (
     (0, TType.STRUCT, 'success', (PublicUserInfo, PublicUserInfo.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'notFoundException', (evernote.edam.error.ttypes.EDAMNotFoundException, evernote.edam.error.ttypes.EDAMNotFoundException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
-    (3, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 3
+    (1, TType.STRUCT, 'notFoundException', (anknotes.evernote.edam.error.ttypes.EDAMNotFoundException, anknotes.evernote.edam.error.ttypes.EDAMNotFoundException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 3
   )
 
   def __init__(self, success=None, notFoundException=None, systemException=None, userException=None,):
@@ -2929,19 +2929,19 @@ class getPublicUserInfo_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.notFoundException = evernote.edam.error.ttypes.EDAMNotFoundException()
+          self.notFoundException = anknotes.evernote.edam.error.ttypes.EDAMNotFoundException()
           self.notFoundException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -3058,9 +3058,9 @@ class getPremiumInfo_result(object):
   """
 
   thrift_spec = (
-    (0, TType.STRUCT, 'success', (evernote.edam.type.ttypes.PremiumInfo, evernote.edam.type.ttypes.PremiumInfo.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (0, TType.STRUCT, 'success', (anknotes.evernote.edam.type.ttypes.PremiumInfo, anknotes.evernote.edam.type.ttypes.PremiumInfo.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -3079,19 +3079,19 @@ class getPremiumInfo_result(object):
         break
       if fid == 0:
         if ftype == TType.STRUCT:
-          self.success = evernote.edam.type.ttypes.PremiumInfo()
+          self.success = anknotes.evernote.edam.type.ttypes.PremiumInfo()
           self.success.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)
@@ -3205,8 +3205,8 @@ class getNoteStoreUrl_result(object):
 
   thrift_spec = (
     (0, TType.STRING, 'success', None, None, ), # 0
-    (1, TType.STRUCT, 'userException', (evernote.edam.error.ttypes.EDAMUserException, evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
-    (2, TType.STRUCT, 'systemException', (evernote.edam.error.ttypes.EDAMSystemException, evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
+    (1, TType.STRUCT, 'userException', (anknotes.evernote.edam.error.ttypes.EDAMUserException, anknotes.evernote.edam.error.ttypes.EDAMUserException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'systemException', (anknotes.evernote.edam.error.ttypes.EDAMSystemException, anknotes.evernote.edam.error.ttypes.EDAMSystemException.thrift_spec), None, ), # 2
   )
 
   def __init__(self, success=None, userException=None, systemException=None,):
@@ -3230,13 +3230,13 @@ class getNoteStoreUrl_result(object):
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.userException = evernote.edam.error.ttypes.EDAMUserException()
+          self.userException = anknotes.evernote.edam.error.ttypes.EDAMUserException()
           self.userException.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.systemException = evernote.edam.error.ttypes.EDAMSystemException()
+          self.systemException = anknotes.evernote.edam.error.ttypes.EDAMSystemException()
           self.systemException.read(iprot)
         else:
           iprot.skip(ftype)

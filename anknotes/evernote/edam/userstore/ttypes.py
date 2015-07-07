@@ -6,15 +6,15 @@
 #  options string: py:new_style
 #
 
-from thrift.Thrift import TType, TMessageType, TException, TApplicationException
-import evernote.edam.type.ttypes
-import evernote.edam.error.ttypes
+from anknotes.thrift.Thrift import TType, TMessageType, TException, TApplicationException
+import anknotes.evernote.edam.type.ttypes
+import anknotes.evernote.edam.error.ttypes
 
 
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol, TProtocol
+from anknotes.thrift.transport import TTransport
+from anknotes.thrift.protocol import TBinaryProtocol, TProtocol
 try:
-  from thrift.protocol import fastbinary
+  from anknotes.thrift.protocol import fastbinary
 except:
   fastbinary = None
 
@@ -266,7 +266,7 @@ class AuthenticationResult(object):
     (1, TType.I64, 'currentTime', None, None, ), # 1
     (2, TType.STRING, 'authenticationToken', None, None, ), # 2
     (3, TType.I64, 'expiration', None, None, ), # 3
-    (4, TType.STRUCT, 'user', (evernote.edam.type.ttypes.User, evernote.edam.type.ttypes.User.thrift_spec), None, ), # 4
+    (4, TType.STRUCT, 'user', (anknotes.evernote.edam.type.ttypes.User, anknotes.evernote.edam.type.ttypes.User.thrift_spec), None, ), # 4
     (5, TType.STRUCT, 'publicUserInfo', (PublicUserInfo, PublicUserInfo.thrift_spec), None, ), # 5
     (6, TType.STRING, 'noteStoreUrl', None, None, ), # 6
     (7, TType.STRING, 'webApiUrlPrefix', None, None, ), # 7
