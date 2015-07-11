@@ -2,6 +2,7 @@ import os
 
 # from thrift.Thrift import *
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
+from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode
 from evernote.api.client import EvernoteClient
 # from evernote.edam.type.ttypes import SavedSearch
 
@@ -210,7 +211,10 @@ class Evernote:
     def create_evernote_cards(self, guid_set):
         cards = []
         for guid in guid_set:
-            title, content, tags = self.get_note_information(guid)
+            note_info = self.get_note_information(guid)
+            if note_info is None:
+                return cards
+            title, content, tags = note_info
             cards.append(EvernoteCard(title, content, guid, tags))
         return cards
 
@@ -227,10 +231,18 @@ class Evernote:
         return guids
 
     def get_note_information(self, note_guid):
-        whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
         tags = []
-        if mw.col.conf.get(SETTING_KEEP_TAGS, False):
-            tags = self.noteStore.getNoteTagNames(self.token, note_guid)
+        try:
+            whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
+            if mw.col.conf.get(SETTING_KEEP_TAGS, False):
+                tags = self.noteStore.getNoteTagNames(self.token, note_guid)
+        except EDAMSystemException, e:
+            if e.errorCode == EDAMErrorCode.RATE_LIMIT_REACHED:
+                m, s = divmod(e.rateLimitDuration, 60)
+                showInfo("Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
+                         "Please retry your request in {} min".format("%d:%02d" % (m, s)))
+                return None
+            raise
         return whole_note.title, whole_note.content, tags
 
 
