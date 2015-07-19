@@ -12,7 +12,6 @@ from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox
 from aqt import mw
-from pprint import pprint
 
 
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in by cb4960@gmail.com
@@ -201,23 +200,11 @@ class Evernote:
     def create_evernote_cards(self, guid_set):
         cards = []
         for g in guid_set:
-            title, content, tags = self.get_note_informations(g)
+            title, content, tags = self.get_note_information(g)
             cards.append(EvernoteCard(title, content, g, tags))
         return cards
 
-    def find_notes_filter_by_tag_guids(self, guids_list):
-        evernote_filter = NoteFilter()
-        evernote_filter.ascending = False
-        evernote_filter.tagGuids = guids_list
-        spec = NotesMetadataResultSpec()
-        spec.includeTitle = True
-        note_list = self.noteStore.findNotesMetadata(self.token, evernote_filter, 0, 10000, spec)
-        guids = []
-        for note in note_list.notes:
-            guids.append(note.guid)
-        return guids
-
-    def get_note_informations(self, note_guid):
+    def get_note_information(self, note_guid):
         whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
         tags = []
         if mw.col.conf.get('evernoteKeepTags', False):
@@ -237,18 +224,21 @@ class Controller:
     def proceed(self):
         anki_ids = self.anki.get_cards_id_from_tag(self.ankiTag)
         anki_guids = self.anki.get_guids_from_anki_id(anki_ids)
-        evernote_guids = self.get_evernote_guids_from_tag(self.evernoteTags)
+        evernote_guids = self.get_evernote_guids_from_tags(self.evernoteTags)
         if ONLY_ADD_NEW:
             cards_to_add_or_update = self.dict_remove_duplicates(evernote_guids, anki_guids)
             n = self.import_into_anki(cards_to_add_or_update['add'], self.deck, self.ankiTag)
             n2 = 0
             if DO_UPDATE_NOTES:
                 self.anki.start_editing()
+
                 self.update_in_anki(cards_to_add_or_update['update'], self.ankiTag)
+
                 n2 = len(cards_to_add_or_update['update'])
 
             show_tooltip("{} existing card(s) have been updated (deleted and re-added) and {} new card(s) have been imported.".format(str(n2), str(n)))
         self.anki.stop_editing()
+
 
     def dict_remove_duplicates(self, evernote_guids, anki_guids):
         notes_to_add = []
@@ -263,7 +253,6 @@ class Controller:
         return {'add': notes_to_add, 'update': notes_to_update}
 
     def update_in_anki(self, guid_set, tag):
-
         cards = self.evernote.create_evernote_cards(guid_set)
         number = self.anki.update_evernote_cards(cards, tag)
         return number
@@ -273,12 +262,15 @@ class Controller:
         number = self.anki.add_evernote_cards(cards, deck, tag)
         return number
 
-    def get_evernote_guids_from_tag(self, tags):
+    def get_evernote_guids_from_tags(self, tags):
         note_guids = []
+        query = "any: "
         for tag in tags:
-            tag_guid = self.evernote.find_tag_guid(tag)
-            if tag_guid is not None:
-                note_guids = note_guids + self.evernote.find_notes_filter_by_tag_guids([tag_guid])
+            query += "tag:{} ".format(tag.strip())
+        evernote_filter = NoteFilter(words=query, ascending=False)
+        result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter, 0, 10000, NotesMetadataResultSpec())
+        for note in result.notes:
+            note_guids.append(note.guid)
         return note_guids
 
 
