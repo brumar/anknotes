@@ -1,10 +1,8 @@
 import os
 
-# from thrift.Thrift import *
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode
 from evernote.api.client import EvernoteClient
-# from evernote.edam.type.ttypes import SavedSearch
 
 import anki
 import aqt
@@ -13,12 +11,7 @@ from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
 from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox, QComboBox, QSpacerItem, QSizePolicy, QWidget
 from aqt import mw
-# from pprint import pprint
 
-
-# Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in
-# by cb4960@gmail.com
-# .. itself adapted from Yomichan plugin by Alex Yatskov.
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 EVERNOTE_MODEL = 'evernote_note'
@@ -34,8 +27,10 @@ SETTING_TAGS_TO_IMPORT = 'evernoteTagsToImport'
 SETTING_DEFAULT_TAG = 'evernoteDefaultTag'
 SETTING_DEFAULT_DECK = 'evernoteDefaultDeck'
 
+
 class UpdateExistingNotes:
     IgnoreExistingNotes, UpdateNotesInPlace, DeleteAndReAddNotes = range(3)
+
 
 class Anki:
     def update_evernote_cards(self, evernote_cards, tag):
@@ -218,17 +213,6 @@ class Evernote:
             cards.append(EvernoteCard(title, content, guid, tags))
         return cards
 
-    def find_notes_filter_by_tag_guids(self, guids_list):
-        evernote_filter = NoteFilter()
-        evernote_filter.ascending = False
-        evernote_filter.tagGuids = guids_list
-        spec = NotesMetadataResultSpec()
-        spec.includeTitle = True
-        note_list = self.noteStore.findNotesMetadata(self.token, evernote_filter, 0, 10000, spec)
-        guids = []
-        for note in note_list.notes:
-            guids.append(note.guid)
-        return guids
 
     def get_note_information(self, note_guid):
         tags = []
@@ -236,7 +220,7 @@ class Evernote:
             whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
             if mw.col.conf.get(SETTING_KEEP_TAGS, False):
                 tags = self.noteStore.getNoteTagNames(self.token, note_guid)
-        except EDAMSystemException, e:
+        except EDAMSystemException as e:
             if e.errorCode == EDAMErrorCode.RATE_LIMIT_REACHED:
                 m, s = divmod(e.rateLimitDuration, 60)
                 showInfo("Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
@@ -291,12 +275,15 @@ class Controller:
         number = self.anki.add_evernote_cards(cards, deck, tag)
         return number
 
-    def get_evernote_guids_from_tag(self, tags):
+    def get_evernote_guids_from_tags(self, tags):
         note_guids = []
+        query = "any: "
         for tag in tags:
-            tag_guid = self.evernote.find_tag_guid(tag)
-            if tag_guid is not None:
-                note_guids += self.evernote.find_notes_filter_by_tag_guids([tag_guid])
+            query += "tag:{} ".format(tag.strip())
+        evernote_filter = NoteFilter(words=query, ascending=False)
+        result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter, 0, 10000, NotesMetadataResultSpec())
+        for note in result.notes:
+            note_guids.append(note.guid)
         return note_guids
 
 
