@@ -1,0 +1,37 @@
+<div id='Template-{{Type}}'>
+<div id='Card-{{Card}}'>
+<div id='Deck-{{Deck}}'>
+<div id='Side-Front'>
+<header id='header-avi'><h2>
+<div id='Field-%(Title)s-Prompt'>What is the Note's Title???</div>
+<div id='Field-%(Title)s'>{{%(Title)s}} </div>
+</h2></header>
+
+<hr id=answer>
+
+<div id='Field-%(Content)s'>{{%(Content)s}}</div>
+<div id='Field-Cloze-%(Content)s'>{{cloze:%(Content)s}}</div>
+
+{{#%(Extra)s}}
+<div id='Field-%(Extra)s-Front'>
+<BR><HR>
+<span class='header'><u>Note</u>: Additional Information is Available</span></span>
+</div>
+<div id='Field-%(Extra)s'>
+<BR><HR>
+<span class='header'><u>Additional Info</u>: </span></span>
+{{%(Extra)s}}
+</div>
+{{/%(Extra)s}}
+
+{{#Tags}}
+<div id='Tags'><BR><BR><span class='header'><u>Tags</u>: </span>{{Tags}}</div>
+{{/Tags}}
+
+
+
+
+</div>
+</div>
+</div>
+</div>

@@ -1,4 +1,5 @@
 import os
+import re
 
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode
@@ -9,45 +10,162 @@ import aqt
 from anki.hooks import wrap
 from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
-from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox, QComboBox, QSpacerItem, QSizePolicy, QWidget
+from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, QComboBox, QSpacerItem, QSizePolicy, QWidget
 from aqt import mw
 
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-EVERNOTE_MODEL = 'evernote_note'
-EVERNOTE_TEMPLATE_NAME = 'EvernoteReview'
-TITLE_FIELD_NAME = 'title'
-CONTENT_FIELD_NAME = 'content'
-GUID_FIELD_NAME = 'Evernote GUID'
+ANKNOTES_TEMPLATE_FRONT = 'FrontTemplate.htm'
+MODEL_EVERNOTE_DEFAULT = 'evernote_note'
+MODEL_EVERNOTE_REVERSIBLE = 'evernote_note_reversible'
+MODEL_EVERNOTE_REVERSE_ONLY = 'evernote_note_reverse_only'
+MODEL_EVERNOTE_CLOZE = 'evernote_note_cloze'
+MODEL_TYPE_CLOZE = 1
 
-SETTING_UPDATE_EXISTING_NOTES = 'evernoteUpdateExistingNotes'
-SETTING_TOKEN = 'evernoteToken'
-SETTING_KEEP_TAGS = 'evernoteKeepTags'
-SETTING_TAGS_TO_IMPORT = 'evernoteTagsToImport'
-SETTING_DEFAULT_TAG = 'evernoteDefaultTag'
-SETTING_DEFAULT_DECK = 'evernoteDefaultDeck'
+
+TEMPLATE_EVERNOTE_DEFAULT = 'EvernoteReview' 
+TEMPLATE_EVERNOTE_REVERSED = 'EvernoteReviewReversed' 
+TEMPLATE_EVERNOTE_CLOZE = 'EvernoteReviewCloze' 
+FIELD_TITLE = 'title'
+FIELD_CONTENT = 'content'
+FIELD_SEE_ALSO = 'See Also'
+FIELD_EXTRA = 'Extra'
+FIELD_EVERNOTE_GUID = 'Evernote GUID'
+
+EVERNOTE_TAG_REVERSIBLE = '#Reversible'
+EVERNOTE_TAG_REVERSE_ONLY = '#Reversible_Only'
+
+SETTING_KEEP_EVERNOTE_TAGS_DEFAULT_VALUE = True
+SETTING_EVERNOTE_TAGS_TO_IMPORT_DEFAULT_VALUE = "#Anki_Import"
+SETTING_DEFAULT_ANKI_TAG_DEFAULT_VALUE = "#Evernote"
+SETTING_DEFAULT_ANKI_DECK_DEFAULT_VALUE = "Evernote"
+
+SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT = 'anknotesDeleteEvernoteTagsToImport'
+SETTING_UPDATE_EXISTING_NOTES = 'anknotesUpdateExistingNotes'
+SETTING_EVERNOTE_AUTH_TOKEN = 'anknotesEvernoteAuthToken'
+SETTING_KEEP_EVERNOTE_TAGS = 'anknotesKeepEvernoteTags'
+SETTING_EVERNOTE_TAGS_TO_IMPORT = 'anknotesEvernoteTagsToImport'
+# Deprecated
+# SETTING_DEFAULT_ANKI_TAG = 'anknotesDefaultAnkiTag'
+SETTING_DEFAULT_ANKI_DECK = 'anknotesDefaultAnkiDeck'
+
+
+
+evernote_cloze_count = 0
 
 
 class UpdateExistingNotes:
     IgnoreExistingNotes, UpdateNotesInPlace, DeleteAndReAddNotes = range(3)
+    
+class AnkiNotePrototype:
+    fields = {}
+    tags = []
+    evernote_tags_to_import = []
+    model_name = MODEL_EVERNOTE_DEFAULT    
+    def __init__(self, fields, tags, evernote_tags_to_import = list()):
+        self.fields = fields
+        self.tags = tags 
+        self.evernote_tags_to_import = evernote_tags_to_import
+        self.process_note()
+    
+    @staticmethod
+    def evernote_cloze_regex(match):
+        global evernote_cloze_count
+        matchText = match.group(1)    
+        if matchText[0] == "#":
+            matchText = matchText[1:]
+        else:
+            evernote_cloze_count += 1    
+        if evernote_cloze_count == 0:
+            evernote_cloze_count = 1
+        
+        # print "Match: Group #%d: %s" % (evernote_cloze_count, matchText)
+        return "{{c%d::%s}}" % (evernote_cloze_count, matchText)
 
+    def process_note_content(self):
+        if not FIELD_CONTENT in self.fields:
+            return 
+        content = self.fields[FIELD_CONTENT]
+        # Step 1: Modify Evernote Links
+        # We need to modify Evernote's "Classic" Style Note Links due to an Anki bug with executing the evernote command with three forward slashes.
+        # For whatever reason, Anki cannot handle evernote links with three forward slashes, but *can* handle links with two forward slashes.
+        content = content.replace("evernote:///", "evernote://")
+        # Modify Evernote's "New" Style Note links that point to the Evernote website. Normally these links open the note using Evernote's web client.
+        # The web client then opens the local Evernote executable. Modifying the links as below will skip this step and open the note directly using the local Evernote executable
+        content = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)', r'evernote://view/\2/\1/\3/\3/', content)
+        
+        # Step 2: Modify Image Links        
+        # Currently anknotes does not support rendering images embedded into an Evernote note. 
+        # As a work around, this code will convert any link to an image on Dropbox, to an embedded <img> tag. 
+        # This code modifies the Dropbox link so it links to a raw image file rather than an interstitial web page
+        content = re.sub(r'<a href="(?P<URL>https://www.dropbox.com/s/[\w\d]+/.+\.(jpg|png|jpeg|gif|bmp))(?P<QueryString>\?dl=(?:0|1))?".*?>(?P<Title>.+?)</a>', 
+        r'''<img src="\g<URL>?raw=1" alt="Dropbox Link '\g<Title>}' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>}\g<QueryString>}" shape="rect">\g<Title></a>''', content)
+        # Finally, the following code will convert any link regardless of target to an embedded <img> tag if the text content of the link is exactly "(Image Link)"
+        content = re.sub(r'<a href="(?P<URL>.+)"[^>]+>(?P<Title>\(Image Link.*\))</a>', 
+        r'''<img src="\g<URL>" alt="'\g<Title>' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>">\g<Title></a>''', content)
+        
+        # Step 3: Change white text to transparent 
+        # I currently use white text in Evernote to display information that I want to be initially hidden, but visible when desired by selecting the white text.
+        # We will change the white text to transparent so the information remains hidden even when using the "Night Mode" addon for Anki
+        content = content.replace('<span style="color: rgb(255, 255, 255);">', '<span class="occluded">')
+        
+        # Step 4: Automatically Occlude Text in <<Double Angle Brackets>>
+        content = re.sub(r'&lt;&lt;(.+?)&gt;&gt;', r'&lt;&lt;<span class="occluded">$1</span>&gt;&gt;', content)	
+
+        # Step 5: Create Cloze fields from shorthand. Syntax is {Text}. Optionally {#Text} will prevent the Cloze # from incrementing.
+        content = re.sub(r'{(.+?)}', self.evernote_cloze_regex, content)
+        
+        # Step 6: Process "See Also: " Links
+        see_also_header = '<span style="color: rgb(45, 79, 201)"><b>See Also:</b></span> '
+        content = content.replace('<div><br/></div><div><div>' + see_also_header, see_also_header)
+        
+        index = content.find(see_also_header)
+        if index:
+            self.fields[FIELD_SEE_ALSO] = content[index:]            
+            content = content[:index]
+        
+        self.fields[FIELD_CONTENT] = content
+    
+    def process_note(self):
+        self.model_name = MODEL_EVERNOTE_DEFAULT        
+        # Process Note Content 
+        self.process_note_content()
+                
+        # Dynamically determine Anki Card Type 
+        if FIELD_CONTENT in self.fields and "{{c1::" in self.fields[FIELD_CONTENT]: 
+            self.model_name = MODEL_EVERNOTE_CLOZE
+        elif EVERNOTE_TAG_REVERSIBLE in self.tags: 
+            self.model_name = MODEL_EVERNOTE_REVERSIBLE
+            if mw.col.conf.get(SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT, True):
+                self.tags.remove(EVERNOTE_TAG_REVERSIBLE)
+        elif EVERNOTE_TAG_REVERSE_ONLY in self.tags: 
+            model_name = MODEL_EVERNOTE_REVERSE_ONLY
+            if mw.col.conf.get(SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT, True):
+                self.tags.remove(EVERNOTE_TAG_REVERSE_ONLY)
+        
+        # Remove Evernote Tags to Import
+        if mw.col.conf.get(SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT, True):
+            for tag in self.evernote_tags_to_import:
+                self.tags.remove(tag)        
 
 class Anki:
-    def update_evernote_cards(self, evernote_cards, tag):
-        return self.add_evernote_cards(evernote_cards, None, tag, True)
+    def update_evernote_cards(self, evernote_cards):
+        return self.add_evernote_cards(evernote_cards, None, True)
 
-    def add_evernote_cards(self, evernote_cards, deck, tag, update=False):
+    def add_evernote_cards(self, evernote_cards, deck, update=False):
         count = 0
-        model_name = EVERNOTE_MODEL
         for card in evernote_cards:
-            anki_field_info = {TITLE_FIELD_NAME: card.front.decode('utf-8'),
-                               CONTENT_FIELD_NAME: card.back.decode('utf-8'),
-                               GUID_FIELD_NAME: card.guid}
-            card.tags.append(tag)
+            anki_field_info = {FIELD_TITLE: card.front.decode('utf-8'),
+                               FIELD_CONTENT: card.back.decode('utf-8'),
+                               FIELD_EVERNOTE_GUID: card.guid}
+            # Deprecated 
+            # card.tags.append(tag)
+            anki_note_prototype = AnkiNotePrototype(anki_field_info, card.tags, self.evernoteTags)
+            
             if update:
-                self.update_note(anki_field_info, card.tags)
+                self.update_note(anki_note_prototype)
             else:
-                self.add_note(deck, model_name, anki_field_info, card.tags)
+                self.add_note(deck, anki_note_prototype)
             count += 1
         return count
 
@@ -59,22 +177,27 @@ class Anki:
         col.remCards(card_ids)
         return len(card_ids)
 
-    def update_note(self, fields, tags=list()):
+    def update_note(self, anki_note_prototype):
         col = self.collection()
-        note_id = col.findNotes(fields[GUID_FIELD_NAME])[0]
+        evernote_guid = anki_note_prototype.fields[FIELD_EVERNOTE_GUID]
+        note_id = col.findNotes(evernote_guid)[0]
         note = anki.notes.Note(col, None, note_id)
-        note.tags = tags
+        note.tags = anki_note_prototype.tags
+        
         for fld in note._model['flds']:
-            if TITLE_FIELD_NAME in fld.get('name'):
-                note.fields[fld.get('ord')] = fields[TITLE_FIELD_NAME]
-            elif CONTENT_FIELD_NAME in fld.get('name'):
-                note.fields[fld.get('ord')] = fields[CONTENT_FIELD_NAME]
+            if FIELD_TITLE in fld.get('name'):
+                note.fields[fld.get('ord')] = anki_note_prototype.fields[FIELD_TITLE]
+            elif FIELD_CONTENT in fld.get('name'):
+                note.fields[fld.get('ord')] = anki_note_prototype.fields[FIELD_CONTENT]
+            elif FIELD_SEE_ALSO in fld.get('name'):
+                note.fields[fld.get('ord')] = anki_note_prototype.fields[FIELD_SEE_ALSO]                
+            # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents
             # we dont have to update the evernote guid because if it changes we wont find this note anyway
         note.flush()
         return note.id
 
-    def add_note(self, deck_name, model_name, fields, tags=list()):
-        note = self.create_note(deck_name, model_name, fields, tags)
+    def add_note(self, deck_name, anki_note_prototype):
+        note = self.create_note(deck_name, anki_note_prototype)
         if note is not None:
             collection = self.collection()
             collection.addNote(note)
@@ -82,46 +205,95 @@ class Anki:
             self.start_editing()
             return note.id
 
-    def create_note(self, deck_name, model_name, fields, tags=list()):
+    def create_note(self, deck_name, anki_note_prototype):
         id_deck = self.decks().id(deck_name)
-        model = self.models().byName(model_name)
+        model = self.models().byName(anki_note_prototype.model_name)
         col = self.collection()
         note = anki.notes.Note(col, model)
         note.model()['did'] = id_deck
-        note.tags = tags
-        for name, value in fields.items():
+        note.tags = anki_note_prototype.tags
+        for name, value in anki_note_prototype.fields.items():
             note[name] = value
         return note
 
-    def add_evernote_model(self):  # adapted from the IREAD plug-in from Frank
+    def add_evernote_models(self):  # adapted from the IREAD plug-in from Frank        
+    
         col = self.collection()
         mm = col.models
-        evernote_model = mm.byName(EVERNOTE_MODEL)
+                
+        evernote_model = mm.byName(MODEL_EVERNOTE_DEFAULT)
+        
+        field_names = {"Title": FIELD_TITLE, "Content": FIELD_CONTENT, "Extra": FIELD_EXTRA, "See_Also": FIELD_SEE_ALSO}
+                
+        # Generate Front and Back Templates from HTML Template in anknotes' addon directory
+        templates = {"Front": file( os.path.join(PATH, ANKNOTES_TEMPLATE_FRONT) , 'r').read() % field_names } 
+        templates["Back"] = templates["Front"].replace("<div id='Side-Front'>", "<div id='Side-Back'>")
+            
+        # Create Default Template
+        default_template = mm.newTemplate(TEMPLATE_EVERNOTE_DEFAULT)
+        default_template['qfmt'] =  templates["Front"]
+        default_template['afmt'] =  templates["Back"]
+        # Create Reversed Template
+        reversed_template = default_template.copy()
+        reversed_template['name'] = TEMPLATE_EVERNOTE_REVERSED
+        # Create Cloze Template        
+        cloze_template = default_template.copy()
+        cloze_template['name'] = TEMPLATE_EVERNOTE_CLOZE
+        
         if evernote_model is None:
-            evernote_model = mm.new(EVERNOTE_MODEL)
-            # Field for title:
-            model_field = mm.newField(TITLE_FIELD_NAME)
-            mm.addField(evernote_model, model_field)
-            # Field for text:
-            text_field = mm.newField(CONTENT_FIELD_NAME)
-            mm.addField(evernote_model, text_field)
-            # Field for source:
-            guid_field = mm.newField(GUID_FIELD_NAME)
-            guid_field['sticky'] = True
-            mm.addField(evernote_model, guid_field)
-            # Add template
-            t = mm.newTemplate(EVERNOTE_TEMPLATE_NAME)
-            t['qfmt'] = "{{" + TITLE_FIELD_NAME + "}}"
-            t['afmt'] = "{{" + CONTENT_FIELD_NAME + "}}"
-            mm.addTemplate(evernote_model, t)
+            evernote_model = mm.new(MODEL_EVERNOTE_DEFAULT)
+            # Add Standard Fields:
+            mm.addField(evernote_model, mm.newField(FIELD_TITLE))
+            mm.addField(evernote_model, mm.newField(FIELD_CONTENT))
+            mm.addField(evernote_model, mm.newField(FIELD_SEE_ALSO))
+
+            # Add Field for Evernote GUID:
+            evernote_guid_field = mm.newField(FIELD_EVERNOTE_GUID)
+            evernote_guid_field['sticky'] = True
+            mm.addField(evernote_model, evernote_guid_field)    
+            
+            # Add Default Template
+            mm.addTemplate(evernote_model, default_template)
+            
+            # Update Model CSS
+            evernote_model['css'] = '@import url("_AviAnkiCSS.css");'
             mm.add(evernote_model)
-            return evernote_model
-        else:
-            fmap = mm.fieldMap(evernote_model)
-            title_ord, title_field = fmap[TITLE_FIELD_NAME]
-            text_ord, text_field = fmap[CONTENT_FIELD_NAME]
-            source_ord, source_field = fmap[GUID_FIELD_NAME]
-            source_field['sticky'] = False
+        
+        evernote_model_reversible = mm.byName(MODEL_EVERNOTE_REVERSIBLE)
+        if evernote_model_reversible is None:     
+            evernote_model_reversible = mm.copy(evernote_model)
+            evernote_model_reversible['name'] = MODEL_EVERNOTE_REVERSIBLE
+            
+            # Add Reversed Template
+            # TODO: Note that this isn't working and we have to manually remove the template. Will fix this in due time but it is low-priority
+            mm.addTemplate(evernote_model_reversible, reversed_template)      
+            
+        evernote_model_reverse_only = mm.byName(MODEL_EVERNOTE_REVERSE_ONLY)
+        if evernote_model_reverse_only is None:     
+            evernote_model_reverse_only = mm.copy(evernote_model_reversible)
+            evernote_model_reverse_only['name'] = MODEL_EVERNOTE_REVERSE_ONLY
+            
+            # Delete Default Template
+            # TODO: Note that this isn't working and we have to manually remove the template. Will fix this in due time but it is low-priority
+            # mm.remTemplate(evernote_model_reverse_only, default_template)    
+            
+        evernote_model_cloze = mm.byName(MODEL_EVERNOTE_CLOZE)
+        if evernote_model_cloze is None:     
+            evernote_model_cloze = mm.copy(evernote_model)
+            evernote_model_cloze['type'] = MODEL_TYPE_CLOZE
+            evernote_model_cloze['name'] = MODEL_EVERNOTE_CLOZE
+            
+            # Add Cloze Template
+            mm.addTemplate(evernote_model_cloze, cloze_template)
+            
+            # Delete Default Template
+            # TODO: Note that this isn't working and we have to manually remove the template. Will fix this in due time but it is low-priority
+            # mm.remTemplate(evernote_model_cloze, default_template)    
+
+        self.evernoteModels = {"Default": evernote_model['id'], \
+                               "Reversible": evernote_model_reversible['id'], \
+                               "Reverse_Only": evernote_model_reverse_only['id'], \
+                               "Cloze": evernote_model_cloze['id']}
 
     def get_guids_from_anki_id(self, ids):
         guids = []
@@ -135,7 +307,17 @@ class Anki:
     def can_add_note(self, deck_name, model_name, fields):
         return bool(self.create_note(deck_name, model_name, fields))
 
-    def get_cards_id_from_tag(self, tag):
+    def get_card_ids_from_models(self):
+        query = ""
+        delimiter = ""
+        for mName, mid in self.evernoteModels.items():
+            query += delimiter + "mid:" + str(mid)
+            delimiter = " OR "
+        ids = self.collection().findCards(query)
+        return ids
+        
+    # Deprecated: Instead of using a custom tag, we will use the Model names 
+    def get_cards_id_from_tag(self, tag):        
         query = "tag:" + tag
         ids = self.collection().findCards(query)
         return ids
@@ -174,9 +356,11 @@ class EvernoteCard:
 
 class Evernote:
     def __init__(self):
-        if not mw.col.conf.get(SETTING_TOKEN, False):
+        if not mw.col.conf.get(SETTING_EVERNOTE_AUTH_TOKEN, False):
             # First run of the Plugin we did not save the access key yet
             client = EvernoteClient(
+                # cosnumer_key='holycrepe',
+                # consumer_secret='36f46ea5dec83d4a'
                 consumer_key='scriptkiddi-2682',
                 consumer_secret='965f1873e4df583c',
                 sandbox=False
@@ -190,9 +374,9 @@ class Evernote:
                 request_token.get('oauth_token'),
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
-            mw.col.conf[SETTING_TOKEN] = auth_token
+            mw.col.conf[SETTING_EVERNOTE_AUTH_TOKEN] = auth_token
         else:
-            auth_token = mw.col.conf.get(SETTING_TOKEN, False)
+            auth_token = mw.col.conf.get(SETTING_EVERNOTE_AUTH_TOKEN, False)
         self.token = auth_token
         self.client = EvernoteClient(token=auth_token, sandbox=False)
         self.noteStore = self.client.get_note_store()
@@ -213,17 +397,16 @@ class Evernote:
             cards.append(EvernoteCard(title, content, guid, tags))
         return cards
 
-
     def get_note_information(self, note_guid):
         tags = []
         try:
             whole_note = self.noteStore.getNote(self.token, note_guid, True, True, False, False)
-            if mw.col.conf.get(SETTING_KEEP_TAGS, False):
+            if mw.col.conf.get(SETTING_KEEP_EVERNOTE_TAGS, SETTING_KEEP_EVERNOTE_TAGS_DEFAULT_VALUE):
                 tags = self.noteStore.getNoteTagNames(self.token, note_guid)
         except EDAMSystemException as e:
             if e.errorCode == EDAMErrorCode.RATE_LIMIT_REACHED:
                 m, s = divmod(e.rateLimitDuration, 60)
-                showInfo("Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
+                showInfo("Error: Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
                          "Please retry your request in {} min".format("%d:%02d" % (m, s)))
                 return None
             raise
@@ -232,47 +415,49 @@ class Evernote:
 
 class Controller:
     def __init__(self):
-        self.evernoteTags = mw.col.conf.get(SETTING_TAGS_TO_IMPORT, "").split(",")
-        self.ankiTag = mw.col.conf.get(SETTING_DEFAULT_TAG, "anknotes")
-        self.deck = mw.col.conf.get(SETTING_DEFAULT_DECK, "Default")
+        self.evernoteTags = mw.col.conf.get(SETTING_EVERNOTE_TAGS_TO_IMPORT, SETTING_EVERNOTE_TAGS_TO_IMPORT_DEFAULT_VALUE).split(",")
+        # Deprecated
+        # self.ankiTag = mw.col.conf.get(SETTING_DEFAULT_ANKI_TAG, SETTING_DEFAULT_ANKI_TAG_DEFAULT_VALUE)
+        self.deck = mw.col.conf.get(SETTING_DEFAULT_ANKI_DECK, SETTING_DEFAULT_ANKI_DECK_DEFAULT_VALUE)
         self.updateExistingNotes = mw.col.conf.get(SETTING_UPDATE_EXISTING_NOTES,
                                                    UpdateExistingNotes.UpdateNotesInPlace)
         self.anki = Anki()
-        self.anki.add_evernote_model()
+        self.anki.add_evernote_models()
         self.evernote = Evernote()
 
     def proceed(self):
-        anki_ids = self.anki.get_cards_id_from_tag(self.ankiTag)
-        anki_guids = self.anki.get_guids_from_anki_id(anki_ids)
-        evernote_guids = self.get_evernote_guids_from_tag(self.evernoteTags)
+        self.anki.evernoteTags = self.evernoteTags 
+        anki_ids = self.anki.get_card_ids_from_models()
+        anki_guids = self.anki.get_guids_from_anki_id(anki_ids)        
+        evernote_guids = self.get_evernote_guids_from_tags(self.evernoteTags)
         cards_to_add = set(evernote_guids) - set(anki_guids)
         cards_to_update = set(evernote_guids) - set(cards_to_add)
         self.anki.start_editing()
-        n = self.import_into_anki(cards_to_add, self.deck, self.ankiTag)
+        n = self.import_into_anki(cards_to_add, self.deck)
         if self.updateExistingNotes is UpdateExistingNotes.IgnoreExistingNotes:
             show_tooltip("{} new card(s) have been imported. Updating is disabled.".format(str(n)))
         else:
             n2 = len(cards_to_update)
             if self.updateExistingNotes is UpdateExistingNotes.UpdateNotesInPlace:
                 update_str = "in-place"
-                self.update_in_anki(cards_to_update, self.ankiTag)
+                self.update_in_anki(cards_to_update)
             else:
                 update_str = "(deleted and re-added)"
                 self.anki.delete_anki_cards(cards_to_update)
-                self.import_into_anki(cards_to_update, self.deck, self.ankiTag)
+                self.import_into_anki(cards_to_update, self.deck)
             show_tooltip("{} new card(s) have been imported and {} existing card(s) have been updated {}."
                          .format(str(n), str(n2), update_str))
         self.anki.stop_editing()
         self.anki.collection().autosave()
 
-    def update_in_anki(self, guid_set, tag):
+    def update_in_anki(self, guid_set):
         cards = self.evernote.create_evernote_cards(guid_set)
-        number = self.anki.update_evernote_cards(cards, tag)
+        number = self.anki.update_evernote_cards(cards)
         return number
 
-    def import_into_anki(self, guid_set, deck, tag):
+    def import_into_anki(self, guid_set, deck):
         cards = self.evernote.create_evernote_cards(guid_set)
-        number = self.anki.add_evernote_cards(cards, deck, tag)
+        number = self.anki.add_evernote_cards(cards, deck)
         return number
 
     def get_evernote_guids_from_tags(self, tags):
@@ -302,46 +487,59 @@ aqt.mw.form.menuTools.addAction(action)
 
 
 def setup_evernote(self):
-    global evernote_default_deck
+    global default_anki_deck
     global evernote_default_tag
     global evernote_tags_to_import
+    global delete_evernote_tags_to_import
     global keep_evernote_tags
     global update_existing_notes
 
     widget = QWidget()
     layout = QVBoxLayout()
+    layout_tags = QHBoxLayout()
 
-    # Default Deck
-    evernote_default_deck_label = QLabel("Default Deck:")
-    evernote_default_deck = QLineEdit()
-    evernote_default_deck.setText(mw.col.conf.get(SETTING_DEFAULT_DECK, ""))
-    layout.insertWidget(int(layout.count()) + 1, evernote_default_deck_label)
-    layout.insertWidget(int(layout.count()) + 2, evernote_default_deck)
-    evernote_default_deck.connect(evernote_default_deck, SIGNAL("editingFinished()"), update_evernote_default_deck)
+    # Default Anki Deck
+    default_anki_deck_label = QLabel("Default Anki Deck:")
+    default_anki_deck = QLineEdit()
+    default_anki_deck.setText(mw.col.conf.get(SETTING_DEFAULT_ANKI_DECK, SETTING_DEFAULT_ANKI_DECK_DEFAULT_VALUE))
+    layout.insertWidget(int(layout.count()) + 1, default_anki_deck_label)
+    layout.insertWidget(int(layout.count()) + 2, default_anki_deck)
+    default_anki_deck.connect(default_anki_deck, SIGNAL("editingFinished()"), update_default_anki_deck)
 
-    # Default Tag
-    evernote_default_tag_label = QLabel("Default Tag:")
-    evernote_default_tag = QLineEdit()
-    evernote_default_tag.setText(mw.col.conf.get(SETTING_DEFAULT_TAG, ""))
-    layout.insertWidget(int(layout.count()) + 1, evernote_default_tag_label)
-    layout.insertWidget(int(layout.count()) + 2, evernote_default_tag)
-    evernote_default_tag.connect(evernote_default_tag, SIGNAL("editingFinished()"), update_evernote_default_tag)
+    # Deprecated:
+    # Default Anki Tag
+    # evernote_default_tag_label = QLabel("Default Anki Tag:")
+    # evernote_default_tag = QLineEdit()
+    # evernote_default_tag.setText(mw.col.conf.get(SETTING_DEFAULT_ANKI_TAG, SETTING_DEFAULT_ANKI_TAG_DEFAULT_VALUE))
+    # layout.insertWidget(int(layout.count()) + 1, evernote_default_tag_label)
+    # layout.insertWidget(int(layout.count()) + 2, evernote_default_tag)
+    # evernote_default_tag.connect(evernote_default_tag, SIGNAL("editingFinished()"), update_evernote_default_tag)
 
-    # Tags to Import
-    evernote_tags_to_import_label = QLabel("Tags to Import:")
+    # Evernote Tags to Import
+    evernote_tags_to_import_label = QLabel("Evernote Tags to Import:")
     evernote_tags_to_import = QLineEdit()
-    evernote_tags_to_import.setText(mw.col.conf.get(SETTING_TAGS_TO_IMPORT, ""))
+    evernote_tags_to_import.setText(mw.col.conf.get(SETTING_EVERNOTE_TAGS_TO_IMPORT, SETTING_EVERNOTE_TAGS_TO_IMPORT_DEFAULT_VALUE))
     layout.insertWidget(int(layout.count()) + 1, evernote_tags_to_import_label)
     layout.insertWidget(int(layout.count()) + 2, evernote_tags_to_import)
     evernote_tags_to_import.connect(evernote_tags_to_import,
                                     SIGNAL("editingFinished()"),
-                                    update_evernote_tags_to_import)
+                                    update_evernote_tags_to_import)    
 
     # Keep Evernote Tags
     keep_evernote_tags = QCheckBox("Keep Evernote Tags", self)
-    keep_evernote_tags.setChecked(mw.col.conf.get(SETTING_KEEP_TAGS, False))
-    keep_evernote_tags.stateChanged.connect(update_evernote_keep_tags)
-    layout.insertWidget(int(layout.count()) + 1, keep_evernote_tags)
+    keep_evernote_tags.setChecked(mw.col.conf.get(SETTING_KEEP_EVERNOTE_TAGS, SETTING_KEEP_EVERNOTE_TAGS_DEFAULT_VALUE))
+    keep_evernote_tags.stateChanged.connect(update_keep_evernote_tags)
+    layout_tags.insertWidget(int(layout_tags.count()) + 1, keep_evernote_tags)
+    
+
+    # Delete Tags To Import 
+    delete_evernote_tags_to_import = QCheckBox("Delete Evernote Tags Used To Import", self)
+    delete_evernote_tags_to_import.setChecked(mw.col.conf.get(SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT, True))
+    delete_evernote_tags_to_import.stateChanged.connect(update_delete_evernote_tags_to_import)
+    layout_tags.insertWidget(int(layout_tags.count()) + 1, delete_evernote_tags_to_import)    
+    
+    # Add Horizontal Layout for Evernote Tag Options
+    layout.addItem(layout_tags)  
 
     # Update Existing Notes
     update_existing_notes = QComboBox()
@@ -349,7 +547,7 @@ def setup_evernote(self):
                                     "Delete and Re-Add Existing Notes"])
     update_existing_notes.setCurrentIndex(mw.col.conf.get(SETTING_UPDATE_EXISTING_NOTES,
                                                           UpdateExistingNotes.UpdateNotesInPlace))
-    update_existing_notes.activated.connect(update_evernote_update_existing_notes)
+    update_existing_notes.activated.connect(update_update_existing_notes)
     layout.insertWidget(int(layout.count()) + 1, update_existing_notes)
 
     # Vertical Spacer
@@ -362,19 +560,23 @@ def setup_evernote(self):
     # New Tab
     self.form.tabWidget.addTab(widget, "Evernote Importer")
 
-def update_evernote_default_deck():
-    mw.col.conf[SETTING_DEFAULT_DECK] = evernote_default_deck.text()
+def update_default_anki_deck():
+    mw.col.conf[SETTING_DEFAULT_ANKI_DECK] = default_anki_deck.text()
 
-def update_evernote_default_tag():
-    mw.col.conf[SETTING_DEFAULT_TAG] = evernote_default_tag.text()
+# Deprecated:    
+# def update_evernote_default_tag():
+    # mw.col.conf[SETTING_DEFAULT_ANKI_TAG] = evernote_default_tag.text()
 
 def update_evernote_tags_to_import():
-    mw.col.conf[SETTING_TAGS_TO_IMPORT] = evernote_tags_to_import.text()
+    mw.col.conf[SETTING_EVERNOTE_TAGS_TO_IMPORT] = evernote_tags_to_import.text()
 
-def update_evernote_keep_tags():
-    mw.col.conf[SETTING_KEEP_TAGS] = keep_evernote_tags.isChecked()
+def update_delete_evernote_tags_to_import():
+    mw.col.conf[SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT] = delete_evernote_tags_to_import.isChecked()    
 
-def update_evernote_update_existing_notes(index):
+def update_keep_evernote_tags():
+    mw.col.conf[SETTING_KEEP_EVERNOTE_TAGS] = keep_evernote_tags.isChecked()
+
+def update_update_existing_notes(index):
     mw.col.conf[SETTING_UPDATE_EXISTING_NOTES] = index
 
 Preferences.setupOptions = wrap(Preferences.setupOptions, setup_evernote)
