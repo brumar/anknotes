@@ -1,8 +1,8 @@
 import os
 import re
-import pprint
+# import pprint
 from HTMLParser import HTMLParser
-import datetime
+# import datetime
 
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 from evernote.edam.type.ttypes import NoteSortOrder
@@ -59,7 +59,7 @@ SETTING_DEFAULT_ANKI_DECK_DEFAULT_VALUE = DECK_DEFAULT
 
 SETTING_DELETE_EVERNOTE_TAGS_TO_IMPORT = 'anknotesDeleteEvernoteTagsToImport'
 SETTING_UPDATE_EXISTING_NOTES = 'anknotesUpdateExistingNotes'
-SETTING_EVERNOTE_AUTH_TOKEN = 'anknotesEvernoteAuthToken_Sandbox'
+SETTING_EVERNOTE_AUTH_TOKEN = 'anknotesEvernoteAuthToken'
 SETTING_KEEP_EVERNOTE_TAGS = 'anknotesKeepEvernoteTags'
 SETTING_USE_EVERNOTE_NOTEBOOK_NAME_FOR_ANKI_DECK_NAME = 'anknotesUseEvernoteNotebookNameForAnkiDeckName'
 SETTING_EVERNOTE_TAGS_TO_IMPORT = 'anknotesEvernoteTagsToImport'
@@ -95,21 +95,21 @@ def find_evernote_links(content):
 
 
     
-def log(value):
-    value=value.encode('ascii', 'ignore')
-    with open( PATH + '\\anknotes.log', 'a+') as fileLog:
-        print>>fileLog, value 
+# def log(value):
+    # value=value.encode('ascii', 'ignore')
+    # with open( PATH + '\\anknotes.log', 'a+') as fileLog:
+        # print>>fileLog, value 
     
 
-def log_dump(obj, title="Object"):
-    content = pprint.pformat(obj, indent=4, width=80)
-    content=content.encode('ascii', 'ignore')
-    st = str(datetime.datetime.now()).split('.')[0]
-    prefix = " **** Dumping %s at %s" % (title, st)
-    log(prefix)
-    content = content.replace(', ', ', \n ')
-    with open( PATH + '\\anknotes-dump.log', 'a+') as fileLog:
-        print>>fileLog, prefix + "\r\n" + content     
+# def log_dump(obj, title="Object"):
+    # content = pprint.pformat(obj, indent=4, width=80)
+    # content=content.encode('ascii', 'ignore')
+    # st = str(datetime.datetime.now()).split('.')[0]
+    # prefix = " **** Dumping %s at %s" % (title, st)
+    # log(prefix)
+    # content = content.replace(', ', ', \n ')
+    # with open( PATH + '\\anknotes-dump.log', 'a+') as fileLog:
+        # print>>fileLog, prefix + "\r\n" + content     
     
 class AnkiNotePrototype:
     fields = {}
@@ -533,7 +533,7 @@ LIMIT 1 """ % (TABLE_SEE_ALSO, link_guid, link_number, uid, shard,  toc_guid, to
             toc_count = 0
             outline_count = 0
             
-            log(" > Starting Note: %s: %s" % (note_guid, note_title))
+            #log(" > Starting Note: %s: %s" % (note_guid, note_title))
 
             
             
@@ -553,7 +553,7 @@ LIMIT 1 """ % (TABLE_SEE_ALSO, link_guid, link_number, uid, shard,  toc_guid, to
                     if linked_note_contents:
                         linked_notes_fields[link_guid] = {FIELD_TITLE: linked_note_title, FIELD_CONTENT: linked_note_contents}
 
-                log("  > Processing Link: %s: %s"  % (link_guid, linked_note_title)) 
+                #log("  > Processing Link: %s: %s"  % (link_guid, linked_note_title)) 
                 if linked_note_contents: 
                     if is_toc:      
                         toc_count += 1
@@ -564,7 +564,7 @@ LIMIT 1 """ % (TABLE_SEE_ALSO, link_guid, link_number, uid, shard,  toc_guid, to
                             note_toc += "<BR><HR>"
                            
                         note_toc += linked_note_contents
-                        log("   > Appending TOC #%d contents" % toc_count) 
+                        #log("   > Appending TOC #%d contents" % toc_count) 
                     else:
                         outline_count += 1
                         if outline_count is 1:
@@ -574,7 +574,7 @@ LIMIT 1 """ % (TABLE_SEE_ALSO, link_guid, link_number, uid, shard,  toc_guid, to
                             note_outline += "<BR><HR>"
                            
                         note_outline += linked_note_contents
-                        log("   > Appending Outline #%d contents" % outline_count) 
+                        #log("   > Appending Outline #%d contents" % outline_count) 
                         
             if outline_count + toc_count > 0:
                 if outline_count > 1:
@@ -586,7 +586,7 @@ LIMIT 1 """ % (TABLE_SEE_ALSO, link_guid, link_number, uid, shard,  toc_guid, to
                         note.fields[fld.get('ord')] = note_toc
                     elif FIELD_OUTLINE in fld.get('name'):
                         note.fields[fld.get('ord')] = note_outline
-                log(" > Flushing Note \r\n")
+                #log(" > Flushing Note \r\n")
                 note.flush()
             
         
@@ -629,20 +629,18 @@ class EvernoteCard:
 class Evernote:
     def __init__(self):
         auth_token = mw.col.conf.get(SETTING_EVERNOTE_AUTH_TOKEN, False)
-        if not auth_token: auth_token = 'S=s1:U=915f4:E=156f2b4ef84:C=14f9b03c258:P=185:A=holycrepe:V=2:H=74dc45f754c59dbaaa61ee8d89831cd5'
-        log("Current Auth Token: %s" % auth_token)
         self.tag_data = {}
         self.notebook_data = {}
         
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
             client = EvernoteClient(
-                consumer_key='holycrepe',
-                consumer_secret='36f46ea5dec83d4a',
-                # consumer_key='scriptkiddi-2682',
-                # consumer_secret='965f1873e4df583c',
-                sandbox = True
-                # sandbox=False
+                # consumer_key='holycrepe',
+                # consumer_secret='36f46ea5dec83d4a',
+                consumer_key='scriptkiddi-2682',
+                consumer_secret='965f1873e4df583c',
+                # sandbox = True
+                sandbox=False
             )
             request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
             url = client.get_authorize_url(request_token)
@@ -654,9 +652,9 @@ class Evernote:
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
             mw.col.conf[SETTING_EVERNOTE_AUTH_TOKEN] = auth_token
-            log("Saved Auth Token: %s" % auth_token)
+            #log("Saved Auth Token: %s" % auth_token)
         self.token = auth_token
-        self.client = EvernoteClient(token=auth_token, sandbox=True)
+        self.client = EvernoteClient(token=auth_token, sandbox=False)
         self.noteStore = self.client.get_note_store()
 
     def find_tag_guid(self, tag):
@@ -697,7 +695,7 @@ class Evernote:
                 self.notebook_data[notebook_guid] = {"stack": notebook_stack, "name": notebook_name}
                 notebook_guids.append(notebook_guid)
         
-        log("   > All notebooks are in the database")       
+        #log("   > All notebooks are in the database")       
         return True        
         
     def process_notebook_guids(self, guid_set):
@@ -714,7 +712,7 @@ class Evernote:
         for notebook in notebooks:
             self.notebook_data[notebook.guid] = {"stack": notebook.stack, "name": notebook.name}
             data.append([notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.serviceUpdated, notebook.stack])
-        log("Updating %d notebooks" % len(notebooks))
+        #log("Updating %d notebooks" % len(notebooks))
         mw.col.db.executemany("INSERT OR REPLACE INTO `%s`(`guid`,`name`,`updateSequenceNum`,`serviceUpdated`, `stack`) VALUES (?, ?, ?, ?)" % TABLE_EVERNOTE_NOTEBOOKS, data)        
     
     def check_tags_up_to_date(self, guid_set):        
@@ -729,7 +727,7 @@ class Evernote:
                     self.tag_data[tag_guid] = tag_name 
                     tag_guids.append(tag_guid)
         
-        log("   > All tags are in the database")       
+        #log("   > All tags are in the database")       
         return True
        
     def process_tag_guids(self, guid_set):
@@ -746,7 +744,7 @@ class Evernote:
         for tag in tags:
             self.tag_data[tag.guid] = tag.name
             data.append([tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum])
-        log("Updating %d tags" % len(tags))
+        #log("Updating %d tags" % len(tags))
         mw.col.db.executemany("INSERT OR REPLACE INTO `%s`(`guid`,`name`,`parentGuid`,`updateSequenceNum`) VALUES (?, ?, ?, ?)" % TABLE_EVERNOTE_TAGS, data)        
     
     def get_note_information(self, note_guid):
@@ -765,8 +763,8 @@ class Evernote:
                 
 
         
-        log("\n    > Retrieved note") 
-        log_dump(whole_note, "Whole Note:")
+        #log("\n    > Retrieved note") 
+        #log_dump(whole_note, "Whole Note:")
         
         tagNames = []
         tagGuids = list(whole_note.tagGuids)
@@ -778,7 +776,7 @@ class Evernote:
             else:
                 tagNames.append(tagName)                
         tagNames = sorted(tagNames, key=lambda s: s.lower())
-        log("TagNames: %s" % str(tagNames))
+        #log("TagNames: %s" % str(tagNames))
          
         mw.col.db.execute("INSERT OR REPLACE INTO `%s`(`guid`,`title`,`content`,`updated`,`created`,`updateSequenceNum`,`notebookGuid`,`tagGuids`,`tagNames`) VALUES (?,?,?,?,?,?,?,?,?);" % TABLE_EVERNOTE_NOTES, whole_note.guid, whole_note.title, whole_note.content, whole_note.updated, whole_note.created, whole_note.updateSequenceNum, whole_note.notebookGuid, ',' + ','.join(tagGuids) + ',', ',' + ','.join(tagNames) + ',')
                 
@@ -840,14 +838,14 @@ class Controller:
                 
         notes_already_up_to_date = set(notes_already_up_to_date)
         notes_to_update = notes_to_update - notes_already_up_to_date
-        log("\r\n  > Starting Evernote Import")    
+        #log("\r\n  > Starting Evernote Import")    
         
-        # log("    > anki_note_ids: %s" % (str(anki_note_ids)))
-        # log("    > anki_guids: %s" % (str(anki_guids)))
-        # log("    > evernote_guids: %s" % (str(evernote_guids)))
-        log("    > New Notes: %s" % (str(notes_to_add)))
-        log("    > Existing Out-Of-Date Notes: %s" % (str(notes_to_update)))        
-        log("    > Existing Up-To-Date Notes: %s" % (str(notes_already_up_to_date)))        
+        # #log("    > anki_note_ids: %s" % (str(anki_note_ids)))
+        # #log("    > anki_guids: %s" % (str(anki_guids)))
+        # #log("    > evernote_guids: %s" % (str(evernote_guids)))
+        #log("    > New Notes: %s" % (str(notes_to_add)))
+        #log("    > Existing Out-Of-Date Notes: %s" % (str(notes_to_update)))        
+        #log("    > Existing Up-To-Date Notes: %s" % (str(notes_already_up_to_date)))        
         
         self.anki.start_editing()
         n = self.import_into_anki(notes_to_add, self.deck)
@@ -867,7 +865,7 @@ class Controller:
             if len(notes_already_up_to_date) > 0:
                 tooltip += "<BR><BR>\r\n%d existing card(s) are already up-to-date with Evernote's servers, so they were not retrieved." % n3
         show_tooltip(tooltip)
-        log("   > Import Complete: %s" % tooltip) 
+        #log("   > Import Complete: %s" % tooltip) 
         self.anki.stop_editing()
         self.anki.collection().autosave()
 
@@ -890,16 +888,16 @@ class Controller:
             query += "tag:{} ".format(tag.strip())
         evernote_filter = NoteFilter(words=query, ascending=True, order=NoteSortOrder.TITLE)
         
-        log("   > Searching Evernote with query: " + query)
+        #log("   > Searching Evernote with query: " + query)
         
         spec = NotesMetadataResultSpec(includeTitle = True, includeUpdated = True, includeUpdateSequenceNum = True, includeTagGuids = True)
         
         result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter, 0, 10000, spec)
         
-        log("    > Total Notes %d     Update Count: %d " % (result.totalNotes, result.updateCount))
-        # log("    > Notes Metadata: ")
+        #log("    > Total Notes %d     Update Count: %d " % (result.totalNotes, result.updateCount))
+        # #log("    > Notes Metadata: ")
         
-        log_dump(pprint.pformat(result.notes, indent=4, width=80), "Notes Metadata")
+        #log_dump(pprint.pformat(result.notes, indent=4, width=80), "Notes Metadata")
         
         for note in result.notes:
             note_guids.append(note.guid)
