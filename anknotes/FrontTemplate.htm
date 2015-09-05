@@ -2,7 +2,7 @@
 <div id='Card-{{Card}}'>
 <div id='Deck-{{Deck}}'>
 <div id='Side-Front'>
-<header id='header-avi'><h2>
+<header id='Header-Avi'><h2>
 <div id='Field-%(Title)s-Prompt'>What is the Note's Title???</div>
 <div id='Field-%(Title)s'>{{%(Title)s}} </div>
 </h2></header>
@@ -28,7 +28,19 @@
 <div id='Tags'><BR><BR><span class='header'><u>Tags</u>: </span>{{Tags}}</div>
 {{/Tags}}
 
+{{#%(TOC)s}}
+<div id='Field-%(TOC)s'>
+<BR><HR>
+{{%(TOC)s}}
+</div>
+{{/%(TOC)s}}
 
+{{#%(Outline)s}}
+<div id='Field-%(Outline)s'>
+<BR><HR>
+{{%(Outline)s}}
+</div>
+{{/%(Outline)s}}
 
 
 </div>
