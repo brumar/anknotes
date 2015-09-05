@@ -41,6 +41,7 @@ FIELD_TOC = 'TOC'
 FIELD_OUTLINE = 'Outline'
 FIELD_EXTRA = 'Extra'
 FIELD_EVERNOTE_GUID = 'Evernote GUID'
+FIELD_UPDATE_SEQUENCE_NUM = 'updateSequenceNum'
 FIELD_EVERNOTE_GUID_PREFIX = 'evernote_guid='
 
 DECK_DEFAULT = "Evernote"
@@ -284,9 +285,12 @@ class Anki:
     def add_evernote_cards(self, evernote_cards, deck, update=False):
         count = 0
         for card in evernote_cards:
-            anki_field_info = {FIELD_TITLE: card.front.decode('utf-8'),
+            anki_field_info = {
+                               FIELD_TITLE: card.front.decode('utf-8'),
                                FIELD_CONTENT: card.back.decode('utf-8'),
-                               FIELD_EVERNOTE_GUID: FIELD_EVERNOTE_GUID_PREFIX + card.guid}
+                               FIELD_EVERNOTE_GUID: FIELD_EVERNOTE_GUID_PREFIX + card.guid,
+                               FIELD_UPDATE_SEQUENCE_NUM: card.updateSequenceNum
+                               }
             # Deprecated 
             # card.tags.append(tag)
             anki_note_prototype = AnkiNotePrototype(anki_field_info, card.tags, self.evernoteTags)
@@ -377,6 +381,9 @@ class Anki:
             evernote_guid_field = mm.newField(FIELD_EVERNOTE_GUID)
             evernote_guid_field['sticky'] = True
             mm.addField(model, evernote_guid_field)    
+            
+            # Add USN to keep track of changes vs Evernote's servers 
+            mm.addField(model, mm.newField(FIELD_UPDATE_SEQUENCE_NUM))
             
             # Add Templates
             # for template in templates:
@@ -503,12 +510,18 @@ class Anki:
         
     def get_guids_from_anki_note_ids(self, ids):
         guids = []
+        self.usns = {}
         for a_id in ids:
             note = self.collection().getNote(a_id)
-            items = note.items()            
+            items = note.items()   
+            dict = {}
             for key, value in items:                
-                if key == FIELD_EVERNOTE_GUID:                
-                    guids.append(value.replace(FIELD_EVERNOTE_GUID_PREFIX, ''))
+                dict[key] = value
+            if FIELD_EVERNOTE_GUID in dict:                
+                guid = dict[FIELD_EVERNOTE_GUID].replace(FIELD_EVERNOTE_GUID_PREFIX, '')    
+                guids.append(guid)
+                if FIELD_UPDATE_SEQUENCE_NUM in dict:
+                    self.usns[guid] = dict[FIELD_UPDATE_SEQUENCE_NUM]                            
         return guids        
         
     # Should deprecate this
@@ -706,15 +719,18 @@ class EvernoteCard:
     front = ""
     back = ""
     guid = ""
+    updateSequenceNum = -1
     tags = []
     notebookGuid = []
+    
 
-    def __init__(self, q, a, g, tags, notebookGuid):
+    def __init__(self, q, a, g, tags, notebookGuid, updateSequenceNum):
         self.front = q
         self.back = a
         self.guid = g
         self.tags = tags
         self.notebookGuid = notebookGuid
+        self.updateSequenceNum = updateSequenceNum
 
 
 class Evernote:
@@ -753,7 +769,7 @@ class Evernote:
             log(" EVERNOTE_API_CALL: get_note_store", 'api')
             self.noteStore = self.client.get_note_store()                                  
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError('trying to initialize the Evernote Client.', e): return False
+            if HandleEDAMRateLimitError(e, 'trying to initialize the Evernote Client.'): return False
             raise         
         return True
 
@@ -778,8 +794,8 @@ class Evernote:
             note_info = self.get_note_information(guid)
             if note_info is None:
                 return cards
-            title, content, tags, notebookGuid = note_info
-            cards.append(EvernoteCard(title, content, guid, tags, notebookGuid))
+            title, content, tags, notebookGuid, updateSequenceNum = note_info
+            cards.append(EvernoteCard(title, content, guid, tags, notebookGuid, updateSequenceNum))
         return cards
 
 
@@ -808,7 +824,7 @@ class Evernote:
             log(" EVERNOTE_API_CALL: listNotebooks", 'api')
             notebooks = self.noteStore.listNotebooks(self.token)  
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError('trying to update Evernote notebooks.', e): return None
+            if HandleEDAMRateLimitError(e, 'trying to update Evernote notebooks.'): return None
             raise         
         data = []
         for notebook in notebooks:
@@ -837,7 +853,7 @@ class Evernote:
             log(" EVERNOTE_API_CALL: listTags", 'api')
             tags = self.noteStore.listTags(self.token)                        
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError('trying to update Evernote tags.', e): return None
+            if HandleEDAMRateLimitError(e, 'trying to update Evernote tags.'): return None
             raise     
         data = []
         for tag in tags:
@@ -854,7 +870,7 @@ class Evernote:
             # if mw.col.conf.get(SETTING_KEEP_EVERNOTE_TAGS, SETTING_KEEP_EVERNOTE_TAGS_DEFAULT_VALUE):
                 # tags = self.noteStore.getNoteTagNames(self.token, note_guid)
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError('trying to retrieve a note. We will save the notes downloaded thus far.', e): return None
+            if HandleEDAMRateLimitError(e, 'trying to retrieve a note. We will save the notes downloaded thus far.'): return None
             raise                         
         #log("\n    > Retrieved note") 
         #log_dump(whole_note, "Whole Note:")
@@ -884,7 +900,7 @@ class Evernote:
         if not mw.col.conf.get(SETTING_KEEP_EVERNOTE_TAGS, SETTING_KEEP_EVERNOTE_TAGS_DEFAULT_VALUE):
             tagNames = []
                
-        return whole_note.title, whole_note.content, tagNames, whole_note.notebookGuid
+        return whole_note.title, whole_note.content, tagNames, whole_note.notebookGuid, whole_note.updateSequenceNum
 
 
         
@@ -950,13 +966,12 @@ class Controller:
         
 
         for evernote_guid in notes_to_update:
-            current_usn = mw.col.db.scalar("SELECT updateSequenceNum FROM %s WHERE guid = ?" % TABLE_EVERNOTE_NOTES, evernote_guid)
-            server_usn =  self.evernote.metadata[evernote_guid].updateSequenceNum
-            eq1 = (current_usn is server_usn)
-            eq2 = (current_usn == server_usn)
-            
-            if current_usn == server_usn:
-                notes_already_up_to_date.append(evernote_guid)
+            if evernote_guid in self.anki.usns:
+                db_usn = mw.col.db.scalar("SELECT updateSequenceNum FROM %s WHERE guid = ?" % TABLE_EVERNOTE_NOTES, evernote_guid)            
+                current_usn = self.anki.usns[evernote_guid]
+                server_usn =  self.evernote.metadata[evernote_guid].updateSequenceNum
+                if current_usn == server_usn:
+                    notes_already_up_to_date.append(evernote_guid)
                 
         notes_already_up_to_date = set(notes_already_up_to_date)
         notes_to_update = notes_to_update - notes_already_up_to_date
@@ -1017,7 +1032,7 @@ class Controller:
         log(" EVERNOTE_API_CALL: findNotesMetadata: Query: '%s'" % query, 'api')
         result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter, 0, 10000, spec)
         
-        #log("    > Total Notes %d     Update Count: %d " % (result.totalNotes, result.updateCount))
+        log("    > Metadata Results: Total Notes %d  |   Update Count: %d " % (result.totalNotes, result.updateCount))
         # #log("    > Notes Metadata: ")
         
         #log_dump(pprint.pformat(result.notes, indent=4, width=80), "Notes Metadata")
