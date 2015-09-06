@@ -14,19 +14,27 @@
 
 {{#%(Extra)s}}
 <div id='Field-%(Extra)s-Front'>
-<BR><HR>
+<HR>
 <span class='header'><u>Note</u>: Additional Information is Available</span></span>
 </div>
 <div id='Field-%(Extra)s'>
-<BR><HR>
+<HR>
 <span class='header'><u>Additional Info</u>: </span></span>
 {{%(Extra)s}}
+<BR><BR>
 </div>
 {{/%(Extra)s}}
 
 {{#Tags}}
-<div id='Tags'><BR><BR><span class='header'><u>Tags</u>: </span>{{Tags}}</div>
+<div id='Tags'><span class='header'><u>Tags</u>: </span>{{Tags}}</div>
 {{/Tags}}
+
+{{#%(See Also)s}}
+<div id='Field-%(See Also)s'>
+<HR>
+{{%(See Also)s}}
+</div>
+{{/%(See Also)s}}
 
 {{#%(TOC)s}}
 <div id='Field-%(TOC)s'>

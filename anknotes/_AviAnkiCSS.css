@@ -34,7 +34,7 @@ text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 /* @include text-big; */
 }
 
-.card  #Field-title, .card  #Field-title-Prompt { 
+.card  #Field-Title, .card  #Field-Title-Prompt { 
   text-align: center;
   /* color: #A40F2D; */
   font-weight: bold;
@@ -44,7 +44,7 @@ text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
   padding:10px;
 }
 
-.card  #Field-title-Prompt {
+.card  #Field-Title-Prompt {
   width: 100%	;
 	position: fixed;
   font-size: 48px;
@@ -135,7 +135,7 @@ border:3px #004C99 solid;
  color: rgb(105, 170, 53);
 }
 
-.card #Field-Header-Links #Field-See-Also-Link, .card #Field-Header-Links #Field-See-Also-Link a .Note_Link {
+.card #Field-Header-Links #Field-See_Also-Link, .card #Field-Header-Links #Field-See_Also-Link a .Note_Link {
  color: rgb(45, 79, 201);
 }
 
@@ -151,23 +151,39 @@ a {
  color: rgb(105, 170, 53);
 }
 
-.card #Field-Extra ,  #Field-Extra-Front , 
+
+.card #Field-Extra ,  #Field-Extra-Front,
+.card #Field-See_Also , .card #Field-TOC , .card #Field-Outline {
+ font-size: 14px;
+}
+
+.card #Tags {
+ font-size: 10px;
+}
+
+.card #Field-See_Also ol {
+	padding-top: 0px;
+	margin-top: 0px;
+}
+
+.card #Field-See_Also hr {
+	padding-top: 0px;
+	padding-bottom: 0px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+.card #Field-Extra ,  #Field-Extra-Front,
 .card #Tags {
  color: #aaa;
- font-size: 14px;
 }
  
 .card #Field-Extra .header,  #Field-Extra-Front .header {
  color: #666;
 } 
 
-.card #Field-Extra .header,  #Field-Extra-Front .header , #Tags .header,
-.card #Field-Header-Links #Field-See-Also-Link, .card #Field-Header-Links #Field-TOC-Link, .card #Field-Header-Links #Field-Outline-Link {
+.card #Field-Extra .header,  #Field-Extra-Front .header , #Tags .header {
  font-weight: bold;
-}
-
-.card #Tags {
-	font-size: 12px;
 }
 
 .card #Field-Extra-Front {
@@ -179,7 +195,7 @@ a {
 
 
 .card 												#Field-Cloze-content, 
-.card 												#Field-title-Prompt, 
+.card 												#Field-Title-Prompt, 
 .card 												#Field-TOC 				.header, 
 .card 								#Side-Front 		#Tags, 
 .card 								#Side-Front 								.occluded, 
@@ -196,13 +212,13 @@ a {
 /* .card #Card-EvernoteReview                 	 #Side-Front 						hr#answer ,
 .card #Card-EvernoteReview                 				 	#Field-Extra-Front,	hr#answer , */
 .card #Card-EvernoteReview                 	 #Side-Front  	#Field-content,
-.card #Card-EvernoteReviewReversed  	 #Side-Front 	#Field-title 
+.card #Card-EvernoteReviewReversed  	 #Side-Front 	#Field-Title 
 {
     visibility: hidden;
 }
  
 .card #Card-EvernoteReviewCloze  						#Field-Cloze-content, 
-.card #Card-EvernoteReviewReversed	#Side-Front		#Field-title-Prompt,
+.card #Card-EvernoteReviewReversed	#Side-Front		#Field-Title-Prompt,
 .card								#Side-Back	 	#Field-See_Also
 {
 	display: block;
