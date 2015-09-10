@@ -1,0 +1,87 @@
+
+/******************************************************************************************************* 
+  Helpful Attributes
+*******************************************************************************************************/
+
+/*
+
+ Colors: 
+	 <OL> 
+		Levels
+			LVL 1: 
+				color: rgb(106, 0, 129);
+			LVL 2: 
+				color: rgb(173, 0, 0);
+			LVL 3: 
+				color: rgb(186, 0, 255);
+			LVL 4: 
+				color: rgb(129, 182, 255);
+		Modifiers
+			Orange: 
+				color: rgb(222, 87, 0);
+			Orange (Light):
+				color: rgb(250, 122, 0);
+			Dark Red/Pink:
+				color:#A40F2D;
+			Pink Alternative LVL1:
+				color: rgb(188, 0, 88);
+	
+	Header Boxes
+		Red-Orange:
+			Gradient Start:
+				color:#ff1a00;
+			Gradient End:
+				color:#fff200;
+			Title:
+				color:#990000;
+				color: rgb(106, 6, 6);
+		Blue-White-Red 
+			Gradient Start:
+				color:#3b679e;
+			Gradient End:
+				color:#ff1111;
+			Title:
+				color:#004C99;
+				color: rgb(10, 121, 243);
+			Old Border:
+				color:#004C99;
+		Avi-Blue-Red
+			Gradient Start:
+				color: #0060bf;
+			Gradient End:
+				color: #bf0060;
+			Title: 
+				color: #80A6CC;
+				color: rgb(241, 135, 154);
+			Old Border:
+				color: #004C99;
+		Borders
+			 color:#990000;	
+
+	Fields:
+		Title Prompt:
+			color:#a90030;
+	
+	See Also (Link + Hover)
+		See Also:
+			color: rgb(45, 79, 201);
+			color: rgb(108, 132, 217);
+		TOC: 
+			color: rgb(173, 0, 0);
+			color: rgb(196, 71, 71);
+		Outline: 
+			color: rgb(105, 170, 53);
+			color: rgb(135, 187, 93);
+	 
+	 Evernote Anknotes Self-Referential Link
+			color: rgb(30, 155, 67)
+			color: rgb(107, 226, 143)
+	 
+	 Evernote Classic (In-App) Note Link
+			color: rgb(105, 170, 53);
+			color: rgb(135, 187, 93);
+			
+	Unused:
+		color: rgb(122, 220, 241); 
+	
+*/

@@ -1,0 +1,21 @@
+(?P<PrefixStrip><div><b><span[^>]*><br/></span></b></div>)?
+(?P<SeeAlso>(?P<SeeAlsoPrefix><div[^>]*>)(?P<SeeAlsoHeader>
+
+(?:<(?:b|span|font)[^>]*>){0,3}
+(?:<span[^>]*>)
+(?:<b(?: style=[^>]+?)?>)?
+(?P<SeeAlsoHeaderStripMe><br />(?:\r|\n|\r\n)?)?
+
+(?:See.Also:?
+
+(?:<span[^>]*>&nbsp;</span>)?
+(?:&nbsp;)?)
+
+(?:</b>)?
+(?:</span>)
+(?:</(?:span|font)>)?
+(?:</b>)?
+
+
+
+)(?P<SeeAlsoContents>.+))(?P<Suffix></en-note>)
