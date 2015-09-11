@@ -12,13 +12,13 @@ import socket
 import copy
 from ankEnums import AutoNumber, EvernoteTitleLevels
 from ankAnki import AnkiNotePrototype
-import ankShared, ankConsts as ank, ankEvernote as EN 
+import ankConsts as ank, ankEvernote as EN 
 from ankShared import *
 import ankSettings
 
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
-from evernote.edam.type.ttypes import NoteSortOrder
-from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode
+from evernote.edam.type.ttypes import NoteSortOrder, Note
+from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
 from evernote.api.client import EvernoteClient
 
 import anki
@@ -32,7 +32,6 @@ QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QT
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False    
-EDAM_RATE_LIMIT_ERROR_HANDLING = RateLimitErrorHandling.ToolTipError 
 
 class Anki:        
     def __init__(self):
@@ -411,6 +410,10 @@ LIMIT 1 """ % (ank.TABLES.SEE_ALSO, target_evernote_guid, link_number, uid, shar
         return self.collection().decks
 
 class Evernote(object):
+
+
+
+
     class EvernoteNote:
         title = ""
         content = ""
@@ -579,6 +582,72 @@ class Evernote(object):
                 return 2
             raise                         
         return 0
+        
+        
+    def makeNote(self, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[]):
+            """
+            Create a Note instance with title and body 
+            Send Note object to user's account
+            """
+
+            ourNote = Note()
+            ourNote.title = noteTitle.encode('utf-8')
+
+            ## Build body of note
+
+            nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
+            nBody += "<en-note>%s" % noteBody
+            # if resources:
+                # ### Add Resource objects to note body
+                # nBody += "<br />" * 2
+                # ourNote.resources = resources
+                # for resource in resources:
+                    # hexhash = binascii.hexlify(resource.data.bodyHash)
+                    # nBody += "Attachment with hash %s: <br /><en-media type=\"%s\" hash=\"%s\" /><br />" % \
+                        # (hexhash, resource.mime, hexhash)
+            nBody += "</en-note>"
+
+            nBody = nBody.encode('utf-8')
+            
+            ourNote.content = nBody
+            ourNote.tagNames = tagNames
+
+            ## parentNotebook is optional; if omitted, default notebook is used
+            # if parentNotebook and hasattr(parentNotebook, 'guid'):
+                # ourNote.notebookGuid = parentNotebook.guid
+
+            ## Attempt to create note in Evernote account
+            
+            api_action_str = u'trying to create a note'
+            log(" ank.EVERNOTE.API_CALL: createNote: Title: '%s'" % (noteTitle), 'api')        
+            try:            
+               note = self.noteStore.createNote(self.token, ourNote)
+               
+            except EDAMSystemException as e:
+                if HandleEDAMRateLimitError(e, api_action_str): 
+                    if DEBUG_RAISE_API_ERRORS: raise 
+                    return None
+                # raise         
+            except socket.error, v:
+                if HandleSocketError(v, api_action_str): 
+                    if DEBUG_RAISE_API_ERRORS: raise 
+                    return None
+                # raise          
+            except EDAMUserException, edue:
+                ## Something was wrong with the note data
+                ## See EDAMErrorCode enumeration for error code explanation
+                ## http://dev.evernote.com/documentation/reference/Errors.html#Enum_EDAMErrorCode
+                print "EDAMUserException:", edue
+                if DEBUG_RAISE_API_ERRORS: raise 
+                return None
+            except EDAMNotFoundException, ednfe:
+                ## Parent Notebook GUID doesn't correspond to an actual notebook
+                print "EDAMNotFoundException: Invalid parent notebook GUID"
+                if DEBUG_RAISE_API_ERRORS: raise 
+                return None
+            ## Return created note object
+            return note                  
     
     def create_evernote_notes(self, evernote_guids = None):  
         if not hasattr(self, 'guids') or evernote_guids: self.evernote_guids = evernote_guids
@@ -723,9 +792,57 @@ class Controller:
         update_regex()
         anki_note_ids = self.anki.get_anknotes_note_ids_with_unadded_see_also()
         self.evernote.getNoteCount = 0        
-        self.anki.process_see_also_content(anki_note_ids)
-        self.anki.process_toc_and_outlines()        
+        self.process_auto_toc()
+        # self.anki.process_see_also_content(anki_note_ids)
+        # self.anki.process_toc_and_outlines()        
 
+    def process_auto_toc(self):
+        self.evernote.initialize_note_store()
+        self.anki.evernoteTags = []
+        NoteDB = EN.Notes() 
+        NoteDB.baseQuery = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3' AND notebookGuid != 'faabcd80-918f-49ca-a349-77fd0036c051'"
+        # NoteDB.populateAllRootNotesWithoutTOCOrOutlineDesignation()
+        dbRows = NoteDB.populateAllRootNotesMissing()    
+        # dbRows = ankDB().all("SELECT root_title, contents, tagNames, notebookGuid FROM %s WHERE 1 ORDER BY root_title ASC " % ank.TABLES.EVERNOTE.AUTO_TOC)
+        # dbRows = dbRows[-3:]
+        # print dbRows
+        # showInfo(str(dbRows[0]))
+        count = 0
+        exist = 0
+        error = 0
+        notes = []
+        for dbRow in dbRows:
+            rootTitle, contents, tagNames, notebookGuid = dbRow 
+            exists = ankDB().scalar("SELECT COUNT(*) FROM %s WHERE title = ?" % (ank.TABLES.EVERNOTE.NOTES), rootTitle)
+            if exists is 0:
+                tagNames = tagNames[1:-1].split(',')
+                tagNames.append(ank.EVERNOTE.TAG.TOC)
+                tagNames.append(ank.EVERNOTE.TAG.AUTO_TOC)
+                if ank.ANKNOTES.EVERNOTE_IS_SANDBOXED:
+                    tagNames.append("#Sandbox")
+                rootTitle = rootTitle.upper().replace(u'Α', u'α').replace(u'Β', u'β')
+                whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid)        
+                if whole_note:
+                    count += 1 
+                    note = self.evernote.EvernoteNote(whole_note=whole_note,  tags=tagNames)
+                    notes.append(note)
+                else:
+                    error += 1
+                    status = 1
+            else: 
+                exist += 1
+                
+        # self.anki.notebook_data = self.evernote.notebook_data
+        # number = self.anki.add_evernote_notes(notes)
+        
+        str_tip = "%d of %d total note(s) successfully created." % (count, len(dbRows))
+        if exist > 0: str_tip += "\n - %d note(s) already exist in local db " % exist 
+        if error > 0: str_tip += "\n - %d error(s) occurred " % error 
+        
+        show_tooltip(str_tip)
+                
+        return status, count, exist 
+        
     def update_ancillary_data(self):
         self.evernote.update_ancillary_data()
         
@@ -862,6 +979,11 @@ class Controller:
         self.anki.notebook_data = self.evernote.notebook_data
         number = self.anki.add_evernote_notes(notes)
         return status, local_count, number
+    
+    
+    
+            
+  
     
     def get_evernote_metadata(self):
         notes_metadata = {}

@@ -50,6 +50,7 @@ class DECKS:
 class EVERNOTE:
     class TAG:
         TOC = '#TOC'
+        AUTO_TOC = '#TOC.Auto'
         OUTLINE = '#Outline'
         OUTLINE_TESTABLE = '#Outline.Testable'
         REVERSIBLE = '#Reversible'
@@ -61,7 +62,7 @@ class EVERNOTE:
     PAGING_TIMER_INTERVAL = 60 * 15
     # Obviously setting this to True will result in an infinite loop with Anki never being responsive. 
     # This is intended to be used while keeping Anki open overnight, and force-closing Anki with the task manager when you are done
-    PAGING_RESTART_WHEN_COMPLETE = False
+    PAGING_RESTART_WHEN_COMPLETE = False        
     METADATA_QUERY_LIMIT = 10000
     GET_NOTE_LIMIT = 10000    
     
@@ -71,12 +72,17 @@ class TABLES:
         NOTEBOOKS = "anknotes_evernote_notebooks"
         TAGS = "anknotes_evernote_tags"
         NOTES = u'anknotes_evernote_notes'
+        AUTO_TOC = u'anknotes_evernote_auto_toc'
 
 
 class SETTINGS:
     KEEP_EVERNOTE_TAGS_DEFAULT_VALUE = True
     EVERNOTE_QUERY_TAGS_DEFAULT_VALUE = "#Anki_Import"
     DEFAULT_ANKI_DECK_DEFAULT_VALUE = DECKS.DEFAULT
+    EVERNOTE_ACCOUNT_UID = 'ankNotesEvernoteAccountUID'
+    EVERNOTE_ACCOUNT_SHARD = 'ankNotesEvernoteAccountSHARD'
+    EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE = '19775535'
+    EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE = 's175'
     EVERNOTE_QUERY_TAGS = 'anknotesEvernoteQueryTags'
     EVERNOTE_QUERY_USE_TAGS = 'anknotesEvernoteQueryUseTags'
     EVERNOTE_QUERY_LAST_UPDATED_VALUE_RELATIVE = 'anknotesEvernoteQueryLastUpdatedValueRelative'

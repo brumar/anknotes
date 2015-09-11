@@ -12,7 +12,7 @@ import socket
 import copy
 from ankEnums import AutoNumber, EvernoteTitleLevels
 from ankAnki import AnkiNotePrototype
-import ankShared, ankConsts as ank, ankEvernote as EN 
+import ankConsts as ank, ankEvernote as EN 
 from ankShared import *
 
 try:

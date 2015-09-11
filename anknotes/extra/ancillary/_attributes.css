@@ -8,14 +8,39 @@
  Colors: 
 	 <OL> 
 		Levels
-			LVL 1: 
-				color: rgb(106, 0, 129);
-			LVL 2: 
-				color: rgb(173, 0, 0);
-			LVL 3: 
-				color: rgb(186, 0, 255);
-			LVL 4: 
-				color: rgb(129, 182, 255);
+             'OL':   {
+                    1: {
+						'Default': 'rgb(106, 0, 129);',
+						'Hover': 'rgb(168, 0, 204);'
+						},
+                    2: {
+						'Default': 'rgb(235, 0, 115);',
+						'Hover': 'rgb(255, 94, 174);'
+						},
+                    3: {
+						'Default': 'rgb(186, 0, 255);',
+						'Hover': 'rgb(213, 100, 255);'
+						},
+                    4: {
+						'Default': 'rgb(129, 182, 255);',
+						'Hover': 'rgb(36, 130, 255);'
+						},
+                    5: {
+						'Default': 'rgb(232, 153, 220);',
+						'Hover': 'rgb(142, 32, 125);'
+						},
+                    6: {
+						'Default': 'rgb(201, 213, 172);',
+						'Hover': 'rgb(130, 153, 77);'
+						},
+                    7: {
+						'Default': 'rgb(231, 179, 154);',
+						'Hover': 'rgb(215, 129, 87);'
+						},
+                    8: {
+						'Default': 'rgb(249, 136, 198);',
+						'Hover': 'rgb(215, 11, 123);'
+						}
 		Modifiers
 			Orange: 
 				color: rgb(222, 87, 0);

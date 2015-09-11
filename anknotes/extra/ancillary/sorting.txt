@@ -1,0 +1,49 @@
+ first = [
+             'Summary',
+             'Definition',
+             'Classification',
+             'Types',
+             'Presentation',
+             'Age of Onset',
+             'Si/Sx',
+             'Sx',
+             'Sign',
+             
+             'MCC\'s',
+             'MCC',
+             'Inheritance',
+             'Incidence',
+             'Prognosis',
+             'Mechanism',
+             'MOA',
+             'Pathophysiology',
+             
+             'Indications',
+             'Examples',
+             'Cause',
+             'Causes',
+             'Causative Organisms',
+             'Risk Factors',
+             'Complication',
+             'Complications',
+             'Side Effects',
+             'Drug S/E',
+             'Associated Conditions',
+             'A/w',
+             
+             'Dx',
+             'Physical Exam',
+             'Labs',
+             'Hemodynamic Parameters',
+             'Lab Findings',
+             'Imaging',
+             'Confirmatory Test',
+             'Screening Test'
+            ]
+    last =  [
+              'Management',
+              'Work Up',
+              'Tx'
+              
+              
+            ]

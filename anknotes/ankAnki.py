@@ -10,8 +10,9 @@ import time
 import errno
 import socket
 import copy
-import ankShared, ankConsts as ank, ankEvernote as EN 
+import ankConsts as ank, ankEvernote as EN 
 from ankShared import *
+import anki 
 try: from aqt import mw
 except: pass
 
@@ -59,10 +60,10 @@ class AnkiNotePrototype:
                 self.fields[field] = self.originalFields[field] if self.baseNote else u''
                 
     def deck(self):
-        if ank.EVERNOTE.TAG.TOC in self.tags:
-            deck = self.deck_parent + DECK_TOC     
+        if ank.EVERNOTE.TAG.TOC in self.tags or ank.EVERNOTE.TAG.AUTO_TOC in self.tags:
+            deck = self.deck_parent + ank.DECKS.TOC_SUFFIX     
         elif ank.EVERNOTE.TAG.OUTLINE in self.tags and ank.EVERNOTE.TAG.OUTLINE_TESTABLE not in self.tags:
-            deck = self.deck_parent + DECK_OUTLINE
+            deck = self.deck_parent +  ank.DECKS.OUTLINE_SUFFIX
         elif not self.deck_parent or mw.col.conf.get(ank.SETTINGS.USE_EVERNOTE_NOTEBOOK_NAME_FOR_ANKI_DECK_NAME, True):  
                 deck = self.anki.get_deck_name_from_evernote_notebook(self.notebookGuid, self.deck_parent)        
                 if not deck: return None
@@ -96,8 +97,6 @@ class AnkiNotePrototype:
         if not ank.FIELDS.CONTENT in self.fields:
             return 
         content = self.fields[ank.FIELDS.CONTENT]
-        if not ankShared.regex_see_also:
-            update_regex()
         
         ################################### Step 0: Correct weird Evernote formatting 
         content = content.replace('margin: 0px; padding: 0px 0px 0px 40px; color: rgb(0, 0, 0); font-family: Tahoma; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; orphans: 2; text-align: -webkit-auto; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-size-adjust: auto; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); font-size: medium;', '').replace('color: rgb(0, 0, 0); font-family: Tahoma; font-style: normal; font-variant: normal; letter-spacing: normal; orphans: 2; text-align: -webkit-auto; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-size-adjust: auto; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); font-size: medium;', '').replace(' style=""', '')
@@ -143,7 +142,7 @@ class AnkiNotePrototype:
         content = re.sub(r'{(.+?)}', self.evernote_cloze_regex, content)
         
         ################################### Step 6: Process "See Also: " Links
-        see_also_match = ankShared.regex_see_also.search(content)        
+        see_also_match = regex_see_also().search(content)        
         if see_also_match:
             log_dump(see_also_match.group('SeeAlso'), "-See Also match for Note '%s': %s" % (self.evernote_guid, self.fields[ank.FIELDS.TITLE]))
             content = content.replace(see_also_match.group(0), see_also_match.group('Suffix'))
