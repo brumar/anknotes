@@ -7,6 +7,7 @@ class ANKNOTES:
     FOLDER_ANCILLARY = os.path.join(FOLDER_EXTRA, 'ancillary')
     FOLDER_GRAPHICS = os.path.join(FOLDER_EXTRA, 'graphics')
     FOLDER_LOGS = os.path.join(FOLDER_EXTRA, 'logs')
+    FOLDER_TESTING = os.path.join(FOLDER_EXTRA, 'testing')
     LOG_BASE_NAME = 'anknotes'
     TEMPLATE_FRONT = os.path.join(FOLDER_ANCILLARY, 'FrontTemplate.htm')
     CSS =  u'_AviAnkiCSS.css'
@@ -16,6 +17,9 @@ class ANKNOTES:
     IMAGE_EVERNOTE_ARTCORE = ICON_EVERNOTE_ARTCORE.replace('.ico', '.png')
     EVERNOTE_CONSUMER_KEY = "holycrepe"
     EVERNOTE_IS_SANDBOXED = False
+    DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+    DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer')))
+    DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer.automate')))
 
 class MODELS:    
     EVERNOTE_DEFAULT = 'evernote_note'
@@ -56,13 +60,14 @@ class EVERNOTE:
         REVERSIBLE = '#Reversible'
         REVERSE_ONLY = '#Reversible_Only'
     # Note that Evernote's API documentation says not to run API calls to findNoteMetadata with any less than a 15 minute interval
-    PAGING_RESTART_INTERVAL = 60 * 15
+    PAGING_RESTART_INTERVAL = 60 * 15    
     # Auto Paging is probably only useful in the first 24 hours, when API usage is unlimited,  or when executing a search that is likely to have most of the notes up-to-date locally
     # To keep from overloading Evernote's servers, and flagging our API key, I recommend pausing 5-15 minutes in between searches, the higher the better.
     PAGING_TIMER_INTERVAL = 60 * 15
     # Obviously setting this to True will result in an infinite loop with Anki never being responsive. 
     # This is intended to be used while keeping Anki open overnight, and force-closing Anki with the task manager when you are done
     PAGING_RESTART_WHEN_COMPLETE = False        
+    IMPORT_TIMER_INTERVAL = PAGING_RESTART_INTERVAL * 2 * 1000
     METADATA_QUERY_LIMIT = 10000
     GET_NOTE_LIMIT = 10000    
     
@@ -72,10 +77,13 @@ class TABLES:
         NOTEBOOKS = "anknotes_evernote_notebooks"
         TAGS = "anknotes_evernote_tags"
         NOTES = u'anknotes_evernote_notes'
+        NOTES_HISTORY = u'anknotes_evernote_notes_history'
         AUTO_TOC = u'anknotes_evernote_auto_toc'
 
 
 class SETTINGS:
+    EVERNOTE_LAST_IMPORT = "ankNotesEvernoteLastAutoImport"
+    ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX = "ankNotesCheckableMenuItems"
     KEEP_EVERNOTE_TAGS_DEFAULT_VALUE = True
     EVERNOTE_QUERY_TAGS_DEFAULT_VALUE = "#Anki_Import"
     DEFAULT_ANKI_DECK_DEFAULT_VALUE = DECKS.DEFAULT
@@ -104,7 +112,8 @@ class SETTINGS:
     EVERNOTE_AUTO_PAGING = 'anknotesEvernoteAutoPaging'
     EVERNOTE_AUTH_TOKEN = 'anknotesEvernoteAuthToken_' + ANKNOTES.EVERNOTE_CONSUMER_KEY + ("_SANDBOX" if ANKNOTES.EVERNOTE_IS_SANDBOXED else "")
     KEEP_EVERNOTE_TAGS = 'anknotesKeepEvernoteTags'
-    USE_EVERNOTE_NOTEBOOK_NAME_FOR_ANKI_DECK_NAME = 'anknotesUseNotebookNameForAnkiDeckName'
+    EVERNOTE_TAGS_TO_DELETE = 'anknotesEvernoteTagsToDelete'
+    ANKI_DECK_EVERNOTE_NOTEBOOK_INTEGRATION = 'anknotesUseNotebookNameForAnkiDeckName'
     DEFAULT_ANKI_DECK = 'anknotesDefaultAnkiDeck'
     
   

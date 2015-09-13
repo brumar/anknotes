@@ -2,9 +2,10 @@
 (?P<SeeAlso>
     <div[^>]*>
     (?P<SeeAlsoHeader>
-        (?:<(?:span|b|font)[^>]*>){0,3}
+        (?:<(?:span|b|font)[^>]*>){0,5}
         (?P<SeeAlsoHeaderStripMe><br />(?:\r|\n|\r\n)?)?
-        See.[Aa]lso:?\ ?
+        See.[Aa]lso:?(?:\ |&nbsp;)?
+		(?:</(?:span|b|font)>){0,5}
     )
     
     .+  # See Also Contents

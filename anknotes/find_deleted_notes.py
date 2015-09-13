@@ -10,10 +10,10 @@ import time
 import errno
 import socket
 import copy
-from ankEnums import AutoNumber, EvernoteTitleLevels
-from ankAnki import AnkiNotePrototype
-import ankConsts as ank, ankEvernote as EN 
-from ankShared import *
+from enums import AutoNumber, EvernoteTitleLevels
+from AnkiNote import AnkiNotePrototype
+import EvernoteNotes as EN 
+from shared import *
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
@@ -25,7 +25,7 @@ ENNotes = file(os.path.join(PATH, "^ Scratch Note.enex") , 'r').read()
 # find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
 # replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
 
-all_notes = ankDB().execute("SELECT guid, title FROM %s " % ank.TABLES.EVERNOTE.NOTES)
+all_notes = ankDB().execute("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTES)
 find_guids = {}
 
 def clean_title(title):
@@ -73,5 +73,5 @@ with open(os.path.join(PATH, 'deleted-notes.txt') , 'w') as filesProgress:
         print>>filesProgress, str_safe('%s::: %s' % (guid, title))
         dels.append([guid])
         
-ankDB().executemany("DELETE FROM %s WHERE guid = ?" % ank.TABLES.EVERNOTE.NOTES, dels)
+ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, dels)
 ankDB().commit()

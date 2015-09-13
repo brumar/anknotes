@@ -41,51 +41,54 @@
 						'Default': 'rgb(249, 136, 198);',
 						'Hover': 'rgb(215, 11, 123);'
 						}
+		Headers
+			Auto TOC:
+				color: rgb(11, 59, 225);
 		Modifiers
 			Orange: 
 				color: rgb(222, 87, 0);
 			Orange (Light):
 				color: rgb(250, 122, 0);
 			Dark Red/Pink:
-				color:#A40F2D;
+				color: rgb(164, 15, 45);
 			Pink Alternative LVL1:
 				color: rgb(188, 0, 88);
 	
 	Header Boxes
 		Red-Orange:
 			Gradient Start:
-				color:#ff1a00;
+				color: rgb(255, 26, 0);
 			Gradient End:
-				color:#fff200;
+				color: rgb(255, 242, 0);
 			Title:
-				color:#990000;
+				color: rgb(153, 0, 0);
 				color: rgb(106, 6, 6);
 		Blue-White-Red 
 			Gradient Start:
-				color:#3b679e;
+				color: rgb(59, 103, 158);
 			Gradient End:
-				color:#ff1111;
+				color: rgb(255, 17, 17);
 			Title:
-				color:#004C99;
+				color: rgb(0, 76, 153);
 				color: rgb(10, 121, 243);
 			Old Border:
-				color:#004C99;
+				color: rgb(0, 76, 153);
 		Avi-Blue-Red
 			Gradient Start:
-				color: #0060bf;
+				color: rgb(0, 96, 191);
 			Gradient End:
-				color: #bf0060;
+				color: rgb(191, 0, 96);
 			Title: 
-				color: #80A6CC;
+				color: rgb(128, 166, 204);
 				color: rgb(241, 135, 154);
 			Old Border:
-				color: #004C99;
+				color: rgb(0, 76, 153);
 		Borders
-			 color:#990000;	
+			 color: rgb(153, 0, 0);
 
-	Fields:
-		Title Prompt:
-			color:#a90030;
+	Titles:
+		Field Title Prompt:
+			color: rgb(169, 0, 48);
 	
 	See Also (Link + Hover)
 		See Also:

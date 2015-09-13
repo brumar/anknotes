@@ -10,10 +10,10 @@ import time
 import errno
 import socket
 import copy
-from ankEnums import AutoNumber, EvernoteTitleLevels
-from ankAnki import AnkiNotePrototype
-import ankConsts as ank, ankEvernote as EN 
-from ankShared import *
+from enums import AutoNumber, EvernoteTitleLevels
+from AnkiNote import AnkiNotePrototype
+import EvernoteNotes as EN 
+from shared import *
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
@@ -27,9 +27,9 @@ ankDBSetLocal()
 
 title = unicode(ankDB().scalar("SELECT title FROM anknotes_evernote_notes WHERE guid = '13398462-7129-48bb-b13d-4139e324119a'"))
 title_utf8 = title.encode('utf8')
-file_object = open('pytho2!n_intro.txt', 'w')
-file_object.write(title_utf8)
-file_object.close()     
+# file_object = open('pytho2!n_intro.txt', 'w')
+# file_object.write(title_utf8)
+# file_object.close()     
 
 # import sys 
 # import locale
