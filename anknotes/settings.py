@@ -5,13 +5,19 @@ from anknotes.shared import *
 
 ### Anki Imports
 try:
+    # noinspection PyUnresolvedReferences
     import anki
+    # noinspection PyUnresolvedReferences
     import aqt
+    # noinspection PyUnresolvedReferences
     from aqt.preferences import Preferences
+    # noinspection PyUnresolvedReferences
     from aqt.utils import getText, openLink, getOnlyText
+    # noinspection PyUnresolvedReferences
     from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
     QComboBox, QSpacerItem, QSizePolicy, QWidget, QSpinBox, QFormLayout, QGridLayout, QFrame, QPalette, \
     QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, QMessageBox, QPixmap
+    # noinspection PyUnresolvedReferences
     from aqt import mw
 except: pass
 
@@ -59,8 +65,7 @@ def setup_evernote(self):
     global evernote_pagination_auto_paging
 
     widget = QWidget()
-    layout = QVBoxLayout()    
-    hbox = QHBoxLayout()
+    layout = QVBoxLayout()
 
 
     ########################## QUERY ##########################
@@ -275,7 +280,7 @@ def setup_evernote(self):
     layout.addWidget(group)    
 
     ########################## DECK ##########################
-    label = QLabel("<span style='background-color: #bf0060;'><B><U>ANKI NOTE OPTIONS</U>:</B></span>")
+    # label = QLabel("<span style='background-color: #bf0060;'><B><U>ANKI NOTE OPTIONS</U>:</B></span>")
     group = QGroupBox("ANKI NOTE OPTIONS:")    
     group.setStyleSheet('QGroupBox{    font-size: 10px;    font-weight: bold;  color: rgb(105, 170, 53);}')
     form = QFormLayout()
@@ -479,7 +484,7 @@ def evernote_query_text_changed():
     search_terms = evernote_query_search_terms.text() 
     note_title = evernote_query_note_title.text() 
     notebook = evernote_query_notebook.text() 
-    tags_active = tags and evernote_query_use_tags.isChecked()
+    # tags_active = tags and evernote_query_use_tags.isChecked()
     search_terms_active = search_terms and evernote_query_use_search_terms.isChecked()
     note_title_active = note_title and evernote_query_use_note_title.isChecked()
     notebook_active = notebook and evernote_query_use_notebook.isChecked()
@@ -516,19 +521,19 @@ def evernote_query_text_changed():
             evernote_query_tags.setText(SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE)
         
 def update_evernote_query_visibilities():
-    is_any =  evernote_query_any.isChecked()
+    # is_any =  evernote_query_any.isChecked()
     is_tags = evernote_query_use_tags.isChecked()
     is_terms = evernote_query_use_search_terms.isChecked()
     is_title = evernote_query_use_note_title.isChecked()
     is_notebook = evernote_query_use_notebook.isChecked()
     is_updated = evernote_query_use_last_updated.isChecked()
     
-    is_disabled_any = not evernote_query_any.isEnabled()
+    # is_disabled_any = not evernote_query_any.isEnabled()
     is_disabled_tags = not evernote_query_use_tags.isEnabled()
     is_disabled_terms = not evernote_query_use_search_terms.isEnabled()
     is_disabled_title = not evernote_query_use_note_title.isEnabled()
     is_disabled_notebook = not evernote_query_use_notebook.isEnabled()
-    is_disabled_updated = not evernote_query_use_last_updated.isEnabled()
+    # is_disabled_updated = not evernote_query_use_last_updated.isEnabled()
 
     override = (not is_tags and not is_terms and not is_title and not is_notebook and not is_updated)
     if override:
@@ -558,7 +563,7 @@ def evernote_query_last_updated_value_get_current_value():
     absolute_time_str = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME, "{:HH mm ss}".format(datetime.now())).replace(' ', '')
     return absolute_date_str + "'T'" + absolute_time_str
 
-def evernote_query_last_updated_value_set_visibilities(set_enabled_only = False):
+def evernote_query_last_updated_value_set_visibilities():
     index = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_TYPE, 0)
     if not evernote_query_use_last_updated.isChecked():
         evernote_query_last_updated_type.setEnabled(False)
@@ -604,12 +609,12 @@ def update_evernote_query_last_updated_value_relative_spinner(value):
 def update_evernote_query_last_updated_value_absolute_date(date):    
     mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_DATE] = date.toString('yyyy MM dd')
     
-def update_evernote_query_last_updated_value_absolute_datetime(datetime):    
-    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_DATE] = datetime.toString('yyyy MM dd')    
-    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME] = datetime.toString('HH mm ss')     
+def update_evernote_query_last_updated_value_absolute_datetime(dt):
+    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_DATE] = dt.toString('yyyy MM dd')
+    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME] = dt.toString('HH mm ss')
     
-def update_evernote_query_last_updated_value_absolute_time(time):    
-    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME] = time.toString('HH mm ss')      
+def update_evernote_query_last_updated_value_absolute_time(time_value):
+    mw.col.conf[SETTINGS.EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME] = time_value.toString('HH mm ss')
 
 def generate_evernote_query():
     query = ""

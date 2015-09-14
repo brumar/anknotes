@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import socket
+
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
 from anknotes.shared import *
+from anknotes.enums import *
+from anknotes.error import *
+
+### Anknotes Class Imports
+from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
 
 ### Evernote Imports 
 from evernote.edam.type.ttypes import Note
@@ -23,144 +29,11 @@ from evernote.api.client import EvernoteClient
 # QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, QMessageBox, QPixmap, QMenu, QAction
 # from aqt import mw
 
-DEBUG_RAISE_API_ERRORS = False    
-
 class Evernote(object):
-    class EvernoteNote:
-        title = ""
-        content = ""
-        guid = ""
-        updateSequenceNum = -1
-        tags = []
-        notebookGuid = ""
-        status = -1
-        def __init__(self, title=None, content=None, guid=None, tags=None, notebookGuid=None, updateSequenceNum=None, whole_note=None):
-            self.status = -1
-            self.tags = tags 
-            if not whole_note is None:
-                self.title = whole_note.title
-                self.content = whole_note.content
-                self.guid = whole_note.guid 
-                self.notebookGuid = whole_note.notebookGuid
-                self.updateSequenceNum = whole_note.updateSequenceNum                
-                return
-            self.title = title
-            self.content = content
-            self.guid = guid
-            self.notebookGuid = notebookGuid
-            self.updateSequenceNum = updateSequenceNum
-            
-    class EvernoteNoteFetcher(object):
-        class EvernoteNoteFetcherResult(object):
-            def __init__(self, note=None, status=-1, source=-1):
-                self.note = note 
-                self.status = status 
-                self.source = source 
-                
-        def __init__(self, evernote, evernote_guid = None, use_local_db_only = False):
-            self.result = self.EvernoteNoteFetcherResult()
-            self.api_calls = 0
-            self.keepEvernoteTags = True         
-            self.evernote = evernote
-            self.use_local_db_only = use_local_db_only
-            self.updateSequenceNum = -1
-            if not evernote_guid:
-                self.evernote_guid = ""
-                return             
-            self.evernote_guid = evernote_guid 
-            if not self.use_local_db_only:
-                self.updateSequenceNum = self.evernote.metadata[self.evernote_guid].updateSequenceNum 
-            self.getNote()              
-          
-        def getNoteLocal(self):
-            # Check Anknotes database for note
-            query = "SELECT guid, title, content, notebookGuid, tagNames, updateSequenceNum FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.evernote_guid)
-            if self.updateSequenceNum > -1:
-                query += " AND `updateSequenceNum` = %d" % (self.updateSequenceNum)
-            db_note = ankDB().first(query)
-            # showInfo(self.evernote_guid + '\n\n' + query)
-            if not db_note: return False
-            note_guid, note_title, note_content, note_notebookGuid, note_tagNames, note_usn = db_note
-            if not self.use_local_db_only:
-                log("                     > getNoteLocal: Note '%s': %-40s" % (self.evernote_guid, note_title), 'api')
-            self.updateSequenceNum = note_usn 
-            self.tagNames = note_tagNames[1:-1].split(',') if self.keepEvernoteTags else []
-            self.result.note = self.evernote.EvernoteNote(note_title, note_content, note_guid, self.tagNames, note_notebookGuid, self.updateSequenceNum)      
-            assert self.result.note.guid == self.evernote_guid
-            self.result.status = 0
-            self.result.source = 1
-            return True
 
-        def addNoteFromServerToDB(self):
-            # Note that values inserted into the db need to be converted from byte strings (utf-8) to unicode
-            title = self.whole_note.title
-            content = self.whole_note.content
-            tag_names =  u',' + u','.join(self.tagNames).decode('utf-8') + u','
-            if isinstance(title , str):
-                title = unicode(title , 'utf-8')  
-            if isinstance(content , str):
-                content = unicode(content , 'utf-8') 
-            if isinstance(tag_names , str):
-                tag_names = unicode(tag_names , 'utf-8')  
-            title = title.replace(u'\'', u'\'\'')
-            content = content.replace(u'\'', u'\'\'')
-            tag_names = tag_names.replace(u'\'', u'\'\'')
-            sql_query_header = u'INSERT OR REPLACE INTO `%s`' % (TABLES.EVERNOTE.NOTES)
-            sql_query_header_history = u'INSERT INTO `%s`' % (TABLES.EVERNOTE.NOTES_HISTORY)
-            sql_query_columns = u'(`guid`,`title`,`content`,`updated`,`created`,`updateSequenceNum`,`notebookGuid`,`tagGuids`,`tagNames`) VALUES (\'%s\',\'%s\',\'%s\',%d,%d,%d,\'%s\',\'%s\',\'%s\');' % (self.whole_note.guid.decode('utf-8'), title, content, self.whole_note.updated, self.whole_note.created, self.whole_note.updateSequenceNum, self.whole_note.notebookGuid.decode('utf-8'), u',' + u','.join(self.tagGuids).decode('utf-8') + u',', tag_names)            
-            sql_query = sql_query_header + sql_query_columns
-            log_sql('UPDATE_ANKI_DB: Add Note: SQL Query: ' + sql_query)
-            ankDB().execute(sql_query)     
-            sql_query = sql_query_header_history + sql_query_columns
-            ankDB().execute(sql_query)     
-            
-        def getNoteRemoteAPICall(self):
-            api_action_str = u'trying to retrieve a note. We will save the notes downloaded thus far.'
-            log_api("getNote [%3d]" % (self.api_calls+1), "GUID: '%s'" % (self.evernote_guid))  
-            
-            try:                        
-                self.whole_note = self.evernote.noteStore.getNote(self.evernote.token, self.evernote_guid, True, False, False, False)
-            except EDAMSystemException as e:
-                if HandleEDAMRateLimitError(e, api_action_str): 
-                    self.result.status = 1
-                    if DEBUG_RAISE_API_ERRORS: raise 
-                    return False
-                raise         
-            except socket.error, v:
-                if HandleSocketError(v, api_action_str): 
-                    self.result.status = 2
-                    if DEBUG_RAISE_API_ERRORS: raise 
-                    return False
-                raise 
-            assert self.whole_note.guid == self.evernote_guid 
-            self.result.status = 0
-            self.result.source = 2
-            return True
-        
-        def getNoteRemote(self):
-            # if self.getNoteCount > EVERNOTE.GET_NOTE_LIMIT: 
-                # log("Aborting Evernote.getNoteRemote: EVERNOTE.GET_NOTE_LIMIT of %d has been reached" % EVERNOTE.GET_NOTE_LIMIT)
-                # return None        
-            if not self.getNoteRemoteAPICall(): return False 
-            self.api_calls += 1
-            self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)
-            self.addNoteFromServerToDB()
-            if not self.keepEvernoteTags: self.tagNames = []
-            self.result.note = self.evernote.EvernoteNote(whole_note=self.whole_note,  tags=self.tagNames)
-            
-            assert self.result.note.guid == self.evernote_guid
-            return True
-
-        def getNote(self, evernote_guid = None):
-            if evernote_guid:
-                self.result.note = None
-                self.evernote_guid = evernote_guid 
-                self.updateSequenceNum = self.evernote.metadata[self.evernote_guid].updateSequenceNum if not self.use_local_db_only else -1
-            if self.getNoteLocal(): return True 
-            if self.use_local_db_only: return False 
-            return self.getNoteRemote()        
 
     def __init__(self):
+        self.metadata = None
         auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
         self.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
         self.tag_data = {}
@@ -211,20 +84,21 @@ class Evernote(object):
     def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[]):
         return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook,  resources=resources, guid=guid)
         
-    def makeNoteBody(self, noteBody, encode=True):
+    @staticmethod
+    def makeNoteBody(noteBody, resources=[], encode=True):
        ## Build body of note
 
         nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
         nBody += "<en-note>%s" % noteBody
         # if resources:
-            # ### Add Resource objects to note body
-            # nBody += "<br />" * 2
-            # ourNote.resources = resources
-            # for resource in resources:
-                # hexhash = binascii.hexlify(resource.data.bodyHash)
-                # nBody += "Attachment with hash %s: <br /><en-media type=\"%s\" hash=\"%s\" /><br />" % \
-                    # (hexhash, resource.mime, hexhash)
+        #     ### Add Resource objects to note body
+        #     nBody += "<br />" * 2
+        #     ourNote.resources = resources
+        #     for resource in resources:
+        #         hexhash = binascii.hexlify(resource.data.bodyHash)
+        #         nBody += "Attachment with hash %s: <br /><en-media type=\"%s\" hash=\"%s\" /><br />" % \
+        #             (hexhash, resource.mime, hexhash)
         nBody += "</en-note>"
         if encode:
             nBody = nBody.encode('utf-8')    
@@ -245,7 +119,7 @@ class Evernote(object):
                 ourNote.guid = guid 
 
             ## Build body of note  
-            nBody = self.makeNoteBody(noteBody)
+            nBody = self.makeNoteBody(noteBody, resources)
             ourNote.content = nBody
             
             if '' in tagNames: tagNames.remove('')
@@ -261,7 +135,7 @@ class Evernote(object):
             ## Attempt to create note in Evernote account
             
             api_action_str = u'trying to %s a note' % callType
-            log_api(callType + "Note", "'%s'" % (noteTitle))        
+            log_api(callType + "Note", "'%s'" % noteTitle)
             try:                            
                 note = getattr(self.noteStore,callType+'Note')(self.token, ourNote)
             except EDAMSystemException as e:
@@ -312,7 +186,7 @@ class Evernote(object):
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()        
         notes = []   
-        fetcher = self.EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
+        fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         fetcher.keepEvernoteTags = self.keepEvernoteTags
         local_count = 0
         for evernote_guid in self.evernote_guids:
@@ -424,5 +298,7 @@ class Evernote(object):
             tagGuids.append(k)
             tagNames.append(v)
         tagNames = sorted(tagNames, key=lambda s: s.lower())
-        return tagGuids, tagNames     
-     
+        return tagGuids, tagNames
+
+
+DEBUG_RAISE_API_ERRORS = False

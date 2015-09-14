@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import shutil
+import sys
+
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
@@ -15,17 +17,22 @@ from anknotes.shared import *
 # from evernote.api.client import EvernoteClient
 
 ### Anki Imports
+# noinspection PyUnresolvedReferences
 import anki
+# noinspection PyUnresolvedReferences
 import aqt
+# noinspection PyUnresolvedReferences
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False    
 
 class Anki:        
     def __init__(self):
+        self.deck = None
         self.templates = None
 
-    def get_notebook_guid_from_ankdb(self, evernote_guid):
+    @staticmethod
+    def get_notebook_guid_from_ankdb(evernote_guid):
         return ankDB().scalar("SELECT notebookGuid FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, evernote_guid))
         
     def get_deck_name_from_evernote_notebook(self, notebookGuid, deck=None):
@@ -81,7 +88,7 @@ class Anki:
             baseNote = None
             if update:
                 baseNote = self.get_anki_note_from_evernote_guid(note.guid)
-                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % (note.guid))
+                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % note.guid)
             anki_note_prototype = AnkiNotePrototype(self, anki_field_info, note.tags, baseNote, notebookGuid = note.notebookGuid, count=count, count_update = count_update, max_count=max_count)
             anki_note_prototype.log_update_if_unchanged = log_update_if_unchanged
             if update:
@@ -214,7 +221,7 @@ class Anki:
             raise        
         return get_dict_from_list(items, fields_to_ignore)     
     
-    def get_evernote_guids_from_anki_note_ids(self, ids, process_usns=True):
+    def get_evernote_guids_from_anki_note_ids(self, ids):
         evernote_guids = []
         self.usns = {}
         for a_id in ids:
@@ -380,13 +387,13 @@ class Anki:
         toc_evernote_guids = self.get_evernote_guids_and_anki_fields_from_anki_note_ids(toc_anki_ids)
         query_update_toc_links = "UPDATE %s SET is_toc = 1 WHERE " % TABLES.SEE_ALSO
         delimiter = ""
-        link_exists = 0
+        # link_exists = 0
         for toc_evernote_guid, fields in toc_evernote_guids.items():
             for match in find_evernote_links(fields[FIELDS.CONTENT]): 
                 target_evernote_guid = match.group('guid')
                 uid = int(match.group('uid'))
                 shard = match.group('shard')
-                link_title = strip_tags(match.group('Title'))
+                # link_title = strip_tags(match.group('Title'))
                 link_number = 1 + ankDB().scalar("select COUNT(*) from %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, target_evernote_guid))
                 toc_link_title = fields[FIELDS.TITLE]
                 toc_link_html = '<span style="color: rgb(173, 0, 0);"><b>%s</b></span>' % toc_link_title
@@ -474,7 +481,8 @@ class Anki:
         if self.collection():
             self.window().maybeReset()
 
-    def window(self):
+    @staticmethod
+    def window():
         return aqt.mw
 
     def collection(self):

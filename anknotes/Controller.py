@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import socket
+
+from anknotes.error import HandleSocketError, HandleEDAMRateLimitError
+
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
@@ -23,12 +26,15 @@ from evernote.edam.type.ttypes import NoteSortOrder
 from evernote.edam.error.ttypes import EDAMSystemException
 
 ### Anki Imports
+# noinspection PyUnresolvedReferences
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False    
 
 class Controller:
     def __init__(self):        
+        self.forceAutoPage = False
+        self.auto_page_callback = None
         self.updateExistingNotes = mw.col.conf.get(SETTINGS.UPDATE_EXISTING_NOTES, UpdateExistingNotes.UpdateNotesInPlace)
         self.anki = Anki()        
         self.anki.deck = mw.col.conf.get(SETTINGS.DEFAULT_ANKI_DECK, SETTINGS.DEFAULT_ANKI_DECK_DEFAULT_VALUE)
@@ -52,7 +58,7 @@ class Controller:
     def create_auto_toc(self):
         update_regex()        
         self.anki.evernoteTags = []
-        NoteDB = EN.Notes() 
+        NoteDB = EN.EvernoteNotes()
         NoteDB.baseQuery = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3' AND notebookGuid != 'faabcd80-918f-49ca-a349-77fd0036c051'"
         dbRows = NoteDB.populateAllRootNotesMissingOrAutoTOC()    
         number_updated = 0
@@ -81,8 +87,8 @@ class Controller:
             if ANKNOTES.EVERNOTE_IS_SANDBOXED:
                 tagNames.append("#Sandbox")
             rootTitle = generateTOCTitle(rootTitle)                
-            baseNote = None 
-            whole_note = None 
+            # baseNote = None
+            # whole_note = None
             evernote_guid, old_content = ankDB().first("SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES, rootTitle.upper(), EVERNOTE.TAG.AUTO_TOC)
             # if evernote_guid:
                 # baseNote = self.get_anki_note_from_evernote_guid(evernote_guid)
@@ -209,6 +215,9 @@ class Controller:
         self.anki.start_editing()
         status, local_count_1, n = self.import_into_anki(notes_to_add)
         local_count_2 = 0
+        n2 = 0
+        n3 = 0
+        status2 = 0
         if self.updateExistingNotes is UpdateExistingNotes.IgnoreExistingNotes:
             tooltip = "%d new note(s) have been imported. Updating is disabled.\n" % n        
         else:

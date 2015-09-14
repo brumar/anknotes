@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 ### Anknotes Shared Imports
-from shared import *
+from anknotes.shared import *
 
 ### Anki Imports
 import anki
-try: from aqt import mw
+try:
+    # noinspection PyUnresolvedReferences
+    from aqt import mw
 except: pass
 
 def get_self_referential_fmap():
@@ -172,10 +174,10 @@ class AnkiNotePrototype:
                 self.model_name = MODELS.EVERNOTE_REVERSIBLE
                 self.tags.remove(EVERNOTE.TAG.REVERSIBLE)
             elif EVERNOTE.TAG.REVERSE_ONLY in self.tags: 
-                model_name = MODELS.EVERNOTE_REVERSE_ONLY
+                self.model_name = MODELS.EVERNOTE_REVERSE_ONLY
                 self.tags.remove(EVERNOTE.TAG.REVERSE_ONLY)    
             if reverse_override:
-                model_name = MODELS.EVERNOTE_DEFAULT
+                self.model_name = MODELS.EVERNOTE_DEFAULT
             
         log(self.tags, 'detectnotemodel')
         log(self.model_name, 'detectnotemodel')
@@ -244,17 +246,17 @@ class AnkiNotePrototype:
         return True 
     
     def log_update(self, content=''):
-        if (not self.logged):
+        if not self.logged:
             count_updated_new = (self.count_update + 1 if content else 0)     
             count_str = ''
             if self.count > 0:
                 count_str = ' ['
                 if self.count - count_updated_new > 0 and count_updated_new > 0:
                     count_str +=  '%3d/' % count_updated_new            
-                    count_str += '%-4d]/[' % (self.count) 
+                    count_str += '%-4d]/[' % self.count
                 else:
-                    count_str += '%4d/' % (self.count) 
-                count_str += '%-4d]' % (self.max_count)             
+                    count_str += '%4d/' % self.count
+                count_str += '%-4d]' % self.max_count
                 count_str += ' (%2d%%)' % (float(self.count) / self.max_count * 100)
             log_title = '!' if content else ''
             log_title += 'UPDATING NOTE%s: %-80s: %s' %   (count_str, self.fields[FIELDS.TITLE], self.fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')) 
@@ -352,7 +354,7 @@ class AnkiNotePrototype:
         return flag_changed
     
     def update_note(self):
-        col = self.anki.collection()
+        # col = self.anki.collection()
         self.note = self.baseNote
         self.logged = False 
         if not self.baseNote:

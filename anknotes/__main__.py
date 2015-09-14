@@ -12,11 +12,12 @@ from anknotes import menu, settings
 ### Evernote Imports
 
 ### Anki Imports
+# noinspection PyUnresolvedReferences
 from anki.hooks import wrap, addHook
+# noinspection PyUnresolvedReferences
 from aqt.preferences import Preferences
+# noinspection PyUnresolvedReferences
 from aqt import mw
-
-DEBUG_RAISE_API_ERRORS = False    
 
 def import_timer_toggle():
     title = "&Enable Auto Import On Profile Load"

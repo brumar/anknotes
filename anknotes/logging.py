@@ -1,3 +1,4 @@
+### Python Imports
 from datetime import datetime, timedelta
 import difflib
 import pprint
@@ -7,16 +8,22 @@ import re
 from anknotes.constants import *
 
 ### Anki Imports
-try: from aqt.utils import tooltip
+try:
+    # noinspection PyUnresolvedReferences
+    from aqt import mw
+    # noinspection PyUnresolvedReferences
+    from aqt.utils import tooltip
+    # noinspection PyUnresolvedReferences
+    from aqt.qt import QMessageBox, QPushBox
 except: pass
 
 def str_safe(strr, prefix=''):
-	try: strr= str((prefix + strr.__repr__()))
-	except: strr= str((prefix + strr.__repr__().encode('utf8', 'replace')))
-	return strr
+    try: strr= str((prefix + strr.__repr__()))
+    except: strr= str((prefix + strr.__repr__().encode('utf8', 'replace')))
+    return strr
 
 def print_safe(strr, prefix=''):
-	print str_safe(strr, prefix)
+    print str_safe(strr, prefix)
 
 def show_tooltip(text, time_out=3000,delay=None):
     if delay:
@@ -56,17 +63,6 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat =
     messageBox.setText(message)
     messageBox.setWindowTitle(title)
     messageBox.exec_()
-
-
-def str_safe(strr, prefix=''):
-    try: strr= str((prefix + strr.__repr__()))
-    except: strr= str((prefix + strr.__repr__().encode('utf8', 'replace')))
-    return strr
-
-
-def print_safe(strr, prefix=''):
-    print str_safe(strr, prefix)
-
 
 def diffify(content):
     for tag in ['div', 'ol', 'ul', 'li']:
@@ -219,7 +215,7 @@ def get_api_call_count():
             continue
         ts = call.split(': ')[0][2:-1]
         td = datetime.now() - datetime.strptime(ts, ANKNOTES.DATE_FORMAT)
-        if (td < timedelta(hours=1)):
+        if td < timedelta(hours=1):
             count += 1
         else:
             return count

@@ -10,7 +10,9 @@ from anknotes.shared import *
 from anknotes.Controller import Controller
 
 ### Anki Imports
+# noinspection PyUnresolvedReferences
 from aqt.qt import SIGNAL, QMenu, QAction
+# noinspection PyUnresolvedReferences
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False

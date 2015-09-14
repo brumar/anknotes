@@ -69,7 +69,7 @@ title_utf8 = title.encode('utf8')
 
 # exit 
 
-NoteDB = EN.Notes() 
+NoteDB = EN.EvernoteNotes()
 NoteDB.baseQuery = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3' AND notebookGuid != 'faabcd80-918f-49ca-a349-77fd0036c051'"
 # NoteDB.populateAllRootNotesWithoutTOCOrOutlineDesignation()
 NoteDB.populateAllRootNotesMissing()
