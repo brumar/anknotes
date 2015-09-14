@@ -1,4 +1,5 @@
-from anknotes.EvernoteNoteTitle import NoteTitle
+# from anknotes.EvernoteNoteTitle import NoteTitle
+from anknotes.toc import TOCKey as NoteTitleKey
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 
 
@@ -22,7 +23,7 @@ class EvernoteNote:
         self.status = -1
         self.tags = tags
         if not whole_note is None:
-            self.title = NoteTitle(whole_note.title)
+            self.title = NoteTitleKey(whole_note.title)
             self.content = whole_note.content
             self.guid = whole_note.guid
             self.notebookGuid = whole_note.notebookGuid
@@ -32,7 +33,7 @@ class EvernoteNote:
             if isinstance(db_note['tagNames'], str):
                 db_note['tagNames'] = unicode(db_note['tagNames'], 'utf-8')
                 # print "Creating enNote: %s " % db_note['title']
-            self.title = NoteTitle(title=db_note['title'])
+            self.title = NoteTitleKey(title=db_note['title'])
             self.content = db_note['content']
             self.guid = db_note['guid']
             self.notebookGuid = db_note['notebookGuid']
@@ -43,8 +44,9 @@ class EvernoteNote:
                 self.content = unicode(self.content, 'utf-8')
             if isinstance(self.title, str):
                 self.title = unicode(self.title, 'utf-8')
+                self.title = NoteTitleKey(self.title)
             return
-        self.title = NoteTitle(self)
+        self.title = NoteTitleKey(title)
         self.content = content
         self.guid = guid
         self.notebookGuid = notebookGuid

@@ -7,16 +7,17 @@ except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Shared Imports
 from anknotes.shared import *
-from anknotes.error import HandleSocketError, HandleEDAMRateLimitError
+from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.AnkiNote import AnkiNotePrototype
-import anknotes.EvernoteNotes as EN
+# import anknotes.EvernoteNotes as EN
 from anknotes.toc import generateTOCTitle
 
 ### Anknotes Main Imports
 from anknotes.Anki import Anki
 from anknotes.Evernote import Evernote
+from anknotes.EvernoteNotes import EvernoteNotes
 from anknotes import settings
 
 ### Evernote Imports 
@@ -57,8 +58,7 @@ class Controller:
     def create_auto_toc(self):
         update_regex()        
         self.anki.evernoteTags = []
-        NoteDB = EN.EvernoteNotes()
-        NoteDB.baseQuery = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3' AND notebookGuid != 'faabcd80-918f-49ca-a349-77fd0036c051'"
+        NoteDB = EvernoteNotes()
         dbRows = NoteDB.populateAllNonCustomRootNotes()
         number_updated = 0
         number_created = 0
@@ -86,31 +86,16 @@ class Controller:
             if ANKNOTES.EVERNOTE_IS_SANDBOXED:
                 tagNames.append("#Sandbox")
             rootTitle = generateTOCTitle(rootTitle)                
-            # baseNote = None
-            # whole_note = None
             evernote_guid, old_content = ankDB().first("SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES, rootTitle.upper(), EVERNOTE.TAG.AUTO_TOC)
-            # if evernote_guid:
-                # baseNote = self.get_anki_note_from_evernote_guid(evernote_guid)
-            # if evernote_guid: 
-                # whole_note = self.evernote.updateNote(evernote_guid, rootTitle, contents, tagNames, notebookGuid)        
-                # anki_field_info = [
-                    # FIELDS.TITLE: rootTitle,
-                    # FIELDS.CONTENT: contents,
-                    # FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + evernote_guid
-                # ]
-                # anki_note_prototype = AnkiNotePrototype(self, anki_field_info, tagNames, baseNote, notebookGuid = notebookGuid, count=count, count_update = count_update, max_count=max_count)
-            # else:
             noteBody = self.evernote.makeNoteBody(contents, encode=False)
-            # noteBodyCompare = noteBody #.decode('utf-8')
-            # old_contentCompare = old_content #.decode('utf-8')
-            # eq = (noteBodyCompare == old_contentCompare)
             if evernote_guid:             
                 if old_content == noteBody:
                     count += 1
                     count_update_skipped += 1 
                     continue       
                 log(generate_diff(old_content, noteBody), 'AutoTOC-Create-Diffs')
-
+            if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create > ANKNOTES.AUTO_TOC_NOTES_MAX):
+                continue
             self.evernote.initialize_note_store()
             status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid)                    
             if not whole_note:
@@ -129,8 +114,6 @@ class Controller:
                 notes_created.append(note)
         
         if count_update + count_create > 0:
-            # self.evernote.check_ancillary_data_up_to_date()
-            # self.anki.notebook_data = self.evernote.notebook_data
             number_updated = self.anki.update_evernote_notes(notes_updated)
             number_created = self.anki.add_evernote_notes(notes_created)
                 
@@ -169,7 +152,7 @@ class Controller:
         return notes_already_up_to_date
     
     def proceed(self, auto_paging = False):      
-        global latestEDAMRateLimit
+        global latestEDAMRateLimit, latestSocketError
         autoPagingEnabled = (mw.col.conf.get(SETTINGS.EVERNOTE_AUTO_PAGING, True) or self.forceAutoPage)
         lastImport = mw.col.conf.get(SETTINGS.EVERNOTE_LAST_IMPORT, None)      
         mw.col.conf[SETTINGS.EVERNOTE_LAST_IMPORT] = datetime.now().strftime(ANKNOTES.DATE_FORMAT)
@@ -193,13 +176,13 @@ class Controller:
 
         if status == 1:                       
             m, s = divmod(latestEDAMRateLimit, 60)
-            log("   > Delaying operation for %d:%02d min. Over the rate limit when getting Evernote metadata") % (m, s)
-            mw.progress.timer(latestEDAMRateLimit * 1000, lambda: self.proceed(auto_paging), False)   
+            report_tooltip("   > Error: Delaying Operation","Over the rate limit when searching for Evernote metadata<BR>Evernote requested we wait %d:%02d min" % (m, s), delay=5)
+            mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(auto_paging), False)
             return False
         elif status == 2:
-            log("   > Delaying operation. Blocking thread for 30s then retrying. Socket error when getting Evernote metadata")            
+            report_tooltip("   > Error: Delaying Operation:","%s when searching for Evernote metadata<BR>We will try again in 30 seconds" % latestSocketError['friendly_error_msg'], delay=5)
             mw.progress.timer(30000, lambda: self.proceed(auto_paging), False)   
-            return False # self.proceed(auto_paging)
+            return False
         
         notes_to_add = set(server_evernote_guids) - set(anki_evernote_guids)
         notes_to_update = set(server_evernote_guids) - set(notes_to_add)
@@ -207,7 +190,7 @@ class Controller:
         notes_already_up_to_date = set(self.check_note_sync_status(notes_to_update))
         notes_to_update = notes_to_update - notes_already_up_to_date
         
-        log ("                                 - New Notes (%d)" % len(notes_to_add) + "    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update) + "    > Existing Up-To-Date Notes (%d)\n" % len(notes_already_up_to_date))
+        log ("                                 - New Notes (%d)" % len(notes_to_add) + "    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update) + "    > Existing Up-To-Date Notes (%d)\n" % len(notes_already_up_to_date), timestamp=False)
         # log_dump(notes_to_add, "-    > New Notes (%d)" % len(notes_to_add), 'evernote_guids')
         # log_dump(notes_to_update, "-    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update), 'evernote_guids')
         # log_dump(notes_already_up_to_date, "-    > Existing Up-To-Date Notes (%d)" % len(notes_already_up_to_date), 'evernote_guids')
@@ -255,38 +238,42 @@ class Controller:
             restart_title=None
             suffix = ""
             if status == 1 or status2 == 1:
-                m, s = divmod(latestEDAMRateLimit+10, 60)                
-                report_tooltip("   > Delaying Auto Paging for %d:%02d min. Over the rate limit when getting Evernote metadata", delay=5) % (m, s)
+                m, s = divmod(latestEDAMRateLimit, 60)                
+                report_tooltip("   > Error: Delaying Auto Paging","Over the rate limit when getting Evernote notes<BR>Evernote requested we wait %d:%02d min" % (m, s), delay=5)
                 mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(True), False)               
                 return False 
             elif status == 2 or status2 == 2:
-                report_tooltip("   > Delaying Auto Paging: Blocking thread for 30s then retrying. Socket error when getting Evernote notes", delay=5)
+                report_tooltip("   > Error: Delaying Auto Paging:","%s when getting Evernote notes<BR>We will try again in 30 seconds" % latestSocketError['friendly_error_msg'], delay=5)
                 mw.progress.timer(30000, lambda: self.proceed(True), False)   
                 return False 
             elif counts['remaining'] <= 0:
                 self.currentPage = 1
                 if self.forceAutoPage:
-                    report_tooltip("   > Terminating Auto Paging: All %d notes have been processed and forceAutoPage is True" % counts['total'], delay=5)
+                    report_tooltip("   > Terminating Auto Paging","All %d notes have been processed and forceAutoPage is True" % counts['total'], delay=5)
                     self.auto_page_callback()
                 elif mw.col.conf.get(EVERNOTE.PAGING_RESTART_WHEN_COMPLETE, True):                    
                     restart = EVERNOTE.PAGING_RESTART_INTERVAL                    
-                    restart_msg = "   > Restarting Auto Paging: All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is TRUE\n" % counts['total']
-                    suffix = "   - Per EVERNOTE.PAGING_RESTART_INTERVAL, "
+                    restart_title = "   > Restarting Auto Paging"
+                    restart_msg = "All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is TRUE<BR>" % counts['total']
+                    suffix = "Per EVERNOTE.PAGING_RESTART_INTERVAL, "
                 else:
-                    report_tooltip("   > Terminating Auto Paging: All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is FALSE" % counts['total'], delay=5)
+                    report_tooltip("   > Terminating Auto Paging","All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is FALSE" % counts['total'], delay=5)
                 
             else:
                 self.currentPage = counts['page'] + 1                
-                restart_title = "   > Initiating Auto Paging: "
-                restart_msg = "   - Page %d completed. \n   - %d notes remain. \n   - %d of %d notes have been processed\n" % (counts['page'], counts['remaining'], counts['completed'], counts['total'])
+                restart_title = "   > Initiating Auto Paging"
+                restart_msg = "Page %d completed. <BR>%d notes remain. <BR>%d of %d notes have been processed<BR>" % (counts['page'], counts['remaining'], counts['completed'], counts['total'])
                 if self.forceAutoPage or api_call_count < EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS:
                     restart = 0
                 else:
                     restart = EVERNOTE.PAGING_TIMER_INTERVAL
-                    suffix = "   - Delaying Auto Paging: Per EVERNOTE.PAGING_TIMER_INTERVAL, "
+                    suffix = "Delaying Auto Paging: Per EVERNOTE.PAGING_TIMER_INTERVAL, "
             
             if not self.forceAutoPage:
                 mw.col.conf[SETTINGS.EVERNOTE_PAGINATION_CURRENT_PAGE] = self.currentPage
+                mw.col.setMod()
+                mw.col.save()
+
             if restart_msg:                  
                 if restart > 0:
                     m, s = divmod(restart, 60)
@@ -313,10 +300,9 @@ class Controller:
     def resync_with_local_db(self):
         evernote_guids = get_all_local_db_guids()
         status, local_count, notes = self.evernote.create_evernote_notes(evernote_guids, use_local_db_only=True)
-        # self.anki.notebook_data = self.evernote.notebook_data
         number = self.anki.update_evernote_notes(notes, log_update_if_unchanged=False)
-        tooltip = 'Resync with Local DB Complete.<BR>   - %d Entries in Local DB<BR>   - %d Evernote Notes Created<BR>   - %d Anki Notes Successfully Updated' % (len(evernote_guids), local_count, number)
-        report_tooltip(tooltip)
+        tooltip = '%d Entries in Local DB<BR>%d Evernote Notes Created<BR>%d Anki Notes Successfully Updated' % (len(evernote_guids), local_count, number)
+        report_tooltip('Resync with Local DB Complete', tooltip)
     
     def get_evernote_metadata(self):
         notes_metadata = {}

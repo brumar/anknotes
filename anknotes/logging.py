@@ -33,20 +33,21 @@ def show_tooltip(text, time_out=3000,delay=None):
     tooltip(text, time_out)
 
 
-def report_tooltip(log_title, str_tip=None,delay=None):
+def report_tooltip(log_title, log_text="",delay=None):
+    str_tip = log_text
     if not str_tip:
         str_tip = log_title
-        log_title = None
 
     show_tooltip(str_tip,delay=delay)
 
     if log_title:
         log_title += ": "
         delimit = "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-        str_tip = delimit + "<BR>%s\n" % str_tip
+        if log_text:
+            log_text = delimit + "<BR>%s\n" % log_text
         log(log_title)
-    str_tip = str_tip.replace('<BR><BR>', '<BR>').replace('<BR>', '\n   - ')
-    log(str_tip, timestamp=False, replace_newline=True)
+    log_text = log_text.replace('<BR><BR>', '<BR>').replace('<BR>', '\n   - ')
+    log(log_text, timestamp=False, replace_newline=True)
 
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat = 0):

@@ -69,6 +69,10 @@ class Anki:
             try: 
                 title = note.title
                 content = note.content
+                if hasattr(title, 'title'):
+                    title = title.title() if callable(title.title) else title.title
+                if hasattr(title, 'Title'):
+                    title = title.Title() if callable(title.Title) else title.Title
                 if isinstance(title , str):
                     title = unicode(title , 'utf-8')  
                 if isinstance(content , str):

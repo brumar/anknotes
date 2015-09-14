@@ -43,7 +43,7 @@ class EvernoteNoteFetcher(object):
         if not db_note: return False
         note_guid, note_title, note_content, note_notebookGuid, note_tagNames, note_usn = db_note
         if not self.use_local_db_only:
-            log("                     > getNoteLocal: Note '%s': %-40s" % (self.evernote_guid, note_title), 'api')
+            log("                   > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, note_title), 'api')
         self.updateSequenceNum = note_usn
         self.tagNames = note_tagNames[1:-1].split(',') if self.keepEvernoteTags else []
         self.result.note = EvernoteNote(note_title, note_content, note_guid, self.tagNames,
@@ -81,7 +81,7 @@ class EvernoteNoteFetcher(object):
 
     def getNoteRemoteAPICall(self):
         api_action_str = u'trying to retrieve a note. We will save the notes downloaded thus far.'
-        log_api("getNote [%3d]" % (self.api_calls + 1), "GUID: '%s'" % self.evernote_guid)
+        log_api("  > getNote [%3d]" % (self.api_calls + 1), "GUID: '%s'" % self.evernote_guid)
 
         try:
             self.whole_note = self.evernote.noteStore.getNote(self.evernote.token, self.evernote_guid, True, False,

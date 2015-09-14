@@ -17,7 +17,13 @@ class NoteTitle:
     Note = None
 
     def __repr__(self):
-        return u"<EN Note Title: %s: '%s'>" % (self.Note.guid, self.title)
+        if hasattr(self.Note, 'guid'):
+            guid = self.Note.guid
+        else:
+            guid = "N/A"
+            log("No guid for Note in NoteTitle.__repr__")
+            log(self.Note)
+        return u"<%s: %s: '%s'>" % (self.__class__.__name__, guid, self.title)
 
     def newLevel(self, titlePart):
         newLvl = copy.copy(self.Full())
@@ -47,6 +53,7 @@ class NoteTitle:
         return newLvl
 
     def __init__(self, Note=None, title=None):
+        self.title = None
         if Note:
             self.Note = Note
             if self.Note.title:
@@ -61,7 +68,7 @@ class NoteTitle:
         self.Section = EvernoteTitleLevels.Sections
         self.Part = EvernoteTitleLevels.Parts
         self.currentPart = self.Part.Full
-        # print "Done init title, self.title = %s " % self.title
+        print "Done init title, self.title = %s " % self.title
 
     def isRoot(self):
         return self.isLevel(self.Lvl.Root)
@@ -165,6 +172,7 @@ class NoteTitle:
         return self.partsText
 
     def __str__(self):
+        if self.title is None: return ""
         return self.title
 
     def Breakdown(self):

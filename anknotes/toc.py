@@ -53,8 +53,8 @@ class TOCKey:
     def __str__(self):
         return "%d: %s" % (self.Level(), self.Title)
 
-    def __repl__(self):
-        return "<TOCKey:%d.%s>" % (self.Level(), self.Name())
+    def __repr__(self):
+        return "<%s:%d.%s>" % (self.__class__.__name__, self.Level(), self.Name())
 
     def TitleParts(self):
         if not self.Title: return []
@@ -86,6 +86,9 @@ class TOCKey:
     def Root(self):
         return self.Parent(1)
 
+    def Base(self, level=None):
+        return self.Slice(1, level)
+
     def Slice(self, start=0, end=None):
         # print "Slicing: <%s> %s ~ %d,%d" % (type(self.Title), self.Title, start, end)
         oldParts = self.TitleParts()
@@ -105,6 +108,21 @@ class TOCKey:
     def Parent(self, level=-1):
         # noinspection PyTypeChecker
         return self.Slice(None, level)
+
+    def isAboveLevel(self, level_check):
+        return self.Level() > level_check
+
+    def isBelowLevel(self, level_check):
+        return self.Level() < level_check
+
+    def isLevel(self, level_check):
+        return self.Level() == level_check
+
+    def isChild(self):
+        return self.isAboveLevel(1)
+
+    def isRoot(self):
+        return self.isLevel(1)
 
     def __init__(self, title):
         if hasattr(title, 'Title'): title = title.Title() if callable(title.Title) else title.Title
