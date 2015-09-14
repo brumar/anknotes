@@ -13,42 +13,59 @@ from evernote.edam.error.ttypes import EDAMSystemException
 class EvernoteNoteFetcher(object):
     class EvernoteNoteFetcherResult(object):
         def __init__(self, note=None, status=-1, source=-1):
+            """
+
+            :type note: EvernoteNote
+            """
             self.note = note
             self.status = status
             self.source = source
 
     def __init__(self, evernote, evernote_guid=None, use_local_db_only=False):
+        """
+
+        :type evernote: ankEvernote.Evernote
+        """
         self.result = self.EvernoteNoteFetcherResult()
         self.api_calls = 0
         self.keepEvernoteTags = True
         self.evernote = evernote
+        self.tagNames = []
         self.use_local_db_only = use_local_db_only
-        self.updateSequenceNum = -1
+        self.__update_sequence_number__ = -1
         if not evernote_guid:
             self.evernote_guid = ""
             return
         self.evernote_guid = evernote_guid
         if not self.use_local_db_only:
-            self.updateSequenceNum = self.evernote.metadata[self.evernote_guid].updateSequenceNum
+            self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
         self.getNote()
+
+    def UpdateSequenceNum(self):
+        if self.result.note:
+            return self.result.note.UpdateSequenceNum
+        return self.__update_sequence_number__
+
 
     def getNoteLocal(self):
         # Check Anknotes database for note
         query = "SELECT guid, title, content, notebookGuid, tagNames, updateSequenceNum FROM %s WHERE guid = '%s'" % (
             TABLES.EVERNOTE.NOTES, self.evernote_guid)
-        if self.updateSequenceNum > -1:
-            query += " AND `updateSequenceNum` = %d" % self.updateSequenceNum
+        if self.UpdateSequenceNum() > -1:
+            query += " AND `updateSequenceNum` = %d" % self.UpdateSequenceNum()
         db_note = ankDB().first(query)
+        """:type : sqlite.Row"""
         # showInfo(self.evernote_guid + '\n\n' + query)
         if not db_note: return False
-        note_guid, note_title, note_content, note_notebookGuid, note_tagNames, note_usn = db_note
         if not self.use_local_db_only:
-            log("                   > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, note_title), 'api')
-        self.updateSequenceNum = note_usn
-        self.tagNames = note_tagNames[1:-1].split(',') if self.keepEvernoteTags else []
-        self.result.note = EvernoteNote(note_title, note_content, note_guid, self.tagNames,
-                                        note_notebookGuid, self.updateSequenceNum)
-        assert self.result.note.guid == self.evernote_guid
+            log("                   > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
+        self.result.note = EvernoteNote(db_note=db_note)
+        # note_guid, note_title, note_content, note_notebookGuid, note_tagNames, note_usn = db_note
+        # self.updateSequenceNum = self.result.note.UpdateSequenceNum
+        self.tagNames = self.result.note.TagNames if self.keepEvernoteTags else []
+        # self.result.note = EvernoteNote(note_title, note_content, note_guid, self.tagNames,
+        #                                 note_notebookGuid, self.updateSequenceNum)
+        assert self.result.note.Guid == self.evernote_guid
         self.result.status = 0
         self.result.source = 1
         return True
@@ -86,6 +103,7 @@ class EvernoteNoteFetcher(object):
         try:
             self.whole_note = self.evernote.noteStore.getNote(self.evernote.token, self.evernote_guid, True, False,
                                                               False, False)
+            """:type : evernote.edam.type.ttypes.Note"""
         except EDAMSystemException as e:
             if HandleEDAMRateLimitError(e, api_action_str):
                 self.result.status = 1
@@ -113,15 +131,14 @@ class EvernoteNoteFetcher(object):
         self.addNoteFromServerToDB()
         if not self.keepEvernoteTags: self.tagNames = []
         self.result.note = EvernoteNote(whole_note=self.whole_note, tags=self.tagNames)
-
-        assert self.result.note.guid == self.evernote_guid
+        assert self.result.note.Guid == self.evernote_guid
         return True
 
     def getNote(self, evernote_guid=None):
         if evernote_guid:
             self.result.note = None
             self.evernote_guid = evernote_guid
-            self.updateSequenceNum = self.evernote.metadata[
+            self.__update_sequence_number__ = self.evernote.metadata[
                 self.evernote_guid].updateSequenceNum if not self.use_local_db_only else -1
         if self.getNoteLocal(): return True
         if self.use_local_db_only: return False

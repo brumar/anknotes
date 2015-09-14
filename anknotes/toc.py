@@ -46,28 +46,35 @@ class hashabledict(dict):
 
 class TOCKey:
     level = 0
-    Title = ""
-    titleParts = None
+    __title__ = ""
+    """:type: str"""
+    __titleParts__ = None
 
     # # Parent = None
-    def __str__(self):
-        return "%d: %s" % (self.Level(), self.Title)
+    # def __str__(self):
+    #     return "%d: %s" % (self.Level(), self.Title)
 
     def __repr__(self):
-        return "<%s:%d.%s>" % (self.__class__.__name__, self.Level(), self.Name())
+        return "<%s:%d.%s>" % (self.__class__.__name__, self.Level, self.Name())
 
+    @property
     def TitleParts(self):
-        if not self.Title: return []
+        if not self.FullTitle: return []
+        if not self.__titleParts__: self.__titleParts__ = generateTitleParts(self.FullTitle)
+        return self.__titleParts__
 
-        if not self.titleParts: self.titleParts = generateTitleParts(self.Title)
-        return self.titleParts
-
+    @property
     def Level(self):
-        if not self.level: self.level = len(self.TitleParts())
+        """
+        :rtype: int
+        :return: Current Level with 1 being the Root Title
+        """
+        if not self.level: self.level = len(self.TitleParts)
         return self.level
 
+    @property
     def Depth(self):
-        return self.Level() - 1
+        return self.Level - 1
 
     def Names(self, level=-1):
         return self.Slice(level)
@@ -75,11 +82,13 @@ class TOCKey:
     def Name(self, level=-1):
         mySlice = self.Slice(level)
         if not mySlice: return None
-        return mySlice.Title
+        return mySlice.FullTitle
 
+    @property
     def Hash(self):
-        return hashabledict({'Level': self.Level(), 'Title': self.Title, 'Parent': self.Parent()})
+        return hashabledict({'Level': self.Level, 'Title': self.FullTitle, 'Parent': self.Parent()})
 
+    @property
     def Root(self):
         return self.Parent(1)
 
@@ -88,9 +97,9 @@ class TOCKey:
 
     def Slice(self, start=0, end=None):
         # print "Slicing: <%s> %s ~ %d,%d" % (type(self.Title), self.Title, start, end)
-        oldParts = self.TitleParts()
+        oldParts = self.TitleParts
         # print "Slicing: %s ~ %d,%d from parts %s" % (self.Title, start, end, str(oldParts))
-        if not self.Title: return None
+        if not self.FullTitle: return None
         if not oldParts: return None
         assert start or end
         newParts = oldParts[start:end]
@@ -107,49 +116,53 @@ class TOCKey:
         return self.Slice(None, level)
 
     def isAboveLevel(self, level_check):
-        return self.Level() > level_check
+        return self.Level > level_check
 
     def isBelowLevel(self, level_check):
-        return self.Level() < level_check
+        return self.Level < level_check
 
     def isLevel(self, level_check):
-        return self.Level() == level_check
+        return self.Level == level_check
 
+    @property
     def isChild(self):
         return self.isAboveLevel(1)
 
+    @property
     def isRoot(self):
         return self.isLevel(1)
 
+    @staticmethod
+    def titleObjectToString(title):
+        """
+        :param title: Title in string, unicode, dict, sqlite, TOCKey or NoteTitle formats. Note objects are also parseable
+        :type title: str | unicode | dict[str,str] | sqlite.Row | TOCKey
+        :return: string Title
+        :rtype: str
+        """
+        if isinstance(title, str) or isinstance((title, unicode)):
+            return title
+        if hasattr(title, 'FullTitle'): title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
+        elif hasattr(title, 'Title'): title = title.Title() if callable(title.Title) else title.Title
+        elif hasattr(title, 'title'): title = title.title() if callable(title.title) else title.title
+        else:
+            try:
+                if 'title' in title: title = title['title']
+                elif 'Title' in title: title = title['Title']
+            except: return ""
+        return TOCKey.titleObjectToString(title)
+
+    @property
+    def FullTitle(self):
+        """:rtype: str"""
+        return self.__title__
+
     def __init__(self, title):
-        if hasattr(title, 'Title'): title = title.Title() if callable(title.Title) else title.Title
-        self.Title = title
-        # print "New TocKey: %s: %s" % (type(title), title)
+        self.__title__ = self.titleObjectToString(title)
 
 
 def generateTOCTitle(title):
-    return title.upper().replace(u'?', u'?').replace(u'?', u'?')
-
-
-class TOCValue:
-    Key = None
-    Note = None
-    Children = None
-
-    def isBlank(self):
-        return not self.Note
-
-    def isRoot(self):
-        return self.Key.isRoot()
-
-    def __init__(self, tocKey, note=None, children=None):
-        self.Key = tocKey
-        self.Note = note
-        if children:
-            self.Children = children
-        else:
-            self.Children = None
-
+    return TOCKey.objToString(title).upper().replace(u'?', u'?').replace(u'?', u'?')
 
 def TOCNamePriority(title):
     for index, value in enumerate(
@@ -175,23 +188,16 @@ def TOCNameSort(title1, title2):
 
 
 def TOCSort(hash1, hash2):
-    lvl1 = hash1.Level()
-    lvl2 = hash2.Level()
-    names1 = hash1.TitleParts()
-    names2 = hash2.TitleParts()
+    lvl1 = hash1.Level
+    lvl2 = hash2.Level
+    names1 = hash1.TitleParts
+    names2 = hash2.TitleParts
     for i in range(0, min(lvl1, lvl2)):
         name1 = names1[i]
         name2 = names2[i]
         if name1 != name2: return TOCNameSort(name1, name2)
     # Lower value for item 1 = item 1 placed BEFORE item 2
     return lvl1 - lvl2
-
-
-class TOCHierarchicalItem:
-    title = ""
-    note = ""
-    children = []
-
 
 class TOCHierarchyClass:
     title = None
@@ -204,10 +210,10 @@ class TOCHierarchyClass:
 
     @staticmethod
     def TOCItemSort(tocHierarchy1, tocHierarchy2):
-        lvl1 = tocHierarchy1.Level()
-        lvl2 = tocHierarchy2.Level()
-        names1 = tocHierarchy1.TitleParts()
-        names2 = tocHierarchy2.TitleParts()
+        lvl1 = tocHierarchy1.Level
+        lvl2 = tocHierarchy2.Level
+        names1 = tocHierarchy1.TitleParts
+        names2 = tocHierarchy2.TitleParts
         for i in range(0, min(lvl1, lvl2)):
             name1 = names1[i]
             name2 = names2[i]
@@ -224,13 +230,13 @@ class TOCHierarchyClass:
         self.sortChildren()
 
     def Level(self):
-        return self.title.Level()
+        return self.title.Level
 
     def ChildrenCount(self):
         return len(self.children)
 
     def TitleParts(self):
-        return self.title.TitleParts()
+        return self.title.TitleParts
 
     def addNote(self, note):
         tocHierarchy = TOCHierarchyClass(note=note)
@@ -264,13 +270,13 @@ class TOCHierarchyClass:
 
     def addHierarchy(self, tocHierarchy):
         tocNewTitle = tocHierarchy.title
-        tocNewLevel = tocNewTitle.Level()
-        selfLevel = self.title.Level()
-        selfTitleStr = self.title.Title
+        tocNewLevel = tocNewTitle.Level
+        selfLevel = self.title.Level
+        selfTitleStr = self.title.FullTitle
         # tocTitleStr = tocNewTitle.Title
 
         if selfLevel is 1 and tocNewLevel is 1:
-            log_dump(self.title.Title)
+            log_dump(self.title.FullTitle)
             log_dump(tocHierarchy.note.tags)
             assert tocHierarchy.isOutline()
             tocHierarchy.parent = self
@@ -279,7 +285,7 @@ class TOCHierarchyClass:
 
         parentTitle = tocNewTitle.Parent()
         parentTitleStr = parentTitle.Title
-        parentLevel = parentTitle.Level()
+        parentLevel = parentTitle.Level
 
         if selfTitleStr == parentTitleStr or parentTitleStr.upper() == selfTitleStr:
             tocHierarchy.parent = self
@@ -321,10 +327,10 @@ class TOCHierarchyClass:
         self.isSorted = True
 
     def __strsingle__(self, fullTitle=False):
-        selfTitleStr = self.title.Title
+        selfTitleStr = self.title.FullTitle
         selfNameStr = self.title.Name()
-        selfLevel = self.title.Level()
-        selfDepth = self.title.Depth()
+        selfLevel = self.title.Level
+        selfDepth = self.title.Depth
         selfListPrefix = self.getListPrefix()
         strr = ''
         if selfLevel == 1:
@@ -348,10 +354,10 @@ class TOCHierarchyClass:
         return '\n'.join(lst)
 
     def GetOrderedListItem(self, title=None):
-        if not title: title = self.title.Title
+        if not title: title = self.title.FullTitle
         selfTitleStr = title
-        selfLevel = self.title.Level()
-        selfDepth = self.title.Depth()
+        selfLevel = self.title.Level
+        selfDepth = self.title.Depth
         if selfLevel == 1:
             guid = 'guid-pending'
             if self.note: guid = self.note.guid
@@ -399,7 +405,7 @@ class TOCHierarchyClass:
         return base
 
     def __reprsingle__(self, fullTitle=True):
-        selfTitleStr = self.title.Title
+        selfTitleStr = self.title.FullTitle
         selfNameStr = self.title.Name()
         # selfLevel = self.title.Level()
         # selfDepth = self.title.Depth()

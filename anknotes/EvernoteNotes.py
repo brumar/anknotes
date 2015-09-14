@@ -115,8 +115,8 @@ class EvernoteNotes:
     def processNote(self, enNote):
         if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict or self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
 
-            if enNote.isChild():
-                rootTitle = enNote.title.Root()
+            if enNote.isChild:
+                rootTitle = enNote.title.Root
                 rootTitleStr = generateTOCTitle(rootTitle.title)
                 if self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
                     if not rootTitleStr in self.RootNotesExisting.TitlesList and not rootTitleStr in self.RootNotesExisting.TitlesList:
@@ -137,7 +137,7 @@ class EvernoteNotes:
                             self.RootNotes.TitlesDict[rootTitleStr][enNote.guid] = enNote.title.Base()
                             self.RootNotes.NotesDict[rootTitleStr][enNote.guid] = enNote
         if self.processingFlags.populateChildRootTitles or self.processingFlags.populateExistingRootTitlesList or self.processingFlags.populateExistingRootTitlesDict:
-            if enNote.isRoot():
+            if enNote.isRoot:
                 rootTitle = enNote.title
                 rootTitleStr = generateTOCTitle(rootTitle.title)
                 rootGuid = enNote.guid
@@ -155,7 +155,7 @@ class EvernoteNotes:
                         if child_count is 1:
                             self.RootNotesChildren.TitlesDict[rootGuid] = {}
                             self.RootNotesChildren.NotesDict[rootGuid] = {}
-                        childBaseTitle = childEnNote.title.Base()
+                        childBaseTitle = childEnNote.Title.Base()
                         self.RootNotesChildren.TitlesDict[rootGuid][childGuid] = childBaseTitle
                         self.RootNotesChildren.NotesDict[rootGuid][childGuid] = childEnNote
 
@@ -210,6 +210,10 @@ class EvernoteNotes:
         return self.populateAllRootNotesMissing(True, True)
 
     def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False, ignoreOutlineAsRootTitle=False):
+        """
+
+        :rtype : object
+        """
         processingFlags = EvernoteNoteProcessingFlags(False)
         processingFlags.populateMissingRootTitlesList = True
         processingFlags.populateMissingRootTitlesDict = True

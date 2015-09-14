@@ -7,6 +7,7 @@ except ImportError:
 
 ### Anknotes Imports
 from anknotes.constants import *
+from anknotes.structs import *
 from anknotes.db import *
 from anknotes.logging import *
 from anknotes.html import *

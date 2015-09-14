@@ -33,15 +33,20 @@ from evernote.api.client import EvernoteClient
 # from aqt import mw
 
 class Evernote(object):
+    metadata = {}
+    """:type : dict[str, evernote.edam.type.ttypes.Note]"""
+    notebook_data = {}
+    """:type : dict[str, anknotes.structs.EvernoteNotebook]"""
+    tag_data = {}
+    """:type : dict[str, anknotes.structs.EvernoteTag]"""
+
     def __init__(self):
-        self.metadata = None
         auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
         self.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
         self.tag_data = {}
         self.notebook_data = {}
         self.noteStore = None
         self.getNoteCount = 0
-
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
             secrets = {'holycrepe': '36f46ea5dec83d4a', 'scriptkiddi-2682': '965f1873e4df583c'}
@@ -83,6 +88,12 @@ class Evernote(object):
         return 0
 
     def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[]):
+        """
+        Update a Note instance with title and body
+        Send Note object to user's account
+        :rtype : (int, evernote.edam.type.ttypes.Note)
+        :returns Status and Note
+        """
         return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
                              guid=guid)
 
@@ -110,8 +121,10 @@ class Evernote(object):
         """
         Create or Update a Note instance with title and body
         Send Note object to user's account
+        :type noteTitle: str
+        :rtype : (int, evernote.edam.type.ttypes.Note)
+        :returns Status and Note
         """
-
         callType = "create"
 
         ourNote = Note()
@@ -184,6 +197,15 @@ class Evernote(object):
         return 0, note
 
     def create_evernote_notes(self, evernote_guids=None, use_local_db_only=False):
+        """
+        Create EvernoteNote objects from Evernote GUIDs using EvernoteNoteFetcher.getNote().
+        Will prematurely return if fetcher.getNote fails
+
+        :rtype : (int, int, list[EvernoteNote.EvernoteNote)
+        :param evernote_guids:
+        :param use_local_db_only: Do not initiate API calls
+        :return: Tuple of status, local note count, and list of EvernoteNote
+        """
         if not hasattr(self, 'guids') or evernote_guids: self.evernote_guids = evernote_guids
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()
@@ -211,22 +233,18 @@ class Evernote(object):
         self.update_notebook_db()
 
     def check_notebooks_up_to_date(self):
-        notebook_guids = []
         for evernote_guid in self.evernote_guids:
             note_metadata = self.metadata[evernote_guid]
             notebookGuid = note_metadata.notebookGuid
             if not notebookGuid:
                 log_error("   > Notebook check: Unable to find notebook guid for '%s'. Returned '%s'. Metadata: %s" % (
                     evernote_guid, str(notebookGuid), str(note_metadata)))
-            elif not notebookGuid in notebook_guids and not notebookGuid in self.notebook_data:
-                notebook = ankDB().first(
-                    "SELECT name, stack FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTEBOOKS, notebookGuid))
-                if not notebook:
+            elif notebookGuid not in self.notebook_data:
+                nb = EvernoteNotebook(fetch_guid=notebookGuid)
+                if not nb.success:
                     log("   > Notebook check: Missing notebook guid '%s'. Will update with an API call." % notebookGuid)
                     return False
-                notebook_name, notebook_stack = notebook
-                self.notebook_data[notebookGuid] = {"stack": notebook_stack, "name": notebook_name}
-                notebook_guids.append(notebookGuid)
+                self.notebook_data[notebookGuid] = nb
         return True
 
     def update_notebook_db(self):
@@ -258,21 +276,18 @@ class Evernote(object):
         log_dump(ankDB().all("SELECT * FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS), 'sql data')
 
     def check_tags_up_to_date(self):
-        tag_guids = []
         for evernote_guid in self.evernote_guids:
-            if not evernote_guid in self.metadata:
+            if evernote_guid not in self.metadata:
                 log_error('Could not find note metadata for Note ''%s''' % evernote_guid)
                 return False
             else:
                 note_metadata = self.metadata[evernote_guid]
                 for tag_guid in note_metadata.tagGuids:
-                    if not tag_guid in tag_guids and not tag_guid in self.tag_data:
-                        tag_name = ankDB().scalar(
-                            "SELECT name FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.TAGS, tag_guid))
-                        if not tag_name:
+                    if tag_guid not in self.tag_data:
+                        tag = EvernoteTag(fetch_guid=tag_guid)
+                        if not tag.success:
                             return False
-                        self.tag_data[tag_guid] = tag_name
-                        tag_guids.append(tag_guid)
+                        self.tag_data[tag_guid] = tag
         return True
 
     def update_tags_db(self):

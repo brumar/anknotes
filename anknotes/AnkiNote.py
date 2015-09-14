@@ -183,7 +183,7 @@ class AnkiNotePrototype:
         self.fields[FIELDS.CONTENT] = content
 
     def detect_note_model(self):
-        log('\n', 'detectnotemodel')
+        log('\nTitle, self.model_name, tags, self.model_name', 'detectnotemodel')
         log(self.fields[FIELDS.TITLE], 'detectnotemodel')
         log(self.model_name, 'detectnotemodel')
         if FIELDS.CONTENT in self.fields and "{{c1::" in self.fields[FIELDS.CONTENT]:

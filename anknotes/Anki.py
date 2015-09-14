@@ -64,42 +64,53 @@ class Anki:
         return deck
 
     def update_evernote_notes(self, evernote_notes, log_update_if_unchanged=True):
+        """
+        Update Notes in Anki Database
+        :type evernote_notes: list[EvernoteNote.EvernoteNote]
+        :rtype : int
+        :param evernote_notes: List of EvernoteNote returned from server or local db
+        :param log_update_if_unchanged:
+        :return: Count of notes successfully updated
+        """
         return self.add_evernote_notes(evernote_notes, True, log_update_if_unchanged=log_update_if_unchanged)
 
     def add_evernote_notes(self, evernote_notes, update=False, log_update_if_unchanged=True):
+        """
+        Add Notes to or Update Notes in Anki Database
+        :param evernote_notes:
+        :param update:
+        :param log_update_if_unchanged:
+        :type evernote_notes: list[EvernoteNote.EvernoteNote]
+        :type update: bool
+        :return: Count of notes successfully added or updated
+        """
         count_update = 0
         count = 0
         max_count = len(evernote_notes)
         for note in evernote_notes:
             try:
-                title = note.title
-                content = note.content
-                if hasattr(title, 'title'):
-                    title = title.title() if callable(title.title) else title.title
-                if hasattr(title, 'Title'):
-                    title = title.Title() if callable(title.Title) else title.Title
-                if isinstance(title, str):
-                    title = unicode(title, 'utf-8')
+                title = note.Title.FullTitle
+                content = note.Content
                 if isinstance(content, str):
                     content = unicode(content, 'utf-8')
                 anki_field_info = {
                     FIELDS.TITLE: title,
                     FIELDS.CONTENT: content,
-                    FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + note.guid,
-                    FIELDS.UPDATE_SEQUENCE_NUM: str(note.updateSequenceNum),
+                    FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + note.Guid,
+                    FIELDS.UPDATE_SEQUENCE_NUM: str(note.UpdateSequenceNum),
                     FIELDS.SEE_ALSO: u''
                 }
             except:
-                log_error("Unable to set field info for: Note '%s': '%s'" % (note.title, note.guid))
-                log_dump(note.content, " NOTE CONTENTS ")
-                log_dump(note.content.encode('utf-8'), " NOTE CONTENTS ")
+                log_error("Unable to set field info for: Note '%s': '%s'" % (note.Title, note.Guid))
+                log_dump(note.Content, " NOTE CONTENTS ")
+                log_dump(note.Content.encode('utf-8'), " NOTE CONTENTS ")
                 raise
             baseNote = None
             if update:
-                baseNote = self.get_anki_note_from_evernote_guid(note.guid)
-                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % note.guid)
-            anki_note_prototype = AnkiNotePrototype(self, anki_field_info, note.tags, baseNote,
-                                                    notebookGuid=note.notebookGuid, count=count,
+                baseNote = self.get_anki_note_from_evernote_guid(note.Guid)
+                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % note.Guid)
+            anki_note_prototype = AnkiNotePrototype(self, anki_field_info, note.TagNames, baseNote,
+                                                    notebookGuid=note.NotebookGuid, count=count,
                                                     count_update=count_update, max_count=max_count)
             anki_note_prototype.log_update_if_unchanged = log_update_if_unchanged
             if update:
