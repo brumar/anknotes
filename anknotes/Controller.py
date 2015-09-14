@@ -14,7 +14,7 @@ from anknotes.error import *
 ### Anknotes Class Imports
 from anknotes.AnkiNote import AnkiNotePrototype
 # import anknotes.EvernoteNotes as EN
-from anknotes.toc import generateTOCTitle
+from toc import generateTOCTitle
 
 ### Anknotes Main Imports
 from anknotes.Anki import Anki

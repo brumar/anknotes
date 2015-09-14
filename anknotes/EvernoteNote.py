@@ -1,5 +1,4 @@
-# from anknotes.EvernoteNoteTitle import NoteTitle
-from anknotes.toc import TOCKey as NoteTitleKey
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle as NoteTitleKey
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 from anknotes.structs import upperFirst
 

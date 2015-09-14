@@ -2,6 +2,8 @@
 ### Python Imports
 from operator import itemgetter
 
+from toc import generateTOCTitle
+
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -9,9 +11,9 @@ except ImportError:
 
 ### Anknotes Imports
 # from anknotes.shared import *
-from anknotes.toc import *
+from anknotes.EvernoteNoteTitle import *
 from anknotes.EvernoteNote import EvernoteNote
-
+from anknotes.toc import TOCHierarchyClass
 
 class EvernoteNoteProcessingFlags:
     delayProcessing = False

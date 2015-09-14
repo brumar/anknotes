@@ -1,218 +1,140 @@
-import copy
+### Anknotes Shared Imports
 from anknotes.shared import *
-from anknotes.toc import generateTitleParts
-from anknotes.enums import *
 
 
-class NoteTitle:
-    ################## CLASS Title ################
-    full = ""
-    base = ""
-    name = ""
-    count = 0
-    exists = False
-    orphan = True
-    children = []
-    partsText = None
-    Note = None
+
+class EvernoteNoteTitle:
+    level = 0
+    __title__ = ""
+    """:type: str"""
+    __titleParts__ = None
+
+    # # Parent = None
+    # def __str__(self):
+    #     return "%d: %s" % (self.Level(), self.Title)
 
     def __repr__(self):
-        if hasattr(self.Note, 'guid'):
-            guid = self.Note.guid
-        else:
-            guid = "N/A"
-            log("No guid for Note in NoteTitle.__repr__")
-            log(self.Note)
-        return u"<%s: %s: '%s'>" % (self.__class__.__name__, guid, self.title)
+        return "<%s:%d.%s>" % (self.__class__.__name__, self.Level, self.Name())
 
-    def newLevel(self, titlePart):
-        newLvl = copy.copy(self.Full())
-        newLvl.currentPart = titlePart
-        offset = self.offset_as_tuple(titlePart)
-        # newLvl.Parts()
-        # newLvl.PartsText()
-        newParts = []
-        # print "newLevel offset %s - parts [%s]- partsText [%s]  " % (str(offset), 'na', str(newLvl.partsText))
-        for i in range(1, self.Count() + 1):
-            if i in range(offset[0], offset[1] + 1):
-                newParts.append(newLvl.partsText[i - 1])
-                # print "del A %d  ~ %s" % (i, newLvl.partsText[i - 1])
-                # for i in range(1, offset[0]):
-                # print "del A %d  ~ %s" % (i, newLvl.partsText[i - 1])
-                # del newLvl.partsText[i - 1]
+    @property
+    def TitleParts(self):
+        if not self.FullTitle: return []
+        if not self.__titleParts__: self.__titleParts__ = generateTitleParts(self.FullTitle)
+        return self.__titleParts__
 
-                # for i in range(offset[1], self.Count()):
-                # # del newLvl.parts[i]
-                # print "del B %d  ~ %s" % (i, newLvl.partsText[i - 1])
-                # del newLvl.partsText[i - 1]
-        # # print_safe(" newLevel %s Parts[%s] " % (newLvl.title, str_safe(self.PartsText())))
-        # # newLvl.setTitle(newLvl.title)
-        newLvl.partsText = newParts
-        newLvl.title = ': '.join(newParts)
-        # print "newLevel done    partsText [%s]  " % ( str(newLvl.partsText))
-        return newLvl
+    @property
+    def Level(self):
+        """
+        :rtype: int
+        :return: Current Level with 1 being the Root Title
+        """
+        if not self.level: self.level = len(self.TitleParts)
+        return self.level
 
-    def __init__(self, Note=None, title=None):
-        self.title = None
-        if Note:
-            self.Note = Note
-            if self.Note.title:
-                # print "Init title, Note.title = %s" % Note.title()
-                self.setTitle(self.Note.title())
-            elif title:
-                self.setTitle(title)
-        else:
-            # print "init with plain text title %s " % title
-            self.setTitle(title)
-        self.Lvl = EvernoteTitleLevels.Levels
-        self.Section = EvernoteTitleLevels.Sections
-        self.Part = EvernoteTitleLevels.Parts
-        self.currentPart = self.Part.Full
-        print "Done init title, self.title = %s " % self.title
+    @property
+    def Depth(self):
+        return self.Level - 1
 
-    def isRoot(self):
-        return self.isLevel(self.Lvl.Root)
+    def Names(self, level=-1):
+        return self.Slice(level)
 
-    def isName(self):
-        return self.isLevel(self.Part.Name)
+    def Name(self, level=-1):
+        mySlice = self.Slice(level)
+        if not mySlice: return None
+        return mySlice.FullTitle
 
-    def isParent(self):
-        return len(self.children) > 0
-
-    def isChild(self):
-        return self.isAboveLevel(self.Lvl.Root)
-
-    def isSubject(self):
-        return self.isLevel(self.Lvl.Subject)
-
-    def hasSubject(self):
-        return self.isAboveLevel(self.Lvl.Subject)
-
-    def isTopic(self):
-        return self.isLevel(self.Lvl.Topic)
-
-    def hasTopic(self):
-        return self.isAboveLevel(self.Lvl.Topic)
-
-    def isSubtopic(self):
-        return self.isLevel(self.Lvl.Subtopic)
-
-    def hasSubtopic(self):
-        return self.isAboveLevel(self.Lvl.Subtopic)
-
-    def isSection(self):
-        return self.isLevel(self.Lvl.Section)
-
-    def hasSection(self):
-        return self.isAboveLevel(self.Lvl.Section)
-
-    def isHeading(self):
-        return self.isLevel(self.Lvl.Heading)
-
-    def hasHeading(self):
-        return self.isAboveLevel(self.Lvl.Heading)
-
-    def isEntry(self):
-        return self.isLevel(self.Lvl.Entry)
-
-    def isLevel(self, level):
-        offset = self.offset_as_scalar(level)
-        # print " Level check - Title %s Level (%s) - Offset (%d) - Count (%d) - Parts [%s] " % (self.title, level, offset, self.Count(), str_safe(self.PartsText()))
-        return self.Count() is offset
-
-    def offset_as_tuple(self, part):
-        o = part
-        if isinstance(o, int):
-            return o, o
-        try:
-            return part.offset(self.Count())
-        except:
-            pass
-        # try: return part.id()
-        # except: pass
-        # try: return part.value()
-        # except: pass
-        print_safe("Fail Tuple - %s %s " % (part, part.offset(self.Count())))
-
-    def offset_as_scalar(self, part):
-        o = part
-        if not isinstance(o, int):
-            try:
-                oss = part.offset(self.Count())
-                if oss[0] == oss[1]:
-                    o = oss[0]
-                else:
-                    print "Unexpected range tuple for level offset for offset_as_scalar. Offset: %s " % str(oss)
-                    raise
-            except:
-                print_safe("Fail Scalar - %s %s" % (part, part.offset(self.Count())))
-                raise
-        return o
-
-    def isAboveLevel(self, level):
-        offset = self.offset_as_scalar(level)
-        return self.count > offset
-
-    def Level(self, level):
-        return self.newLevel(level)
-
-    def Part(self, part):
-        level = part
-        return self.Level(level)
-
-    def Count(self):
-        if not self.count:
-            self.count = len(self.PartsText())
-        return self.count
-
-    def PartsText(self):
-        if not self.partsText:
-            self.partsText = generateTitleParts(self.title)
-            self.count = len(self.partsText)
-        return self.partsText
-
-    def __str__(self):
-        if self.title is None: return ""
-        return self.title
-
-    def Breakdown(self):
-        output = 'Full:   ' + self.full
-        if self.isRoot(): return output
-        output += '\n Root:   ' + self.Root()
-        output += '\n Base:   ' + self.base
-        # if self.isLevel(TitleSectionBase): return output
-        if self.isAboveLevel(3):
-            output += '\n  Parent: ' + self.Parent()
-        output += '\n  Name:   ' + self.name
-        output += '\n'
-        return output
-
-    def setTitle(self, title=None, force=False):
-        # print "Setting title - %s [ s] " % (title)
-        if title:
-            if str_safe(title) != '':
-                self.partsText = None
-                self.title = title
-            return
-        if not self.Note: return
-        self.partsText = None
-        self.title = self.Note.fields[FIELDS.TITLE]
-
-    def Parent(self):
-        if self.isRoot(): return None
-        return self.Level(self.Part.Parent)
-
-    def Full(self):
-        return self
-
+    @property
     def Root(self):
-        if self.isRoot(): return self.Full()
-        return self.Level(self.Part.Root)
+        return self.Parent(1)
 
-    def Base(self):
-        if self.isRoot(): return None
-        return self.Level(self.Part.Base)
+    def Base(self, level=None):
+        return self.Slice(1, level)
 
-    def Name(self):
-        return self.Level(self.Part.Name)
-        ################### END CLASS Title ################
+    def Slice(self, start=0, end=None):
+        # print "Slicing: <%s> %s ~ %d,%d" % (type(self.Title), self.Title, start, end)
+        oldParts = self.TitleParts
+        # print "Slicing: %s ~ %d,%d from parts %s" % (self.Title, start, end, str(oldParts))
+        if not self.FullTitle: return None
+        if not oldParts: return None
+        assert start or end
+        newParts = oldParts[start:end]
+        if len(newParts) == 0:
+            # print "Slice failed for %s-%s of %s" % (str(start), str(end), self.Title)
+            return None
+            assert False
+        newStr = ': '.join(newParts)
+        # print "Slice: Just created new title %s from %s" % (newStr , self.Title)
+        return EvernoteNoteTitle(newStr)
+
+    def Parent(self, level=-1):
+        # noinspection PyTypeChecker
+        return self.Slice(None, level)
+
+    def isAboveLevel(self, level_check):
+        return self.Level > level_check
+
+    def isBelowLevel(self, level_check):
+        return self.Level < level_check
+
+    def isLevel(self, level_check):
+        return self.Level == level_check
+
+    @property
+    def isChild(self):
+        return self.isAboveLevel(1)
+
+    @property
+    def isRoot(self):
+        return self.isLevel(1)
+
+    @staticmethod
+    def titleObjectToString(title):
+        """
+        :param title: Title in string, unicode, dict, sqlite, TOCKey or NoteTitle formats. Note objects are also parseable
+        :type title: str | unicode | dict[str,str] | sqlite.Row | EvernoteNoteTitle
+        :return: string Title
+        :rtype: str
+        """
+        if isinstance(title, str) or isinstance((title, unicode)):
+            return title
+        if hasattr(title, 'FullTitle'): title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
+        elif hasattr(title, 'Title'): title = title.Title() if callable(title.Title) else title.Title
+        elif hasattr(title, 'title'): title = title.title() if callable(title.title) else title.title
+        else:
+            try:
+                if 'title' in title: title = title['title']
+                elif 'Title' in title: title = title['Title']
+            except: return ""
+        return EvernoteNoteTitle.titleObjectToString(title)
+
+    @property
+    def FullTitle(self):
+        """:rtype: str"""
+        return self.__title__
+
+    def __init__(self, title):
+        self.__title__ = self.titleObjectToString(title)
+
+
+
+def generateTitleParts(title):
+    try:
+        strTitle = re.sub(':+', ':', title)
+    except:
+        print type(title)
+        raise
+    if strTitle[-1] == ':': strTitle = strTitle[:-1]
+    if strTitle[0] == ':': strTitle = strTitle[1:]
+    partsText = strTitle.split(':')
+    count = len(partsText)
+    for i in range(1, count + 1):
+        txt = partsText[i - 1]
+        try:
+            if txt[-1] == ' ': txt = txt[:-1]
+            if txt[0] == ' ': txt = txt[1:]
+        except:
+            print_safe(title + ' -- ' + '"' + txt + '"')
+            raise
+        partsText[i - 1] = txt
+    return partsText
+
