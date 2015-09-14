@@ -123,6 +123,7 @@ def log(content='', filename='', prefix='', clear=False, timestamp=True, extensi
     with open(full_path , 'w+' if clear else 'a+') as fileLog:
         print>>fileLog, prefix + ' ' + st + content
 
+log("Log Loaded", "load")
 
 def log_sql(value):
     log(value, 'sql')

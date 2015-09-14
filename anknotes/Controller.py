@@ -59,7 +59,7 @@ class Controller:
         self.anki.evernoteTags = []
         NoteDB = EN.EvernoteNotes()
         NoteDB.baseQuery = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3' AND notebookGuid != 'faabcd80-918f-49ca-a349-77fd0036c051'"
-        dbRows = NoteDB.populateAllRootNotesMissingOrAutoTOC()    
+        dbRows = NoteDB.populateAllNonCustomRootNotes()
         number_updated = 0
         number_created = 0
         count = 0
@@ -110,6 +110,7 @@ class Controller:
                     count_update_skipped += 1 
                     continue       
                 log(generate_diff(old_content, noteBody), 'AutoTOC-Create-Diffs')
+
             self.evernote.initialize_note_store()
             status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid)                    
             if not whole_note:

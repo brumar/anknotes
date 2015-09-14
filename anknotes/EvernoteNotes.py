@@ -23,6 +23,7 @@ class EvernoteNoteProcessingFlags:
     populateMissingRootTitlesDict = False
     populateChildRootTitles = False
     ignoreAutoTOCAsRootTitle = False
+    ignoreOutlineAsRootTitle = False
 
     def __init__(self, flags=None):
         if isinstance(flags, bool):
@@ -185,6 +186,8 @@ class EvernoteNotes:
             query = "UPPER(title) = '%s'" % escape_text_sql(rootTitle).upper()
             if self.processingFlags.ignoreAutoTOCAsRootTitle:
                 query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.AUTO_TOC
+            if self.processingFlags.ignoreOutlineAsRootTitle:
+                query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.OUTLINE
             rootNote = self.getNoteFromDB(query)
             if rootNote:
                 self.RootNotesExisting.TitlesList.append(rootTitle)
@@ -203,16 +206,17 @@ class EvernoteNotes:
             query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.AUTO_TOC
         self.addDbQuery(query, 'title ASC')
 
-    def populateAllRootNotesMissingOrAutoTOC(self):
-        return self.populateAllRootNotesMissing(True)
+    def populateAllNonCustomRootNotes(self):
+        return self.populateAllRootNotesMissing(True,True)
 
-    def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False):
+    def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False, ignoreOutlineAsRootTitle=False):
         processingFlags = EvernoteNoteProcessingFlags(False)
         processingFlags.populateMissingRootTitlesList = True
         processingFlags.populateMissingRootTitlesDict = True
         processingFlags.populateExistingRootTitlesList = True
         processingFlags.populateExistingRootTitlesDict = True
         processingFlags.ignoreAutoTOCAsRootTitle = ignoreAutoTOCAsRootTitle
+        processingFlags.ignoreOutlineAsRootTitle = ignoreOutlineAsRootTitle
         self.processingFlags = processingFlags
         self.RootNotesExisting = EvernoteNotesCollection()
         self.RootNotesMissing = EvernoteNotesCollection()

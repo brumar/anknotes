@@ -38,6 +38,7 @@ def import_timer_toggle():
             mw.progress.timer(importDelay, menu.import_from_evernote, False)
 
 def anknotes_profile_loaded():
+    log("Profile Loaded", "load")
     menu.anknotes_load_menu_settings()
     import_timer_toggle()
     '''
@@ -54,3 +55,4 @@ def anknotes_onload():
     Preferences.setupOptions = wrap(Preferences.setupOptions, settings.setup_evernote)            
               
 anknotes_onload()
+log("Anki Loaded", "load")
