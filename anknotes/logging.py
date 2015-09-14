@@ -16,29 +16,37 @@ try:
     from aqt.utils import tooltip
     # noinspection PyUnresolvedReferences
     from aqt.qt import QMessageBox, QPushButton
-except: pass
+except:
+    pass
+
 
 def str_safe(strr, prefix=''):
-    try: strr= str((prefix + strr.__repr__()))
-    except: strr= str((prefix + strr.__repr__().encode('utf8', 'replace')))
+    try:
+        strr = str((prefix + strr.__repr__()))
+    except:
+        strr = str((prefix + strr.__repr__().encode('utf8', 'replace')))
     return strr
+
 
 def print_safe(strr, prefix=''):
     print str_safe(strr, prefix)
 
-def show_tooltip(text, time_out=3000,delay=None):
+
+def show_tooltip(text, time_out=3000, delay=None):
     if delay:
-        try: return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
-        except: pass
+        try:
+            return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
+        except:
+            pass
     tooltip(text, time_out)
 
 
-def report_tooltip(log_title, log_text="",delay=None):
+def report_tooltip(log_title, log_text="", delay=None):
     str_tip = log_text
     if not str_tip:
         str_tip = log_title
 
-    show_tooltip(str_tip,delay=delay)
+    show_tooltip(str_tip, delay=delay)
 
     if log_title:
         log_title += ": "
@@ -50,7 +58,7 @@ def report_tooltip(log_title, log_text="",delay=None):
     log(log_text, timestamp=False, replace_newline=True)
 
 
-def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat = 0):
+def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0):
     global imgEvernoteWebMsgBox, icoEvernoteArtcore
     msgDefaultButton = QPushButton(icoEvernoteArtcore, "Okay!", mw)
 
@@ -66,22 +74,34 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat =
     messageBox.setWindowTitle(title)
     messageBox.exec_()
 
+
 def diffify(content):
     for tag in ['div', 'ol', 'ul', 'li']:
-        content = content.replace("<"+tag, "\n<"+tag).replace("</%s>" % tag, "</%s>\n" % tag)
+        content = content.replace("<" + tag, "\n<" + tag).replace("</%s>" % tag, "</%s>\n" % tag)
     content = re.sub(r'[\r\n]+', '\n', content)
     return content.splitlines()
 
 
 def generate_diff(value_original, value):
-    try: return '\n'.join(list(difflib.unified_diff(diffify(value_original), diffify(value), lineterm='')))
-    except: pass
-    try: return '\n'.join(list(difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value), lineterm='')))
-    except: pass
-    try: return '\n'.join(list(difflib.unified_diff(diffify(value_original), diffify(value.decode('utf-8')), lineterm='')))
-    except: pass
-    try: return '\n'.join(list(difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value.decode('utf-8')), lineterm='')))
-    except: raise
+    try:
+        return '\n'.join(list(difflib.unified_diff(diffify(value_original), diffify(value), lineterm='')))
+    except:
+        pass
+    try:
+        return '\n'.join(
+            list(difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value), lineterm='')))
+    except:
+        pass
+    try:
+        return '\n'.join(
+            list(difflib.unified_diff(diffify(value_original), diffify(value.decode('utf-8')), lineterm='')))
+    except:
+        pass
+    try:
+        return '\n'.join(list(
+            difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value.decode('utf-8')), lineterm='')))
+    except:
+        raise
 
 
 def obj2log_simple(content):
@@ -90,11 +110,12 @@ def obj2log_simple(content):
     return content
 
 
-def log(content='', filename='', prefix='', clear=False, timestamp=True, extension='log', blank=False, replace_newline=None):
+def log(content='', filename='', prefix='', clear=False, timestamp=True, extension='log', blank=False,
+        replace_newline=None):
     if blank:
         filename = content
         content = ''
-        timestamp=False
+        timestamp = False
     else:
         content = obj2log_simple(content)
         if len(content) == 0: content = '{EMPTY STRING}'
@@ -109,11 +130,14 @@ def log(content='', filename='', prefix='', clear=False, timestamp=True, extensi
             summary = " ** CROSS-POST TO %s: " % filename + content
             if len(summary) > 200: summary = summary[:200]
             log(summary)
-        filename = ANKNOTES.LOG_BASE_NAME + '-%s.%s' % (filename        , extension)
-    try: content = content.encode('utf-8')
-    except Exception: pass
+        filename = ANKNOTES.LOG_BASE_NAME + '-%s.%s' % (filename, extension)
+    try:
+        content = content.encode('utf-8')
+    except Exception:
+        pass
     if timestamp or replace_newline is True:
-        content = content.replace('\r', '\r                              ').replace('\n', '\n                              ')
+        content = content.replace('\r', '\r                              ').replace('\n',
+                                                                                    '\n                              ')
     if timestamp:
         st = '[%s]: ' % datetime.now().strftime(ANKNOTES.DATE_FORMAT)
     else:
@@ -121,10 +145,12 @@ def log(content='', filename='', prefix='', clear=False, timestamp=True, extensi
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
     if not os.path.exists(os.path.dirname(full_path)):
         os.mkdir(os.path.dirname(full_path))
-    with open(full_path , 'w+' if clear else 'a+') as fileLog:
-        print>>fileLog, prefix + ' ' + st + content
+    with open(full_path, 'w+' if clear else 'a+') as fileLog:
+        print>> fileLog, prefix + ' ' + st + content
+
 
 log("Log Loaded", "load")
+
 
 def log_sql(value):
     log(value, 'sql')
@@ -137,15 +163,17 @@ def log_error(value):
 def print_dump(obj):
     content = pprint.pformat(obj, indent=4, width=80)
     content = content.replace(', ', ', \n ')
-    content = content.replace('\r', '\r                              ').replace('\n', '\n                              ')
-    if isinstance(content , str):
-        content = unicode(content , 'utf-8')
+    content = content.replace('\r', '\r                              ').replace('\n',
+                                                                                '\n                              ')
+    if isinstance(content, str):
+        content = unicode(content, 'utf-8')
     print content
 
 
 def log_dump(obj, title="Object", filename='', clear=False, timestamp=True):
     content = pprint.pformat(obj, indent=4, width=80)
-    if not filename: filename = ANKNOTES.LOG_BASE_NAME + '-dump.log'
+    if not filename:
+        filename = ANKNOTES.LOG_BASE_NAME + '-dump.log'
     else:
         if filename[0] is '+':
             filename = filename[1:]
@@ -155,7 +183,7 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True):
             log(summary)
         filename = ANKNOTES.LOG_BASE_NAME + '-dump-%s.log' % filename
     try:
-        content=content.encode('ascii', 'ignore')
+        content = content.encode('ascii', 'ignore')
     except Exception:
         pass
     st = ''
@@ -171,37 +199,44 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True):
     prefix += '\r\n'
     content = prefix + content.replace(', ', ', \n ')
     content = content.replace("': {", "': {\n ")
-    content = content.replace('\r', '\r                              ').replace('\n', '\n                              ')
+    content = content.replace('\r', '\r                              ').replace('\n',
+                                                                                '\n                              ')
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
-    if isinstance(content , str):
-        content = unicode(content , 'utf-8')
+    if isinstance(content, str):
+        content = unicode(content, 'utf-8')
     if not os.path.exists(os.path.dirname(full_path)):
         os.mkdir(os.path.dirname(full_path))
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         try:
-            print>>fileLog, (u'\n %s%s' % (st, content))
+            print>> fileLog, (u'\n %s%s' % (st, content))
             return
-        except: pass
+        except:
+            pass
         try:
-            print>>fileLog, (u'\n <1> %s%s' % (st, content.decode('utf-8')))
+            print>> fileLog, (u'\n <1> %s%s' % (st, content.decode('utf-8')))
             return
-        except: pass
+        except:
+            pass
         try:
-            print>>fileLog, (u'\n <2> %s%s' % (st, content.encode('utf-8')))
-        except: pass
+            print>> fileLog, (u'\n <2> %s%s' % (st, content.encode('utf-8')))
+        except:
+            pass
         try:
-            print>>fileLog, ('\n <3> %s%s' % (st, content.decode('utf-8')))
+            print>> fileLog, ('\n <3> %s%s' % (st, content.decode('utf-8')))
             return
-        except: pass
+        except:
+            pass
         try:
-            print>>fileLog, ('\n <4> %s%s' % (st, content.encode('utf-8')))
+            print>> fileLog, ('\n <4> %s%s' % (st, content.encode('utf-8')))
             return
-        except: pass
+        except:
+            pass
         try:
-            print>>fileLog, (u'\n %s%s' % (st, "Error printing content: " + str_safe(content)))
+            print>> fileLog, (u'\n %s%s' % (st, "Error printing content: " + str_safe(content)))
             return
-        except: pass
-        print>>fileLog, (u'\n %s%s' % (st, "Error printing content: " + content[:10]))
+        except:
+            pass
+        print>> fileLog, (u'\n %s%s' % (st, "Error printing content: " + content[:10]))
 
 
 def log_api(method, content=''):
@@ -210,10 +245,10 @@ def log_api(method, content=''):
 
 
 def get_api_call_count():
-    api_log = file( os.path.join(ANKNOTES.FOLDER_LOGS, ANKNOTES.LOG_BASE_NAME + '-api.log') , 'r').read().splitlines()
+    api_log = file(os.path.join(ANKNOTES.FOLDER_LOGS, ANKNOTES.LOG_BASE_NAME + '-api.log'), 'r').read().splitlines()
     count = 1
     for i in range(len(api_log), 0, -1):
-        call = api_log[i-1]
+        call = api_log[i - 1]
         if not "API_CALL" in call:
             continue
         ts = call.split(': ')[0][2:-1]

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 from operator import itemgetter
+
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -10,7 +11,6 @@ except ImportError:
 # from anknotes.shared import *
 from anknotes.toc import *
 from anknotes.EvernoteNote import EvernoteNote
-
 
 
 class EvernoteNoteProcessingFlags:
@@ -146,7 +146,7 @@ class EvernoteNotes:
                         self.RootNotesExisting.TitlesList.append(rootTitleStr)
                 if self.processingFlags.populateChildRootTitles:
                     childNotes = ankDB().execute("SELECT * FROM %s WHERE title LIKE '%s:%%' ORDER BY title ASC" % (
-                    TABLES.EVERNOTE.NOTES, rootTitleStr.replace("'", "''")))
+                        TABLES.EVERNOTE.NOTES, rootTitleStr.replace("'", "''")))
                     child_count = 0
                     for childDbNote in childNotes:
                         child_count += 1
@@ -207,7 +207,7 @@ class EvernoteNotes:
         self.addDbQuery(query, 'title ASC')
 
     def populateAllNonCustomRootNotes(self):
-        return self.populateAllRootNotesMissing(True,True)
+        return self.populateAllRootNotesMissing(True, True)
 
     def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False, ignoreOutlineAsRootTitle=False):
         processingFlags = EvernoteNoteProcessingFlags(False)
@@ -252,7 +252,7 @@ class EvernoteNotes:
             total_child = len(childTitlesDictSortedKeys)
             tags = []
             outline = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
-            escape_text_sql(rootTitleStr.upper()), EVERNOTE.TAG.OUTLINE))
+                escape_text_sql(rootTitleStr.upper()), EVERNOTE.TAG.OUTLINE))
             notebookGuids = {}
             childGuid = None
             if total_child is 1 and not outline:
@@ -262,7 +262,7 @@ class EvernoteNotes:
                 enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
                 # tags = enChildNote.tags
                 log("  > ISOLATED ROOT TITLE: [%-3d]:  %-40s --> %-20s: %s %s" % (
-                count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles-Isolated',
+                    count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles-Isolated',
                     timestamp=False)
             else:
                 count += 1

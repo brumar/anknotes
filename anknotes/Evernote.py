@@ -2,8 +2,10 @@
 ### Python Imports
 import socket
 
-try:    from pysqlite2 import dbapi2 as sqlite
-except ImportError: from sqlite3 import dbapi2 as sqlite
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except ImportError:
+    from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
 from anknotes.shared import *
@@ -18,6 +20,7 @@ from evernote.edam.type.ttypes import Note
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
 from evernote.api.client import EvernoteClient
 
+
 ### Anki Imports
 # import anki
 # import aqt
@@ -30,8 +33,6 @@ from evernote.api.client import EvernoteClient
 # from aqt import mw
 
 class Evernote(object):
-
-
     def __init__(self):
         self.metadata = None
         auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
@@ -40,7 +41,7 @@ class Evernote(object):
         self.notebook_data = {}
         self.noteStore = None
         self.getNoteCount = 0
-        
+
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
             secrets = {'holycrepe': '36f46ea5dec83d4a', 'scriptkiddi-2682': '965f1873e4df583c'}
@@ -60,33 +61,34 @@ class Evernote(object):
                 oauth_verifier)
             mw.col.conf[SETTINGS.EVERNOTE_AUTH_TOKEN] = auth_token
         self.token = auth_token
-        self.client = EvernoteClient(token=auth_token, sandbox=ANKNOTES.EVERNOTE_IS_SANDBOXED)        
+        self.client = EvernoteClient(token=auth_token, sandbox=ANKNOTES.EVERNOTE_IS_SANDBOXED)
 
     def initialize_note_store(self):
-        if self.noteStore: 
+        if self.noteStore:
             return 0
         api_action_str = u'trying to initialize the Evernote Client.'
         log_api("get_note_store")
-        try:            
-            self.noteStore = self.client.get_note_store()                                  
+        try:
+            self.noteStore = self.client.get_note_store()
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError(e, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise 
+            if HandleEDAMRateLimitError(e, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return 1
-            raise         
+            raise
         except socket.error, v:
-            if HandleSocketError(v, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise 
+            if HandleSocketError(v, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return 2
-            raise                         
+            raise
         return 0
-        
-    def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[]):
-        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook,  resources=resources, guid=guid)
-        
+
+    def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[]):
+        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
+                             guid=guid)
+
     @staticmethod
     def makeNoteBody(noteBody, resources=[], encode=True):
-       ## Build body of note
+        ## Build body of note
 
         nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
@@ -101,200 +103,208 @@ class Evernote(object):
         #             (hexhash, resource.mime, hexhash)
         nBody += "</en-note>"
         if encode:
-            nBody = nBody.encode('utf-8')    
+            nBody = nBody.encode('utf-8')
         return nBody
 
-    def makeNote(self, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[], guid=None):
-            """
-            Create or Update a Note instance with title and body 
-            Send Note object to user's account
-            """
+    def makeNote(self, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[], guid=None):
+        """
+        Create or Update a Note instance with title and body
+        Send Note object to user's account
+        """
 
-            callType = "create"
-            
-            ourNote = Note()
-            ourNote.title = noteTitle.encode('utf-8')
-            if guid:
-                callType = "update"
-                ourNote.guid = guid 
+        callType = "create"
+
+        ourNote = Note()
+        ourNote.title = noteTitle.encode('utf-8')
+        if guid:
+            callType = "update"
+            ourNote.guid = guid
 
             ## Build body of note  
-            nBody = self.makeNoteBody(noteBody, resources)
-            ourNote.content = nBody
-            
-            if '' in tagNames: tagNames.remove('')
-            if len(tagNames) > 0:
-                if ANKNOTES.EVERNOTE_IS_SANDBOXED:
-                    tagNames.append("#Sandbox")
-                ourNote.tagNames = tagNames
+        nBody = self.makeNoteBody(noteBody, resources)
+        ourNote.content = nBody
 
-            ## parentNotebook is optional; if omitted, default notebook is used
-            if parentNotebook and hasattr(parentNotebook, 'guid'):
-                ourNote.notebookGuid = parentNotebook.guid
+        if '' in tagNames: tagNames.remove('')
+        if len(tagNames) > 0:
+            if ANKNOTES.EVERNOTE_IS_SANDBOXED:
+                tagNames.append("#Sandbox")
+            ourNote.tagNames = tagNames
 
-            ## Attempt to create note in Evernote account
-            
-            api_action_str = u'trying to %s a note' % callType
-            log_api(callType + "Note", "'%s'" % noteTitle)
-            try:                            
-                note = getattr(self.noteStore,callType+'Note')(self.token, ourNote)
-            except EDAMSystemException as e:
-                if HandleEDAMRateLimitError(e, api_action_str): 
-                    if DEBUG_RAISE_API_ERRORS: raise 
-                    return 1, None
-            except socket.error, v:
-                if HandleSocketError(v, api_action_str): 
-                    if DEBUG_RAISE_API_ERRORS: raise 
-                    return 2, None  
-            except EDAMUserException, edue:
-                ## Something was wrong with the note data
-                ## See EDAMErrorCode enumeration for error code explanation
-                ## http://dev.evernote.com/documentation/reference/Errors.html#Enum_EDAMErrorCode
-                print "EDAMUserException:", edue
-                log_error("-------------------------------------------------")
-                log_error("EDAMUserException:  " + str(edue))
-                log_error(str( ourNote.tagNames ))
-                log_error(str( ourNote.content ))
-                log_error("-------------------------------------------------\r\n")
-                if DEBUG_RAISE_API_ERRORS: raise 
-                return 3, None
-            except EDAMNotFoundException, ednfe:
-                print "EDAMNotFoundException:", ednfe
-                log_error("-------------------------------------------------")
-                log_error("EDAMNotFoundException:  " + str(ednfe))
-                if callType is "update":
-                    log_error(str( ourNote.guid ))
-                if ourNote.notebookGuid:
-                    log_error(str( ourNote.notebookGuid ))
-                log_error("-------------------------------------------------\r\n")
-                if DEBUG_RAISE_API_ERRORS: raise 
-                return 4, None
-            except Exception, e:
-                print "Unknown Exception:", e
-                log_error("-------------------------------------------------")
-                log_error("Unknown Exception:  " + str(e))
-                log_error(str( ourNote.tagNames ))
-                log_error(str( ourNote.content ))
-                log_error("-------------------------------------------------\r\n")
-                raise
-            # noinspection PyUnboundLocalVariable
-            note.content = nBody
-            return 0, note                  
-    
-    def create_evernote_notes(self, evernote_guids = None, use_local_db_only=False):  
+        ## parentNotebook is optional; if omitted, default notebook is used
+        if parentNotebook and hasattr(parentNotebook, 'guid'):
+            ourNote.notebookGuid = parentNotebook.guid
+
+        ## Attempt to create note in Evernote account
+
+        api_action_str = u'trying to %s a note' % callType
+        log_api(callType + "Note", "'%s'" % noteTitle)
+        try:
+            note = getattr(self.noteStore, callType + 'Note')(self.token, ourNote)
+        except EDAMSystemException as e:
+            if HandleEDAMRateLimitError(e, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
+                return 1, None
+        except socket.error, v:
+            if HandleSocketError(v, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
+                return 2, None
+        except EDAMUserException, edue:
+            ## Something was wrong with the note data
+            ## See EDAMErrorCode enumeration for error code explanation
+            ## http://dev.evernote.com/documentation/reference/Errors.html#Enum_EDAMErrorCode
+            print "EDAMUserException:", edue
+            log_error("-------------------------------------------------")
+            log_error("EDAMUserException:  " + str(edue))
+            log_error(str(ourNote.tagNames))
+            log_error(str(ourNote.content))
+            log_error("-------------------------------------------------\r\n")
+            if DEBUG_RAISE_API_ERRORS: raise
+            return 3, None
+        except EDAMNotFoundException, ednfe:
+            print "EDAMNotFoundException:", ednfe
+            log_error("-------------------------------------------------")
+            log_error("EDAMNotFoundException:  " + str(ednfe))
+            if callType is "update":
+                log_error(str(ourNote.guid))
+            if ourNote.notebookGuid:
+                log_error(str(ourNote.notebookGuid))
+            log_error("-------------------------------------------------\r\n")
+            if DEBUG_RAISE_API_ERRORS: raise
+            return 4, None
+        except Exception, e:
+            print "Unknown Exception:", e
+            log_error("-------------------------------------------------")
+            log_error("Unknown Exception:  " + str(e))
+            log_error(str(ourNote.tagNames))
+            log_error(str(ourNote.content))
+            log_error("-------------------------------------------------\r\n")
+            raise
+        # noinspection PyUnboundLocalVariable
+        note.content = nBody
+        return 0, note
+
+    def create_evernote_notes(self, evernote_guids=None, use_local_db_only=False):
         if not hasattr(self, 'guids') or evernote_guids: self.evernote_guids = evernote_guids
         if not use_local_db_only:
-            self.check_ancillary_data_up_to_date()        
-        notes = []   
+            self.check_ancillary_data_up_to_date()
+        notes = []
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         fetcher.keepEvernoteTags = self.keepEvernoteTags
         local_count = 0
         for evernote_guid in self.evernote_guids:
-            self.evernote_guid = evernote_guid 
-            if not fetcher.getNote(evernote_guid): 
-                return fetcher.result.status, local_count, notes     
+            self.evernote_guid = evernote_guid
+            if not fetcher.getNote(evernote_guid):
+                return fetcher.result.status, local_count, notes
             if fetcher.result.source is 1:
                 local_count += 1
             notes.append(fetcher.result.note)
         return 0, local_count, notes
-    
+
     def check_ancillary_data_up_to_date(self):
-        if not self.check_tags_up_to_date(): 
+        if not self.check_tags_up_to_date():
             self.update_tags_db()
-        if not self.check_notebooks_up_to_date(): 
-            self.update_notebook_db()    
-    
+        if not self.check_notebooks_up_to_date():
+            self.update_notebook_db()
+
     def update_ancillary_data(self):
         self.update_tags_db()
-        self.update_notebook_db()                
-    
-    def check_notebooks_up_to_date(self):        
-        notebook_guids = []        
+        self.update_notebook_db()
+
+    def check_notebooks_up_to_date(self):
+        notebook_guids = []
         for evernote_guid in self.evernote_guids:
             note_metadata = self.metadata[evernote_guid]
-            notebookGuid = note_metadata.notebookGuid 
+            notebookGuid = note_metadata.notebookGuid
             if not notebookGuid:
-                log_error("   > Notebook check: Unable to find notebook guid for '%s'. Returned '%s'. Metadata: %s" % (evernote_guid, str(notebookGuid), str(note_metadata)))
-            elif not notebookGuid in notebook_guids and not notebookGuid in self.notebook_data:                
-                notebook  = ankDB().first("SELECT name, stack FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTEBOOKS, notebookGuid))
-                if not notebook: 
+                log_error("   > Notebook check: Unable to find notebook guid for '%s'. Returned '%s'. Metadata: %s" % (
+                    evernote_guid, str(notebookGuid), str(note_metadata)))
+            elif not notebookGuid in notebook_guids and not notebookGuid in self.notebook_data:
+                notebook = ankDB().first(
+                    "SELECT name, stack FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTEBOOKS, notebookGuid))
+                if not notebook:
                     log("   > Notebook check: Missing notebook guid '%s'. Will update with an API call." % notebookGuid)
                     return False
                 notebook_name, notebook_stack = notebook
                 self.notebook_data[notebookGuid] = {"stack": notebook_stack, "name": notebook_name}
                 notebook_guids.append(notebookGuid)
-        return True        
-        
+        return True
+
     def update_notebook_db(self):
         api_action_str = u'trying to update Evernote notebooks.'
         log_api("listNotebooks")
-        try:            
-            notebooks = self.noteStore.listNotebooks(self.token)                               
+        try:
+            notebooks = self.noteStore.listNotebooks(self.token)
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError(e, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise 
+            if HandleEDAMRateLimitError(e, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return None
-            raise         
+            raise
         except socket.error, v:
-            if HandleSocketError(v, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise    
+            if HandleSocketError(v, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return None
-            raise       
+            raise
         data = []
         for notebook in notebooks:
             self.notebook_data[notebook.guid] = {"stack": notebook.stack, "name": notebook.name}
-            data.append([notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.serviceUpdated, notebook.stack])
+            data.append(
+                [notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.serviceUpdated, notebook.stack])
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.NOTEBOOKS)
         ankDB().InitNotebooks(True)
         log_dump(data, 'update_notebook_db table data')
-        ankDB().executemany("INSERT INTO `%s`(`guid`,`name`,`updateSequenceNum`,`serviceUpdated`, `stack`) VALUES (?, ?, ?, ?, ?)" % TABLES.EVERNOTE.NOTEBOOKS, data)  
+        ankDB().executemany(
+            "INSERT INTO `%s`(`guid`,`name`,`updateSequenceNum`,`serviceUpdated`, `stack`) VALUES (?, ?, ?, ?, ?)" % TABLES.EVERNOTE.NOTEBOOKS,
+            data)
         log_dump(ankDB().all("SELECT * FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS), 'sql data')
 
-    def check_tags_up_to_date(self):        
+    def check_tags_up_to_date(self):
         tag_guids = []
         for evernote_guid in self.evernote_guids:
             if not evernote_guid in self.metadata:
                 log_error('Could not find note metadata for Note ''%s''' % evernote_guid)
                 return False
-            else:            
-                note_metadata = self.metadata[evernote_guid]            
-                for tag_guid in note_metadata.tagGuids:                
-                    if not tag_guid in tag_guids and not tag_guid in self.tag_data: 
-                        tag_name = ankDB().scalar("SELECT name FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.TAGS, tag_guid))
-                        if not tag_name: 
+            else:
+                note_metadata = self.metadata[evernote_guid]
+                for tag_guid in note_metadata.tagGuids:
+                    if not tag_guid in tag_guids and not tag_guid in self.tag_data:
+                        tag_name = ankDB().scalar(
+                            "SELECT name FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.TAGS, tag_guid))
+                        if not tag_name:
                             return False
-                        self.tag_data[tag_guid] = tag_name 
-                        tag_guids.append(tag_guid)   
+                        self.tag_data[tag_guid] = tag_name
+                        tag_guids.append(tag_guid)
         return True
-       
+
     def update_tags_db(self):
         api_action_str = u'trying to update Evernote tags.'
         log_api("listTags")
-        try:            
-            tags = self.noteStore.listTags(self.token)                                
+        try:
+            tags = self.noteStore.listTags(self.token)
         except EDAMSystemException as e:
-            if HandleEDAMRateLimitError(e, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise 
+            if HandleEDAMRateLimitError(e, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return None
-            raise         
+            raise
         except socket.error, v:
-            if HandleSocketError(v, api_action_str): 
-                if DEBUG_RAISE_API_ERRORS: raise 
+            if HandleSocketError(v, api_action_str):
+                if DEBUG_RAISE_API_ERRORS: raise
                 return None
-            raise       
+            raise
         data = []
         for tag in tags:
             self.tag_data[tag.guid] = tag.name
             data.append([tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum])
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
         ankDB().InitTags(True)
-        ankDB().executemany("INSERT OR REPLACE INTO `%s`(`guid`,`name`,`parentGuid`,`updateSequenceNum`) VALUES (?, ?, ?, ?)" % TABLES.EVERNOTE.TAGS, data)        
-    
-    def get_tag_names_from_evernote_guids(self, tag_guids_original):        
+        ankDB().executemany(
+            "INSERT OR REPLACE INTO `%s`(`guid`,`name`,`parentGuid`,`updateSequenceNum`) VALUES (?, ?, ?, ?)" % TABLES.EVERNOTE.TAGS,
+            data)
+
+    def get_tag_names_from_evernote_guids(self, tag_guids_original):
         tagGuids = []
         tagNames = []
         tagNamesToImport = get_tag_names_to_import({x: self.tag_data[x] for x in tag_guids_original})
-        for k,v in tagNamesToImport.items():
+        for k, v in tagNamesToImport.items():
             tagGuids.append(k)
             tagNames.append(v)
         tagNames = sorted(tagNames, key=lambda s: s.lower())

@@ -62,9 +62,6 @@ class TOCKey:
         if not self.titleParts: self.titleParts = generateTitleParts(self.Title)
         return self.titleParts
 
-    def isRoot(self):
-        return self.Level() is 1
-
     def Level(self):
         if not self.level: self.level = len(self.TitleParts())
         return self.level
@@ -304,7 +301,7 @@ class TOCHierarchyClass:
                 if child.title.Name() == baseTitleName:
                     success = child.addHierarchy(tocHierarchy)
                     if not success: print "Failed searching %s for child %s to add %s " % (
-                    selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
+                        selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
                     return success
             newChild = TOCHierarchyClass(baseTitleStr)
             newChild.addHierarchy(tocHierarchy)
@@ -314,7 +311,7 @@ class TOCHierarchyClass:
             return True
         else:
             print "baseTitleParentTitle Fail:  %s for child %s to add %s " % (
-            selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
+                selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
 
         print "Total Fail:  %s for child %s to add %s " % (selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
         return False
@@ -408,8 +405,8 @@ class TOCHierarchyClass:
         # selfDepth = self.title.Depth()
         selfListPrefix = self.getListPrefix()
         strr = "<%s:%s[%d] %s%s>" % (
-        self.__class__.__name__, selfListPrefix, len(self.children), selfTitleStr if fullTitle else selfNameStr,
-        '' if self.note else ' *')
+            self.__class__.__name__, selfListPrefix, len(self.children), selfTitleStr if fullTitle else selfNameStr,
+            '' if self.note else ' *')
         return strr
 
     def __repr__(self, fullTitle=True, fullChildrenTitles=False):

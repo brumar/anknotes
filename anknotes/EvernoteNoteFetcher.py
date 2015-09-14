@@ -35,7 +35,7 @@ class EvernoteNoteFetcher(object):
     def getNoteLocal(self):
         # Check Anknotes database for note
         query = "SELECT guid, title, content, notebookGuid, tagNames, updateSequenceNum FROM %s WHERE guid = '%s'" % (
-        TABLES.EVERNOTE.NOTES, self.evernote_guid)
+            TABLES.EVERNOTE.NOTES, self.evernote_guid)
         if self.updateSequenceNum > -1:
             query += " AND `updateSequenceNum` = %d" % self.updateSequenceNum
         db_note = ankDB().first(query)
@@ -47,7 +47,7 @@ class EvernoteNoteFetcher(object):
         self.updateSequenceNum = note_usn
         self.tagNames = note_tagNames[1:-1].split(',') if self.keepEvernoteTags else []
         self.result.note = EvernoteNote(note_title, note_content, note_guid, self.tagNames,
-                                                      note_notebookGuid, self.updateSequenceNum)
+                                        note_notebookGuid, self.updateSequenceNum)
         assert self.result.note.guid == self.evernote_guid
         self.result.status = 0
         self.result.source = 1
@@ -70,9 +70,9 @@ class EvernoteNoteFetcher(object):
         sql_query_header = u'INSERT OR REPLACE INTO `%s`' % TABLES.EVERNOTE.NOTES
         sql_query_header_history = u'INSERT INTO `%s`' % TABLES.EVERNOTE.NOTES_HISTORY
         sql_query_columns = u'(`guid`,`title`,`content`,`updated`,`created`,`updateSequenceNum`,`notebookGuid`,`tagGuids`,`tagNames`) VALUES (\'%s\',\'%s\',\'%s\',%d,%d,%d,\'%s\',\'%s\',\'%s\');' % (
-        self.whole_note.guid.decode('utf-8'), title, content, self.whole_note.updated, self.whole_note.created,
-        self.whole_note.updateSequenceNum, self.whole_note.notebookGuid.decode('utf-8'),
-        u',' + u','.join(self.tagGuids).decode('utf-8') + u',', tag_names)
+            self.whole_note.guid.decode('utf-8'), title, content, self.whole_note.updated, self.whole_note.created,
+            self.whole_note.updateSequenceNum, self.whole_note.notebookGuid.decode('utf-8'),
+            u',' + u','.join(self.tagGuids).decode('utf-8') + u',', tag_names)
         sql_query = sql_query_header + sql_query_columns
         log_sql('UPDATE_ANKI_DB: Add Note: SQL Query: ' + sql_query)
         ankDB().execute(sql_query)

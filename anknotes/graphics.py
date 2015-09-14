@@ -3,11 +3,13 @@ from anknotes.constants import *
 try:
     # noinspection PyUnresolvedReferences
     from aqt.qt import QIcon, QPixmap
-except: pass
+except:
+    pass
 
 try:
     icoEvernoteWeb = QIcon(ANKNOTES.ICON_EVERNOTE_WEB)
     icoEvernoteArtcore = QIcon(ANKNOTES.ICON_EVERNOTE_ARTCORE)
     imgEvernoteWeb = QPixmap(ANKNOTES.IMAGE_EVERNOTE_WEB, "PNG")
     imgEvernoteWebMsgBox = imgEvernoteWeb.scaledToWidth(64)
-except: pass
+except:
+    pass
