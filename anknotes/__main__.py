@@ -4,12 +4,10 @@ try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Shared Imports
-from shared import *
-import settings
+from anknotes.shared import *
 
 ### Anknotes Main Imports
-import menu
-from menu import main
+from anknotes import menu, settings
 
 ### Evernote Imports
 

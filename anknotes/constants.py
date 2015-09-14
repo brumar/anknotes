@@ -64,8 +64,7 @@ class EVERNOTE:
     # Auto Paging is probably only useful in the first 24 hours, when API usage is unlimited,  or when executing a search that is likely to have most of the notes up-to-date locally
     # To keep from overloading Evernote's servers, and flagging our API key, I recommend pausing 5-15 minutes in between searches, the higher the better.
     PAGING_TIMER_INTERVAL = 60 * 15
-    # Obviously setting this to True will result in an infinite loop with Anki never being responsive. 
-    # This is intended to be used while keeping Anki open overnight, and force-closing Anki with the task manager when you are done
+    PAGING_RESTART_DELAY_MINIMUM_API_CALLS = 10
     PAGING_RESTART_WHEN_COMPLETE = False        
     IMPORT_TIMER_INTERVAL = PAGING_RESTART_INTERVAL * 2 * 1000
     METADATA_QUERY_LIMIT = 10000

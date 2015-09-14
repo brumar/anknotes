@@ -4,20 +4,19 @@ try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Shared Imports
-from shared import *
+from anknotes.shared import *
 
 ### Anknotes Main Imports
-from Controller import Controller
-
-### Evernote Imports
+from anknotes.Controller import Controller
 
 ### Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
 from aqt import mw
 
-DEBUG_RAISE_API_ERRORS = False    
+DEBUG_RAISE_API_ERRORS = False
 
 
+# noinspection PyTypeChecker
 def anknotes_setup_menu():
     menu_items = [
         [u"&Anknotes",

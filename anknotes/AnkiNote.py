@@ -1,19 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
-import shutil
-import time
-import errno
-import socket
-import copy
-import EvernoteNotes as EN 
+### Anknotes Shared Imports
 from shared import *
-import anki 
-from anki.utils import ids2str
+
+### Anki Imports
+import anki
 try: from aqt import mw
 except: pass
 

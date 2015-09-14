@@ -1,13 +1,4 @@
-import sys
 from enum import Enum
-
-def str_safe(strr, prefix=''):
-	try: strr= str((prefix + strr.__repr__()))
-	except: strr= str((prefix + strr.__repr__().encode('utf8', 'replace')))
-	return strr
-	
-def print_safe(strr, prefix=''):
-	print str_safe(strr, prefix)
 
 class AutoNumber(Enum):
 		def __new__(cls, child=None, offsetLambda=None):
@@ -85,10 +76,10 @@ class AutoNumber(Enum):
 		
 		def offset_as_scalar(self, titlePart=None, count=None):
 			o = self.offset(count)
-			print " * LEVEL CHECK FOR lvl %s ~ Range %s" % (str(titlePart), range)			
+			print " * LEVEL CHECK FOR lvl %s ~ Result %s" % (str(titlePart), str(o))
 			if not isinstance(o, int):
 				try:
-					range = titlePart.offset(count)	
+					range_tuple = titlePart.offset(count)
 					if range_tuple[0] == range_tuple[1]:
 						o = range_tuple[0]
 					else:

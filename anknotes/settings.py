@@ -1,20 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
-import shutil
-import time
-import errno
-import socket
-import copy
-from enums import AutoNumber, EvernoteTitleLevels
-from AnkiNote import AnkiNotePrototype
-import EvernoteNotes as EN 
-from shared import *
 
+### Anknotes Shared Imports
+from anknotes.shared import *
+
+### Anki Imports
 try:
     import anki
     import aqt
@@ -243,6 +232,7 @@ def setup_evernote(self):
     # Add Form Row for Last Updated
     hbox = QHBoxLayout()
     label = QLabel("Last Updated: ")
+    label.setMinimumWidth(100)
     hbox.addWidget(evernote_query_use_last_updated) 
     hbox.addWidget(evernote_query_last_updated_type)
     hbox.addWidget(evernote_query_last_updated_value_relative_spinner)  
@@ -336,24 +326,24 @@ def setup_evernote(self):
                                     update_evernote_tags_to_delete)                                          
     
     # Delete Tags To Import 
-    delete_evernote_query_tags = QCheckBox("     Don't Save Search Tags", self)
+    delete_evernote_query_tags = QCheckBox("     Also Delete Search Tags", self)
     delete_evernote_query_tags.setChecked(mw.col.conf.get(SETTINGS.DELETE_EVERNOTE_TAGS_TO_IMPORT, True))
     delete_evernote_query_tags.stateChanged.connect(update_delete_evernote_query_tags) 
     
     # Add Form Row for Evernote Tag Options
     label = QLabel("<b>Evernote Tags:</b>")
     label.setMinimumWidth(100)
-    form.addRow(label, keep_evernote_tags) 
-    form.addRow("Tags to Delete:", evernote_tags_to_delete)                                          
+    form.addRow(label, keep_evernote_tags)
+    hbox = QHBoxLayout()
+    hbox.insertSpacing(0, 33)
+    hbox.addWidget(evernote_tags_to_delete)
+    form.addRow("Tags to Delete:", hbox)
     form.addRow(" ", delete_evernote_query_tags) 
     
     # Add Horizontal Row Separator
     form.addRow(gen_qt_hr())    
     
     ############################ NOTE UPDATING ##########################
-    # group = QGroupBox("Anki: Note Updating")   
-    # form = QFormLayout()           
-    
     # Note Update Method
     update_existing_notes = QComboBox()
     update_existing_notes.setStyleSheet(' QComboBox { color: #3b679e; font-weight: bold; } QComboBoxItem { color: #A40F2D; font-weight: bold; } ')

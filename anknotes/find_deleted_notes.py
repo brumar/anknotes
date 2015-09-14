@@ -1,21 +1,8 @@
 # -*- coding: utf-8 -*-
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
-import shutil
-import time
-import errno
-import socket
-import copy
-from enums import AutoNumber, EvernoteTitleLevels
-from AnkiNote import AnkiNotePrototype
-import EvernoteNotes as EN 
-from shared import *
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
+
+from anknotes.shared import *
 
 Error = sqlite.Error 
 ankDBSetLocal()

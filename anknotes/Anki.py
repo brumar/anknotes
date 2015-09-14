@@ -1,24 +1,12 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
 import shutil
-import time
-import errno
-import socket
-import copy
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
-from AnkiNote import AnkiNotePrototype
-import EvernoteNotes as EN 
-from shared import *
-import settings
+from anknotes.AnkiNote import AnkiNotePrototype
+from anknotes.shared import *
 
 ### Evernote Imports 
 # from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
@@ -29,12 +17,6 @@ import settings
 ### Anki Imports
 import anki
 import aqt
-from anki.hooks import wrap, addHook
-from aqt.preferences import Preferences
-from aqt.utils import getText, openLink, getOnlyText
-from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
-QComboBox, QSpacerItem, QSizePolicy, QWidget, QSpinBox, QFormLayout, QGridLayout, QFrame, QPalette, \
-QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, QMessageBox, QPixmap, QMenu, QAction
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False    

@@ -1,30 +1,15 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
-import shutil
-import time
-import errno
 import socket
-import copy
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
-from enums import AutoNumber, EvernoteTitleLevels
-from AnkiNote import AnkiNotePrototype
-import EvernoteNotes as EN 
-from shared import *
-import settings
+from anknotes.shared import *
 
 ### Evernote Imports 
-from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
-from evernote.edam.type.ttypes import NoteSortOrder, Note
-from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
+from evernote.edam.type.ttypes import Note
+from evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
 from evernote.api.client import EvernoteClient
 
 ### Anki Imports
@@ -224,7 +209,7 @@ class Evernote(object):
         return 0
         
     def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[]):
-        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook,  resources=resources)
+        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook,  resources=resources, guid=guid)
         
     def makeNoteBody(self, noteBody, encode=True):
        ## Build body of note
@@ -244,7 +229,7 @@ class Evernote(object):
         if encode:
             nBody = nBody.encode('utf-8')    
         return nBody
-        
+
     def makeNote(self, noteTitle, noteBody, tagNames=list(), parentNotebook=None,  resources=[], guid=None):
             """
             Create or Update a Note instance with title and body 
@@ -317,8 +302,9 @@ class Evernote(object):
                 log_error(str( ourNote.tagNames ))
                 log_error(str( ourNote.content ))
                 log_error("-------------------------------------------------\r\n")
-                raise 
-            note.content = nBody 
+                raise
+            # noinspection PyUnboundLocalVariable
+            note.content = nBody
             return 0, note                  
     
     def create_evernote_notes(self, evernote_guids = None, use_local_db_only=False):  

@@ -1,8 +1,9 @@
-import enum
 import sys
 import unittest
-from enum import Enum, IntEnum, unique, EnumMeta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
+
+import enum
+from enum import Enum, IntEnum, unique, EnumMeta
 
 pyver = float('%s.%s' % sys.version_info[:2])
 

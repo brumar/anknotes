@@ -1,42 +1,28 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
-import os
-import os.path
-import re
-import pprint
-from HTMLParser import HTMLParser
-from datetime import datetime, timedelta
-import shutil
-import time
-import errno
 import socket
-import copy
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
-### Anknotes Imports
-from AnkiNote import AnkiNotePrototype
-import EvernoteNotes as EN 
-from shared import *
-import settings
-from Anki import Anki
-from Evernote import Evernote
+### Anknotes Shared Imports
+from anknotes.shared import *
+
+### Anknotes Class Imports
+from anknotes.AnkiNote import AnkiNotePrototype
+import anknotes.EvernoteNotes as EN
+from anknotes.toc import generateTOCTitle
+
+### Anknotes Main Imports
+from anknotes.Anki import Anki
+from anknotes.Evernote import Evernote
+from anknotes import settings
 
 ### Evernote Imports 
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
-from evernote.edam.type.ttypes import NoteSortOrder, Note
-from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
-from evernote.api.client import EvernoteClient
+from evernote.edam.type.ttypes import NoteSortOrder
+from evernote.edam.error.ttypes import EDAMSystemException
 
 ### Anki Imports
-import anki
-import aqt
-from anki.hooks import wrap, addHook
-from aqt.preferences import Preferences
-from aqt.utils import getText, openLink, getOnlyText
-from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
-QComboBox, QSpacerItem, QSizePolicy, QWidget, QSpinBox, QFormLayout, QGridLayout, QFrame, QPalette, \
-QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, QMessageBox, QPixmap, QMenu, QAction
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False    
@@ -215,10 +201,10 @@ class Controller:
         notes_already_up_to_date = set(self.check_note_sync_status(notes_to_update))
         notes_to_update = notes_to_update - notes_already_up_to_date
         
-        log ("          - New Notes (%d)" % len(notes_to_add) + "    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update) + "    > Existing Up-To-Date Notes (%d)\n" % len(notes_already_up_to_date))
-        log_dump(notes_to_add, "-    > New Notes (%d)" % len(notes_to_add), 'evernote_guids')
-        log_dump(notes_to_update, "-    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update), 'evernote_guids')
-        log_dump(notes_already_up_to_date, "-    > Existing Up-To-Date Notes (%d)" % len(notes_already_up_to_date), 'evernote_guids')
+        log ("                                 - New Notes (%d)" % len(notes_to_add) + "    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update) + "    > Existing Up-To-Date Notes (%d)\n" % len(notes_already_up_to_date))
+        # log_dump(notes_to_add, "-    > New Notes (%d)" % len(notes_to_add), 'evernote_guids')
+        # log_dump(notes_to_update, "-    > Existing Out-Of-Date Notes (%d)" % len(notes_to_update), 'evernote_guids')
+        # log_dump(notes_already_up_to_date, "-    > Existing Up-To-Date Notes (%d)" % len(notes_already_up_to_date), 'evernote_guids')
         
         self.anki.start_editing()
         status, local_count_1, n = self.import_into_anki(notes_to_add)
@@ -284,7 +270,7 @@ class Controller:
                 self.currentPage = counts['page'] + 1                
                 restart_title = "   > Initiating Auto Paging: "
                 restart_msg = "   - Page %d completed. \n   - %d notes remain. \n   - %d of %d notes have been processed\n" % (counts['page'], counts['remaining'], counts['completed'], counts['total'])
-                if self.forceAutoPage or api_call_count < 10:
+                if self.forceAutoPage or api_call_count < EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS:
                     restart = 0
                 else:
                     restart = EVERNOTE.PAGING_TIMER_INTERVAL
@@ -350,7 +336,7 @@ class Controller:
         counts['completed'] = counts['current'] + counts['offset']
         counts['remaining'] = counts['total'] - counts['completed']
 
-        log("          - Metadata Results: Total Notes: %d  |    Returned Notes: %d    |   Result Range: %d-%d    |   Notes Remaining: %d    |   Update Count: %d " % (counts['total'], counts['current'],  counts['offset'], counts['completed'], counts['remaining'], result.updateCount))
+        log("                                 - Metadata Results: Total Notes: %d  |    Returned Notes: %d    |   Result Range: %d-%d    |   Notes Remaining: %d    |   Update Count: %d " % (counts['total'], counts['current'],  counts['offset'], counts['completed'], counts['remaining'], result.updateCount), timestamp=False)
         for note in result.notes:
             evernote_guids.append(note.guid)
             notes_metadata[note.guid] = note
