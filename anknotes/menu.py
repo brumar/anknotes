@@ -5,6 +5,7 @@ except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.constants import *
 
 ### Anknotes Main Imports
 from anknotes.Controller import Controller

@@ -2,13 +2,12 @@
 ### Python Imports
 import socket
 
-from anknotes.error import HandleSocketError, HandleEDAMRateLimitError
-
 try:    from pysqlite2 import dbapi2 as sqlite
 except ImportError: from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.error import HandleSocketError, HandleEDAMRateLimitError
 
 ### Anknotes Class Imports
 from anknotes.AnkiNote import AnkiNotePrototype

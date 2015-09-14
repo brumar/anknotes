@@ -6,6 +6,7 @@ import re
 
 ### Anknotes Shared Imports
 from anknotes.constants import *
+from anknotes.graphics import *
 
 ### Anki Imports
 try:
@@ -14,7 +15,7 @@ try:
     # noinspection PyUnresolvedReferences
     from aqt.utils import tooltip
     # noinspection PyUnresolvedReferences
-    from aqt.qt import QMessageBox, QPushBox
+    from aqt.qt import QMessageBox, QPushButton
 except: pass
 
 def str_safe(strr, prefix=''):

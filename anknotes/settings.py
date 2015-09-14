@@ -2,6 +2,7 @@
 
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.graphics import *
 
 ### Anki Imports
 try:
