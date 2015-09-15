@@ -11,6 +11,7 @@ class ANKNOTES:
     LOG_BASE_NAME = 'anknotes'
     TEMPLATE_FRONT = os.path.join(FOLDER_ANCILLARY, 'FrontTemplate.htm')
     CSS = u'_AviAnkiCSS.css'
+    ENML_DTD = os.path.join(FOLDER_ANCILLARY, 'enml2.dtd')
     ICON_EVERNOTE_WEB = os.path.join(FOLDER_GRAPHICS, u'evernote_web.ico')
     IMAGE_EVERNOTE_WEB = ICON_EVERNOTE_WEB.replace('.ico', '.png')
     ICON_EVERNOTE_ARTCORE = os.path.join(FOLDER_GRAPHICS, u'evernote_artcore.ico')

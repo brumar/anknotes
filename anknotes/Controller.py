@@ -116,7 +116,7 @@ class Controller:
             status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid)
             if not whole_note:
                 error += 1
-                if status == 1:
+                if status == EvernoteAPIStatus.RateLimitError or status == EvernoteAPIStatus.SocketError:
                     break
                 else:
                     continue

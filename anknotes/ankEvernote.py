@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import socket
-
+import stopwatch
+from StringIO import StringIO
+from lxml import etree
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -19,7 +21,7 @@ from evernote.edam.type.ttypes import Note as EvernoteNote
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
 from evernote.api.client import EvernoteClient
 
-from aqt.utils import openLink
+from aqt.utils import openLink, getText
 
 ### Anki Imports
 # import anki
@@ -39,6 +41,7 @@ class Evernote(object):
     """:type : dict[str, anknotes.structs.EvernoteNotebook]"""
     tag_data = {}
     """:type : dict[str, anknotes.structs.EvernoteTag]"""
+    DTD = None
 
     def __init__(self):
         auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
@@ -87,6 +90,62 @@ class Evernote(object):
             raise
         return 0
 
+    def validateNoteBody(self, noteBody,title="Note Body"):
+        timerFull = stopwatch.Timer()
+        timerInterval = stopwatch.Timer(False)
+
+        if not self.DTD:
+            timerInterval.reset()
+            log("Loading ENML DTD", "lxml")
+            self.DTD = etree.DTD(ANKNOTES.ENML_DTD)
+            log("DTD Loaded in %s" % str(timerInterval), "lxml")
+            timerInterval.stop()
+
+        timerInterval.reset()
+        log("Loading XML for %s" % title, "lxml")
+        try:
+            tree = etree.parse(noteBody)
+        except Exception as e:
+            timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
+            log_str = "XML Loading of %s failed.%s\n    - Error Details: %s"
+            log_str_error = log_str % (title, '', str(e))
+            log_str = log_str % (title, timer_header, str(e))
+            log(log_str, "lxml")
+            log_error(log_str_error)
+            return False
+        log("XML Loaded in %s" % str(timerInterval), "lxml")
+        # timerInterval.stop()
+        timerInterval.reset()
+        log("Validating %s with ENML DTD" % title, "lxml")
+        try:
+            success = self.DTD.validate(tree)
+        except Exception as e:
+            timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
+            log_str = "DTD Validation of %s failed.%s\n    - Error Details: %s"
+            log_str_error = log_str % (title, '', str(e))
+            log_str = log_str % (title, timer_header, str(e))
+            log(log_str, "lxml")
+            log_error(log_str_error)
+            return False
+        log("Validation %s in %s. Entire process took %s" % ("Succeeded" if success else "Failed", str(timerInterval), str(timerFull)), "lxml")
+        if not success:
+            log_str = "DTD Validation Errors for %s: \n%s\n" % (title, self.DTD.error_log.filter_from_errors())
+            log(log_str)
+            log_error(log_str)
+        timerInterval.stop()
+        timerFull.stop()
+        del timerInterval
+        del timerFull
+        return success
+
+    def validateNoteContent(self, content, title="Note Contents"):
+        """
+
+        :param content: Valid ENML without the <en-note></en-note> tags. Will be processed by makeNoteBody
+        :return:
+        """
+        return self.validateNoteBody(self.makeNoteBody(content), title)
+
     def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[]):
         """
         Update a Note instance with title and body
@@ -98,12 +157,12 @@ class Evernote(object):
                              guid=guid)
 
     @staticmethod
-    def makeNoteBody(noteBody, resources=[], encode=True):
+    def makeNoteBody(content, resources=[], encode=True):
         ## Build body of note
 
         nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
-        nBody += "<en-note>%s" % noteBody
+        nBody += "<en-note>%s" % content
         # if resources:
         #     ### Add Resource objects to note body
         #     nBody += "<br />" * 2
@@ -117,11 +176,12 @@ class Evernote(object):
             nBody = nBody.encode('utf-8')
         return nBody
 
-    def makeNote(self, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[], guid=None):
+    def makeNote(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[], guid=None):
         """
         Create or Update a Note instance with title and body
         Send Note object to user's account
         :type noteTitle: str
+        :param noteContents: Valid ENML without the <en-note></en-note> tags. Will be processed by makeNoteBody
         :rtype : (EvernoteAPIStatus, EvernoteNote)
         :returns Status and Note
         """
@@ -134,7 +194,9 @@ class Evernote(object):
             ourNote.guid = guid
 
             ## Build body of note  
-        nBody = self.makeNoteBody(noteBody, resources)
+        nBody = self.makeNoteBody(noteContents, resources)
+        if not self.validateNoteBody(nBody, ourNote.title):
+            return EvernoteAPIStatus.UserError, None
         ourNote.content = nBody
 
         if '' in tagNames: tagNames.remove('')
@@ -327,3 +389,6 @@ class Evernote(object):
 
 
 DEBUG_RAISE_API_ERRORS = False
+
+testEN = Evernote()
+testEN.validateNoteBody("Test")
