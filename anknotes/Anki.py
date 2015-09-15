@@ -9,7 +9,7 @@ except ImportError:
     from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
-from anknotes.AnkiNote import AnkiNotePrototype
+from anknotes.AnkiNotePrototype import AnkiNotePrototype
 from anknotes.shared import *
 
 ### Evernote Imports 
@@ -19,11 +19,9 @@ from anknotes.shared import *
 # from evernote.api.client import EvernoteClient
 
 ### Anki Imports
-# noinspection PyUnresolvedReferences
 import anki
-# noinspection PyUnresolvedReferences
+from anki.notes import Note as AnkiNote
 import aqt
-# noinspection PyUnresolvedReferences
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False
@@ -66,7 +64,7 @@ class Anki:
     def update_evernote_notes(self, evernote_notes, log_update_if_unchanged=True):
         """
         Update Notes in Anki Database
-        :type evernote_notes: list[EvernoteNote.EvernoteNote]
+        :type evernote_notes: list[EvernoteNotePrototype.EvernoteNotePrototype]
         :rtype : int
         :param evernote_notes: List of EvernoteNote returned from server or local db
         :param log_update_if_unchanged:
@@ -80,41 +78,41 @@ class Anki:
         :param evernote_notes:
         :param update:
         :param log_update_if_unchanged:
-        :type evernote_notes: list[EvernoteNote.EvernoteNote]
+        :type evernote_notes: list[EvernoteNotePrototype.EvernoteNotePrototype]
         :type update: bool
         :return: Count of notes successfully added or updated
         """
         count_update = 0
         count = 0
         max_count = len(evernote_notes)
-        for note in evernote_notes:
+        for ankiNote in evernote_notes:
             try:
-                title = note.Title.FullTitle
-                content = note.Content
+                title = ankiNote.Title.FullTitle
+                content = ankiNote.Content
                 if isinstance(content, str):
                     content = unicode(content, 'utf-8')
                 anki_field_info = {
                     FIELDS.TITLE: title,
                     FIELDS.CONTENT: content,
-                    FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + note.Guid,
-                    FIELDS.UPDATE_SEQUENCE_NUM: str(note.UpdateSequenceNum),
+                    FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + ankiNote.Guid,
+                    FIELDS.UPDATE_SEQUENCE_NUM: str(ankiNote.UpdateSequenceNum),
                     FIELDS.SEE_ALSO: u''
                 }
             except:
-                log_error("Unable to set field info for: Note '%s': '%s'" % (note.Title, note.Guid))
-                log_dump(note.Content, " NOTE CONTENTS ")
-                log_dump(note.Content.encode('utf-8'), " NOTE CONTENTS ")
+                log_error("Unable to set field info for: Note '%s': '%s'" % (ankiNote.Title, ankiNote.Guid))
+                log_dump(ankiNote.Content, " NOTE CONTENTS ")
+                log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
                 raise
             baseNote = None
             if update:
-                baseNote = self.get_anki_note_from_evernote_guid(note.Guid)
-                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % note.Guid)
-            anki_note_prototype = AnkiNotePrototype(self, anki_field_info, note.TagNames, baseNote,
-                                                    notebookGuid=note.NotebookGuid, count=count,
+                baseNote = self.get_anki_note_from_evernote_guid(ankiNote.Guid)
+                if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % ankiNote.Guid)
+            anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
+                                                    notebookGuid=ankiNote.NotebookGuid, count=count,
                                                     count_update=count_update, max_count=max_count)
-            anki_note_prototype.log_update_if_unchanged = log_update_if_unchanged
+            anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
             if update:
-                debug_fields = anki_note_prototype.fields.copy()
+                debug_fields = anki_note_prototype.Fields.copy()
                 del debug_fields[FIELDS.CONTENT]
                 log_dump(debug_fields,
                          "-      > UPDATE_evernote_notes → ADD_evernote_notes: anki_note_prototype: FIELDS ")
@@ -291,7 +289,7 @@ class Anki:
         # TODO: Ugly work around for a bug. Fix this later
         if not ids: return None
         if not ids[0]: return None
-        note = anki.notes.Note(col, None, ids[0])
+        note = AnkiNote(col, None, ids[0])
         return note
 
     def get_anknotes_note_ids_by_tag(self, tag):
@@ -305,9 +303,9 @@ class Anki:
         count_update = 0
         max_count = len(anki_note_ids)
         for a_id in anki_note_ids:
-            note = self.collection().getNote(a_id)
+            ankiNote = self.collection().getNote(a_id)
             try:
-                items = note.items()
+                items = ankiNote.items()
             except:
                 log_error("Unable to get note items for Note ID: %d" % a_id)
                 raise
@@ -315,9 +313,9 @@ class Anki:
             for key, value in items:
                 fields[key] = value
             if not fields[FIELDS.SEE_ALSO]:
-                anki_note_prototype = AnkiNotePrototype(self, fields, note.tags, note, count=count,
+                anki_note_prototype = AnkiNotePrototype(self, fields, ankiNote.tags, ankiNote, count=count,
                                                         count_update=count_update, max_count=max_count)
-                if anki_note_prototype.fields[FIELDS.SEE_ALSO]:
+                if anki_note_prototype.Fields[FIELDS.SEE_ALSO]:
                     log("Detected see also contents for Note '%s': %s" % (
                         get_evernote_guid_from_anki_fields(fields), fields[FIELDS.TITLE]))
                     log(u" → %s " % strip_tags_and_new_lines(fields[FIELDS.SEE_ALSO]))
@@ -415,7 +413,7 @@ class Anki:
                 fields[FIELDS.SEE_ALSO] = see_also_html.replace('evernote:///', 'evernote://')
                 anki_note_prototype = AnkiNotePrototype(self, fields, ankiNote.tags, ankiNote, count=count,
                                                         count_update=count_update, max_count=max_count)
-                anki_note_prototype.log_update_if_unchanged = (new_toc_count > 0)
+                anki_note_prototype._log_update_if_unchanged_ = (new_toc_count > 0)
                 if anki_note_prototype.update_note():
                     count_update += 1
                 count += 1
@@ -533,6 +531,10 @@ class Anki:
 
     @staticmethod
     def window():
+        """
+        :rtype : AnkiQt
+        :return:
+        """
         return aqt.mw
 
     def collection(self):

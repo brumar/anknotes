@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 ### Anki Imports
 import anki
+from anki.notes import Note as AnkiNote
 
 try:
-    # noinspection PyUnresolvedReferences
-    from aqt import mw
+        from aqt import mw
 except:
     pass
 
@@ -20,61 +21,91 @@ def get_self_referential_fmap():
 
 
 class AnkiNotePrototype:
-    fields = {}
-    tags = []
-    model_name = None
-    evernote_guid = ""
-    cloze_count = 0
-    count_update = 0
-    count = 0
-    max_count = 1
-    original_evernote_guid = None
-    flag_changed = False
-    log_update_if_unchanged = True
+    Anki = None
+    """:type : anknotes.Anki.Anki """
+    BaseNote = None
+    """:type : AnkiNote """
+    Title = None
+    """:type : EvernoteNoteTitle.EvernoteNoteTitle """
+    Fields = {}
+    """:type : dict[str, str]"""
+    Tags = []
+    """:type : list[str]"""
+    ModelName = None
+    """:type : str"""
+    Guid = ""
+    """:type : str"""
+    NotebookGuid = ""
+    """:type : str"""
+    __cloze_count__ = 0
+    class Counts:
+        Updated = 0
+        Current = 0
+        Max = 1
+    OriginalGuid = None
+    """:type : str"""
+    Changed = False
+    _log_update_if_unchanged_ = True
 
-    def __init__(self, anki, fields, tags, base_anki_note=None, notebookGuid=None, count=-1, count_update=0,
-                 max_count=1):
-        self.anki = anki
-        self.fields = fields
-        self.baseAnkiNote = base_anki_note
-        self.flag_changed = False
+    def __init__(self, anki, fields, tags, base_note=None, notebookGuid=None, count=-1, count_update=0,
+                 max_count=1, counts=None):
+        """
+        Create Anki Note Prototype Class from fields or Base Anki Note
+        :param anki: Anki: Anknotes Main Class Instance
+        :type anki: anknotes.Anki.Anki
+        :param fields: Dict of Fields
+        :param tags: List of Tags
+        :type tags : list[str]
+        :param base_note: Base Anki Note if Updating an Existing Note
+        :type base_note : anki.notes.Note
+        :param notebookGuid:
+        :param count:
+        :param count_update:
+        :param max_count:
+        :param counts: AnkiNotePrototype.Counts if being used to add/update multiple notes
+        :type counts :  AnkiNotePrototype.Counts
+        :return: AnkiNotePrototype
+        """
+
+        self.Anki = anki
+        self.Fields = fields
+        self.BaseNote = base_note
+        self.Changed = False
         self.logged = False
-        self.count_update = count_update
-        self.count = count + 1
-        self.max_count = max_count
+        if counts:
+            self.Counts = counts
+        else:
+            self.Counts.Updated = count_update
+            self.Counts.Current = count + 1
+            self.Counts.Max = max_count
         self.initialize_fields()
-        self.evernote_guid = get_evernote_guid_from_anki_fields(fields)
-        self.notebookGuid = notebookGuid
-        self.model_name = None  # MODELS.EVERNOTE_DEFAULT
-        self.title = ""
-        if not self.notebookGuid:
-            self.notebookGuid = self.anki.get_notebook_guid_from_ankdb(self.evernote_guid)
-        assert self.evernote_guid and self.notebookGuid
-        self.deck_parent = self.anki.deck
-        self.tags = tags
-        self.cloze_count = 0
+        self.Guid = get_evernote_guid_from_anki_fields(fields)
+        self.NotebookGuid = notebookGuid
+        self.ModelName = None  # MODELS.EVERNOTE_DEFAULT
+        self.Title = EvernoteNoteTitle()
+        if not self.NotebookGuid:
+            self.NotebookGuid = self.Anki.get_notebook_guid_from_ankdb(self.Guid)
+        assert self.Guid and self.NotebookGuid
+        self._deck_parent_ = self.Anki.deck
+        self.Tags = tags
+        self.__cloze_count__ = 0
         self.process_note()
 
     def initialize_fields(self):
-        if self.baseAnkiNote:
-            self.originalFields = get_dict_from_list(self.baseAnkiNote.items())
+        if self.BaseNote:
+            self.originalFields = get_dict_from_list(self.BaseNote.items())
         for field in FIELDS_LIST:
-            if not field in self.fields:
-                self.fields[field] = self.originalFields[field] if self.baseAnkiNote else u''
-        title = self.fields[FIELDS.TITLE]
-        if hasattr(title, 'title'):
-            title = title.title() if callable(title.title) else title.title
-        if hasattr(title, 'Title'):
-            title = title.Title() if callable(title.Title) else title.Title
-        self.title = title
+            if not field in self.Fields:
+                self.Fields[field] = self.originalFields[field] if self.BaseNote else u''
+        self.Title = EvernoteNoteTitle(self.Fields)
 
     def deck(self):
-        if EVERNOTE.TAG.TOC in self.tags or EVERNOTE.TAG.AUTO_TOC in self.tags:
-            deck = self.deck_parent + DECKS.TOC_SUFFIX
-        elif EVERNOTE.TAG.OUTLINE in self.tags and EVERNOTE.TAG.OUTLINE_TESTABLE not in self.tags:
-            deck = self.deck_parent + DECKS.OUTLINE_SUFFIX
-        elif not self.deck_parent or mw.col.conf.get(SETTINGS.ANKI_DECK_EVERNOTE_NOTEBOOK_INTEGRATION, True):
-            deck = self.anki.get_deck_name_from_evernote_notebook(self.notebookGuid, self.deck_parent)
+        if EVERNOTE.TAG.TOC in self.Tags or EVERNOTE.TAG.AUTO_TOC in self.Tags:
+            deck = self._deck_parent_ + DECKS.TOC_SUFFIX
+        elif EVERNOTE.TAG.OUTLINE in self.Tags and EVERNOTE.TAG.OUTLINE_TESTABLE not in self.Tags:
+            deck = self._deck_parent_ + DECKS.OUTLINE_SUFFIX
+        elif not self._deck_parent_ or mw.col.conf.get(SETTINGS.ANKI_DECK_EVERNOTE_NOTEBOOK_INTEGRATION, True):
+            deck = self.Anki.get_deck_name_from_evernote_notebook(self.NotebookGuid, self._deck_parent_)
             if not deck: return None
         if deck[:2] == '::':
             deck = deck[2:]
@@ -85,32 +116,32 @@ class AnkiNotePrototype:
         if matchText[0] == "#":
             matchText = matchText[1:]
         else:
-            self.cloze_count += 1
-        if self.cloze_count == 0:
-            self.cloze_count = 1
-        return "%s{{c%d::%s}}%s" % (match.group(1), self.cloze_count, matchText, match.group(2))
+            self.__cloze_count__ += 1
+        if self.__cloze_count__ == 0:
+            self.__cloze_count__ = 1
+        return "%s{{c%d::%s}}%s" % (match.group(1), self.__cloze_count__, matchText, match.group(2))
 
     def process_note_see_also(self):
-        if not FIELDS.SEE_ALSO in self.fields or not FIELDS.EVERNOTE_GUID in self.fields:
+        if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields:
             return
-        ankDB().execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.evernote_guid))
+        ankDB().execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
         link_num = 0
-        for match in find_evernote_links(self.fields[FIELDS.SEE_ALSO]):
+        for match in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
             link_num += 1
             title_text = strip_tags(match.group('Title'))
             is_toc = 1 if (title_text == "TOC") else 0
             is_outline = 1 if (title_text is "O" or title_text is "Outline") else 0
             ankDB().execute(
                 "INSERT INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', 0, %d, %d)" % (
-                    TABLES.SEE_ALSO, self.evernote_guid, link_num, int(match.group('uid')), match.group('shard'),
+                    TABLES.SEE_ALSO, self.Guid, link_num, int(match.group('uid')), match.group('shard'),
                     match.group('guid'), match.group('Title'), title_text, is_toc, is_outline))
 
     def process_note_content(self):
-        if not FIELDS.CONTENT in self.fields:
+        if not FIELDS.CONTENT in self.Fields:
             return
-        content = self.fields[FIELDS.CONTENT]
+        content = self.Fields[FIELDS.CONTENT]
         self.unprocessed_content = content
-        self.unprocessed_see_also = self.fields[FIELDS.SEE_ALSO]
+        self.unprocessed_see_also = self.Fields[FIELDS.SEE_ALSO]
 
         ################################### Step 0: Correct weird Evernote formatting 
         remove_style_attrs = '-webkit-text-size-adjust: auto|-webkit-text-stroke-width: 0px|background-color: rgb(255, 255, 255)|color: rgb(0, 0, 0)|font-family: Tahoma|font-size: medium;|font-style: normal|font-variant: normal|font-weight: normal|letter-spacing: normal|orphans: 2|text-align: -webkit-auto|text-indent: 0px|text-transform: none|white-space: normal|widows: 2|word-spacing: 0px'.replace(
@@ -173,38 +204,38 @@ class AnkiNotePrototype:
             see_also_header_stripme = see_also_match.group('SeeAlsoHeaderStripMe')
             if see_also_header_stripme:
                 see_also = see_also.replace(see_also_header, see_also_header.replace(see_also_header_stripme, ''))
-            if self.fields[FIELDS.SEE_ALSO]:
-                self.fields[FIELDS.SEE_ALSO] += "<BR><BR>\r\n"
-            self.fields[FIELDS.SEE_ALSO] += see_also
+            if self.Fields[FIELDS.SEE_ALSO]:
+                self.Fields[FIELDS.SEE_ALSO] += "<BR><BR>\r\n"
+            self.Fields[FIELDS.SEE_ALSO] += see_also
             self.process_note_see_also()
 
         # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents        
         ################################### Note Processing complete. 
-        self.fields[FIELDS.CONTENT] = content
+        self.Fields[FIELDS.CONTENT] = content
 
     def detect_note_model(self):
         log('\nTitle, self.model_name, tags, self.model_name', 'detectnotemodel')
-        log(self.fields[FIELDS.TITLE], 'detectnotemodel')
-        log(self.model_name, 'detectnotemodel')
-        if FIELDS.CONTENT in self.fields and "{{c1::" in self.fields[FIELDS.CONTENT]:
-            self.model_name = MODELS.EVERNOTE_CLOZE
-        if len(self.tags) > 0:
-            reverse_override = (EVERNOTE.TAG.TOC in self.tags or EVERNOTE.TAG.AUTO_TOC in self.tags)
-            if EVERNOTE.TAG.REVERSIBLE in self.tags:
-                self.model_name = MODELS.EVERNOTE_REVERSIBLE
-                self.tags.remove(EVERNOTE.TAG.REVERSIBLE)
-            elif EVERNOTE.TAG.REVERSE_ONLY in self.tags:
-                self.model_name = MODELS.EVERNOTE_REVERSE_ONLY
-                self.tags.remove(EVERNOTE.TAG.REVERSE_ONLY)
+        log(self.Fields[FIELDS.TITLE], 'detectnotemodel')
+        log(self.ModelName, 'detectnotemodel')
+        if FIELDS.CONTENT in self.Fields and "{{c1::" in self.Fields[FIELDS.CONTENT]:
+            self.ModelName = MODELS.EVERNOTE_CLOZE
+        if len(self.Tags) > 0:
+            reverse_override = (EVERNOTE.TAG.TOC in self.Tags or EVERNOTE.TAG.AUTO_TOC in self.Tags)
+            if EVERNOTE.TAG.REVERSIBLE in self.Tags:
+                self.ModelName = MODELS.EVERNOTE_REVERSIBLE
+                self.Tags.remove(EVERNOTE.TAG.REVERSIBLE)
+            elif EVERNOTE.TAG.REVERSE_ONLY in self.Tags:
+                self.ModelName = MODELS.EVERNOTE_REVERSE_ONLY
+                self.Tags.remove(EVERNOTE.TAG.REVERSE_ONLY)
             if reverse_override:
-                self.model_name = MODELS.EVERNOTE_DEFAULT
+                self.ModelName = MODELS.EVERNOTE_DEFAULT
 
-        log(self.tags, 'detectnotemodel')
-        log(self.model_name, 'detectnotemodel')
+        log(self.Tags, 'detectnotemodel')
+        log(self.ModelName, 'detectnotemodel')
 
     def model_id(self):
-        if not self.model_name: return None
-        return long(self.anki.models().byName(self.model_name)['id'])
+        if not self.ModelName: return None
+        return long(self.Anki.models().byName(self.ModelName)['id'])
 
     def process_note(self):
         self.process_note_content()
@@ -238,13 +269,13 @@ class AnkiNotePrototype:
         # mw.col.remCards(deleted)        
 
     def update_note_model(self):
-        modelNameNew = self.model_name
+        modelNameNew = self.ModelName
         if not modelNameNew: return False
         modelIdOld = self.note.mid
         modelIdNew = self.model_id()
         if modelIdOld == modelIdNew:
             return False
-        mm = self.anki.models()
+        mm = self.Anki.models()
         modelOld = self.note.model()
         modelNew = mm.get(modelIdNew)
         modelNameOld = modelOld['name']
@@ -262,28 +293,28 @@ class AnkiNotePrototype:
         self.log_update("Changing model:\n From: '%s' \n To:   '%s'" % (modelNameOld, modelNameNew))
         # self.log_update("NID %d  cmap- %s" % (self.note.id, str(cmap)))
         mm.change(modelOld, [self.note.id], modelNew, fmap, cmap)
-        self.flag_changed = True
+        self.Changed = True
         return True
 
     def log_update(self, content=''):
         if not self.logged:
-            count_updated_new = (self.count_update + 1 if content else 0)
+            count_updated_new = (self.Counts.Updated + 1 if content else 0)
             count_str = ''
-            if self.count > 0:
+            if self.Counts.Current > 0:
                 count_str = ' ['
-                if self.count - count_updated_new > 0 and count_updated_new > 0:
+                if self.Counts.Current - count_updated_new > 0 and count_updated_new > 0:
                     count_str += '%3d/' % count_updated_new
-                    count_str += '%-4d]/[' % self.count
+                    count_str += '%-4d]/[' % self.Counts.Current
                 else:
-                    count_str += '%4d/' % self.count
-                count_str += '%-4d]' % self.max_count
-                count_str += ' (%2d%%)' % (float(self.count) / self.max_count * 100)
+                    count_str += '%4d/' % self.Counts.Current
+                count_str += '%-4d]' % self.Counts.Max
+                count_str += ' (%2d%%)' % (float(self.Counts.Current) / self.Counts.Max * 100)
             log_title = '!' if content else ''
-            log_title += 'UPDATING NOTE%s: %-80s: %s' % (count_str, self.fields[FIELDS.TITLE],
-                                                         self.fields[FIELDS.EVERNOTE_GUID].replace(
+            log_title += 'UPDATING NOTE%s: %-80s: %s' % (count_str, self.Fields[FIELDS.TITLE],
+                                                         self.Fields[FIELDS.EVERNOTE_GUID].replace(
                                                              FIELDS.EVERNOTE_GUID_PREFIX, ''))
             log(log_title, 'AddUpdateNote', timestamp=(content is ''),
-                clear=((self.count == 1 or self.count == 100) and not self.logged))
+                clear=((self.Counts.Current == 1 or self.Counts.Current == 100) and not self.logged))
             self.logged = True
         if not content: return
         content = obj2log_simple(content)
@@ -291,33 +322,33 @@ class AnkiNotePrototype:
         log(' > %s\n' % content, 'AddUpdateNote', timestamp=False)
 
     def update_note_tags(self):
-        if len(self.tags) == 0: return False
-        self.tags = get_tag_names_to_import(self.tags)
-        if not self.baseAnkiNote:
+        if len(self.Tags) == 0: return False
+        self.Tags = get_tag_names_to_import(self.Tags)
+        if not self.BaseNote:
             self.log_update("Error with unt")
-            self.log_update(self.tags)
-            self.log_update(self.fields)
-            self.log_update(self.baseAnkiNote)
-        assert self.baseAnkiNote
-        baseTags = sorted(self.baseAnkiNote.tags, key=lambda s: s.lower())
-        value = u','.join(self.tags)
+            self.log_update(self.Tags)
+            self.log_update(self.Fields)
+            self.log_update(self.BaseNote)
+        assert self.BaseNote
+        baseTags = sorted(self.BaseNote.tags, key=lambda s: s.lower())
+        value = u','.join(self.Tags)
         value_original = u','.join(baseTags)
         if str(value) == str(value_original):
             return False
         self.log_update("Changing tags:\n From: '%s' \n To:   '%s'" % (value_original, value))
-        self.baseAnkiNote.tags = self.tags
-        self.flag_changed = True
+        self.BaseNote.tags = self.Tags
+        self.Changed = True
         return True
 
     def update_note_deck(self):
         deckNameNew = self.deck()
         if not deckNameNew: return False
-        deckIDNew = self.anki.decks().id(deckNameNew)
+        deckIDNew = self.Anki.decks().id(deckNameNew)
         deckIDOld = get_anki_deck_id_from_note_id(self.note.id)
         if deckIDNew == deckIDOld:
             return False
         self.log_update(
-            "Changing deck:\n From: '%s' \n To:   '%s'" % (self.anki.decks().nameOrNone(deckIDOld), self.deck()))
+            "Changing deck:\n From: '%s' \n To:   '%s'" % (self.Anki.decks().nameOrNone(deckIDOld), self.deck()))
         # Not sure if this is necessary or Anki does it by itself:
         ankDB().execute("UPDATE cards SET did = ? WHERE nid = ?", deckIDNew, self.note.id)
         return True
@@ -331,13 +362,13 @@ class AnkiNotePrototype:
         fields_updated = {}
         for fld in self.note._model['flds']:
             if FIELDS.EVERNOTE_GUID in fld.get('name'):
-                self.original_evernote_guid = self.note.fields[fld.get('ord')].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
+                self.OriginalGuid = self.note.fields[fld.get('ord')].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
             for field_to_update in fields_to_update:
-                if field_to_update in fld.get('name') and field_to_update in self.fields:
+                if field_to_update in fld.get('name') and field_to_update in self.Fields:
                     if field_to_update is FIELDS.CONTENT:
                         fld_content_ord = fld.get('ord')
                     try:
-                        value = self.fields[field_to_update]
+                        value = self.Fields[field_to_update]
                         value_original = self.note.fields[fld.get('ord')]
                         if isinstance(value, str):
                             value = unicode(value, 'utf-8')
@@ -356,7 +387,7 @@ class AnkiNotePrototype:
                         self.log_update(field_updates)
                         log_error(
                             "ERROR: UPDATE_NOTE: Note '%s': %s: Unable to set self.note.fields for field '%s'. Ord: %s. Note fields count: %d" % (
-                                self.evernote_guid, self.fields[FIELDS.TITLE], field_to_update, str(fld.get('ord')),
+                                self.Guid, self.Fields[FIELDS.TITLE], field_to_update, str(fld.get('ord')),
                                 len(self.note.fields)))
                         raise
         if len(field_updates) == 2:
@@ -378,78 +409,78 @@ class AnkiNotePrototype:
             debug_fields = list(self.note.fields)
             del debug_fields[fld_content_ord]
             log_dump(debug_fields, "-      > UPDATE_NOTE → anki.notes.Note: FIELDS ")
-        if flag_changed: self.flag_changed = True
+        if flag_changed: self.Changed = True
         return flag_changed
 
     def update_note(self):
         # col = self.anki.collection()
-        self.note = self.baseAnkiNote
+        self.note = self.BaseNote
         self.logged = False
-        if not self.baseAnkiNote:
+        if not self.BaseNote:
             self.log_update("Not updating Note: Could not find base note")
             return False
-        self.flag_changed = False
+        self.Changed = False
         self.update_note_tags()
         self.update_note_fields()
-        if not (self.flag_changed or self.update_note_deck()):
-            if self.log_update_if_unchanged:
+        if not (self.Changed or self.update_note_deck()):
+            if self._log_update_if_unchanged_:
                 self.log_update("Not updating Note: The fields, tags, and deck are the same")
-            elif (self.count_update is 0 or self.count / self.count_update > 9) and self.count % 100 is 0:
+            elif (self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
                 self.log_update()
             return False
             # i.e., the note deck has been changed but the tags and fields have not
-        if not self.flag_changed:
-            self.count_update += 1
+        if not self.Changed:
+            self.Counts.Updated += 1
             return True
-        if not self.original_evernote_guid:
-            flds = get_dict_from_list(self.baseAnkiNote.items())
-            self.original_evernote_guid = get_evernote_guid_from_anki_fields(flds)
+        if not self.OriginalGuid:
+            flds = get_dict_from_list(self.BaseNote.items())
+            self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
         db_title = ankDB().scalar(
-            "SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.original_evernote_guid))
-        if self.fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') != self.original_evernote_guid or \
-                        self.fields[FIELDS.TITLE] != db_title:
-            self.log_update(' %s:     DB: ' % self.original_evernote_guid + '    ' + db_title)
+            "SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.OriginalGuid))
+        if self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') != self.OriginalGuid or \
+                        self.Fields[FIELDS.TITLE] != db_title:
+            self.log_update(' %s:     DB: ' % self.OriginalGuid + '    ' + db_title)
         self.note.flush()
         self.update_note_model()
         # self.           
-        self.count_update += 1
+        self.Counts.Updated += 1
         return True
 
     def Title(self):
-        if FIELDS.TITLE in self.fields:
-            return self.fields[FIELDS.TITLE]
-        if self.baseAnkiNote:
+        if FIELDS.TITLE in self.Fields:
+            return self.Fields[FIELDS.TITLE]
+        if self.BaseNote:
             return self.originalFields[FIELDS.TITLE]
 
     def add_note(self):
         self.create_note()
         if self.note is not None:
-            collection = self.anki.collection()
+            collection = self.Anki.collection()
             db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (
-                TABLES.EVERNOTE.NOTES, self.fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')))
-            log(' %s:    ADD: ' % self.fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') + '    ' +
-                self.fields[FIELDS.TITLE], 'AddUpdateNote')
-            if self.fields[FIELDS.TITLE] != db_title:
-                log(' %s:     DB TITLE: ' % re.sub(r'.', ' ', self.fields[FIELDS.EVERNOTE_GUID].replace(
+                TABLES.EVERNOTE.NOTES, self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')))
+            log(' %s:    ADD: ' % self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') + '    ' +
+                self.Fields[FIELDS.TITLE], 'AddUpdateNote')
+            if self.Fields[FIELDS.TITLE] != db_title:
+                log(' %s:     DB TITLE: ' % re.sub(r'.', ' ', self.Fields[FIELDS.EVERNOTE_GUID].replace(
                     FIELDS.EVERNOTE_GUID_PREFIX, '')) + '    ' + db_title, 'AddUpdateNote')
             try:
                 collection.addNote(self.note)
             except:
                 log_error("Unable to collection.addNote for Note %s:    %s" % (
-                    self.fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, ''), db_title))
+                    self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, ''), db_title))
                 log_dump(self.note.fields, '- FAILED collection.addNote: ')
                 return -1
             collection.autosave()
-            self.anki.start_editing()
+            self.Anki.start_editing()
             return self.note.id
 
     def create_note(self):
-        id_deck = self.anki.decks().id(self.deck())
-        if not self.model_name: self.model_name = MODELS.EVERNOTE_DEFAULT
-        model = self.anki.models().byName(self.model_name)
-        col = self.anki.collection()
-        self.note = anki.notes.Note(col, model)
+        id_deck = self.Anki.decks().id(self.deck())
+        if not self.ModelName: self.ModelName = MODELS.EVERNOTE_DEFAULT
+        model = self.Anki.models().byName(self.ModelName)
+        col = self.Anki.collection()
+        self.note = AnkiNote(col, model)
         self.note.model()['did'] = id_deck
-        self.note.tags = self.tags
-        for name, value in self.fields.items():
+        self.note.tags = self.Tags
+        for name, value in self.Fields.items():
             self.note[name] = value

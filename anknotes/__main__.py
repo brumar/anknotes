@@ -14,11 +14,8 @@ from anknotes import menu, settings
 ### Evernote Imports
 
 ### Anki Imports
-# noinspection PyUnresolvedReferences
 from anki.hooks import wrap, addHook
-# noinspection PyUnresolvedReferences
 from aqt.preferences import Preferences
-# noinspection PyUnresolvedReferences
 from aqt import mw
 
 
@@ -51,8 +48,9 @@ def anknotes_profile_loaded():
     '''
     if ANKNOTES.DEVELOPER_MODE_AUTOMATE:
         # resync_with_local_db()
-        # see_also()
-        menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))
+        # menu.see_also()
+        # menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))
+        menu.see_also(3)
 
 
 def anknotes_onload():

@@ -1,0 +1,123 @@
+<div id='Template-{{Type}}'>
+<div id='Card-{{Card}}'>
+<div id='Deck-{{Deck}}'>
+<div id='Side-Back'>
+<header id='Header-Avi'><h2>
+<div id='Field-Title-Prompt'>What is the Note's Title???</div>
+<div id='Field-Title'>{{Title}} </div>
+</h2></header>
+<div id='debug'></div>
+<hr id=answer>
+{{#See_Also}}
+<div id='Header-Links'>
+<span class='Field-See_Also'>
+<a href='javascript:;' onclick='scrollToElementVisible("Field-See_Also")' class='header'>See Also</a>: 
+</span>
+{{#TOC}}
+<span class='Field-TOC'>
+<a href='javascript:;' onclick='scrollToElementToggle("Field-TOC")' class='header'>[TOC]</a>
+</span>
+{{/TOC}}
+
+{{#Outline}}
+{{#TOC}}
+<span class='Field-See_Also'> | </span>
+{{/TOC}}
+<span class='Field-Outline'>
+<a href='javascript:;' onclick='scrollToElementToggle("Field-Outline")' class='header'>[Outline]</a>
+</span>
+{{/Outline}}
+</div>
+{{/See_Also}}
+
+<div id='Field-Content'>{{Content}}</div>
+<div id='Field-Cloze-Content'>{{cloze:Content}}</div>
+
+{{#Extra}}
+<div id='Field-Extra-Front'>
+<HR>
+<span class='header'><u>Note</u>: Additional Information is Available</span></span>
+</div>
+<div id='Field-Extra'>
+<HR>
+<span class='header'><u>Additional Info</u>: </span></span>
+{{Extra}}
+<BR><BR>
+</div>
+{{/Extra}}
+
+{{#Tags}}
+<div id='Tags'><span class='header'><u>Tags</u>: </span>{{Tags}}</div>
+{{/Tags}}
+
+{{#See_Also}}
+<div id='Field-See_Also'>
+<HR>
+{{See_Also}}
+</div>
+{{/See_Also}}
+
+{{#TOC}}
+<div id='Field-TOC'>
+<BR><HR>
+{{TOC}}
+</div>
+{{/TOC}}
+
+{{#Outline}}
+<div id='Field-Outline'>
+<BR><HR>
+{{Outline}}
+</div>
+{{/Outline}}
+
+
+</div>
+</div>
+</div>
+</div>
+
+<script>
+ function setElementDisplay(id,show) {
+  el = document.getElementById(id)
+  if (el == null) { return; }
+  // Assuming if display is not set, it is set to none by CSS
+  if (show === 0) { show = (el.style.display == 'none' || el.style.display == ''); }  
+  el.style.display = (show ? 'block' : 'none')
+ }
+ function hideElement(id) {
+  setElementDisplay(id, false);
+ }
+ function showElement(id) {
+  setElementDisplay(id, true);
+ }
+ function toggleElement(id) {
+  setElementDisplay(id, 0);
+ }
+ 
+ function scrollToElement(id, show) {
+ setElementDisplay(id, show);
+ el = document.getElementById(id)
+  if (el == null) { return; }
+  window.scroll(0,findPos(el));
+ } 
+ 
+ function scrollToElementToggle(id) {
+  scrollToElement(id, 0);
+ } 
+ 
+ function scrollToElementVisible(id) {
+  scrollToElement(id, true);
+ } 
+
+//Finds y value of given object
+function findPos(obj) {
+    var curtop = 0;
+    if (obj.offsetParent) {
+        do {
+            curtop += obj.offsetTop;
+        } while (obj = obj.offsetParent);
+    return [curtop];
+    }
+}
+</script>

@@ -1,20 +1,25 @@
 ### Anknotes Shared Imports
 from anknotes.shared import *
 
-
+def generateTOCTitle(title):
+    title = EvernoteNoteTitle.titleObjectToString(title).upper()
+    for chr in u'?????':
+        title = title.replace(chr.upper(), chr)
+    return title
 
 class EvernoteNoteTitle:
     level = 0
     __title__ = ""
     """:type: str"""
     __titleParts__ = None
+    """:type: list[str]"""
 
     # # Parent = None
     # def __str__(self):
     #     return "%d: %s" % (self.Level(), self.Title)
 
     def __repr__(self):
-        return "<%s:%d.%s>" % (self.__class__.__name__, self.Level, self.Name())
+        return "<%s:%s>" % (self.__class__.__name__, self.FullTitle)
 
     @property
     def TitleParts(self):
@@ -35,76 +40,137 @@ class EvernoteNoteTitle:
     def Depth(self):
         return self.Level - 1
 
-    def Names(self, level=-1):
-        return self.Slice(level)
-
-    def Name(self, level=-1):
-        mySlice = self.Slice(level)
+    def Parts(self, level=-1):
+        return self.Slice(level)    
+            
+    def Part(self, level=-1):
+        mySlice = self.Parts(level)
         if not mySlice: return None
-        return mySlice.FullTitle
+        return mySlice.Root
+        
+    def BaseParts(self, level=None):
+        return self.Slice(1, level)
+
+    def Parents(self, level=-1):
+        # noinspection PyTypeChecker
+        return self.Slice(None, level)
+    
+    def Names(self, level=-1):
+        return self.Parts(level)
+    
+    @property
+    def TOCTitle(self):
+        return generateTOCTitle(self.FullTitle)
+
+    @property
+    def TOCName(self):
+        return generateTOCTitle(self.Name)
+
+    @property
+    def TOCRootTitle(self):
+        return generateTOCTitle(self.Root)
+
+    @property
+    def Name(self):
+        return self.Part()
 
     @property
     def Root(self):
-        return self.Parent(1)
+        return self.Parents(1).FullTitle
 
-    def Base(self, level=None):
-        return self.Slice(1, level)
+    @property
+    def Base(self):
+        return self.BaseParts()
 
     def Slice(self, start=0, end=None):
         # print "Slicing: <%s> %s ~ %d,%d" % (type(self.Title), self.Title, start, end)
         oldParts = self.TitleParts
         # print "Slicing: %s ~ %d,%d from parts %s" % (self.Title, start, end, str(oldParts))
-        if not self.FullTitle: return None
-        if not oldParts: return None
-        assert start or end
+        assert self.FullTitle and oldParts 
+        if start is None and end is None:
+            print "Slicing: %s ~ %d,%d from parts %s" % (self.FullTitle, start, end, str(oldParts))
+        assert start is not None or end is not None
         newParts = oldParts[start:end]
         if len(newParts) == 0:
-            # print "Slice failed for %s-%s of %s" % (str(start), str(end), self.Title)
-            return None
-            assert False
+            log_error("Slice failed for %s-%s of %s" % (str(start), str(end), self.FullTitle))
+            # return None
+        assert len(newParts) > 0
         newStr = ': '.join(newParts)
         # print "Slice: Just created new title %s from %s" % (newStr , self.Title)
         return EvernoteNoteTitle(newStr)
 
-    def Parent(self, level=-1):
-        # noinspection PyTypeChecker
-        return self.Slice(None, level)
+    @property
+    def Parent(self):
+        return self.Parents()
 
-    def isAboveLevel(self, level_check):
+    def IsAboveLevel(self, level_check):
         return self.Level > level_check
 
-    def isBelowLevel(self, level_check):
+    def IsBelowLevel(self, level_check):
         return self.Level < level_check
 
-    def isLevel(self, level_check):
+    def IsLevel(self, level_check):
         return self.Level == level_check
 
     @property
-    def isChild(self):
-        return self.isAboveLevel(1)
+    def IsChild(self):
+        return self.IsAboveLevel(1)
 
     @property
-    def isRoot(self):
-        return self.isLevel(1)
+    def IsRoot(self):
+        return self.IsLevel(1)
 
     @staticmethod
     def titleObjectToString(title):
         """
         :param title: Title in string, unicode, dict, sqlite, TOCKey or NoteTitle formats. Note objects are also parseable
-        :type title: str | unicode | dict[str,str] | sqlite.Row | EvernoteNoteTitle
+        :type title: None | str | unicode | dict[str,str] | sqlite.Row | EvernoteNoteTitle
         :return: string Title
         :rtype: str
         """
-        if isinstance(title, str) or isinstance((title, unicode)):
+        if title is None:
+            #log('titleObjectToString: NoneType', 'tOTS')
+            return ""
+        if isinstance(title, str) or isinstance(title, unicode):
+            #log('titleObjectToString: str/unicode', 'tOTS')
             return title
-        if hasattr(title, 'FullTitle'): title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
-        elif hasattr(title, 'Title'): title = title.Title() if callable(title.Title) else title.Title
-        elif hasattr(title, 'title'): title = title.title() if callable(title.title) else title.title
+        if hasattr(title, 'FullTitle'): 
+            #log('titleObjectToString: FullTitle', 'tOTS')
+            title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
+        elif hasattr(title, 'Title'): 
+            #log('titleObjectToString: Title', 'tOTS')
+            title = title.Title() if callable(title.Title) else title.Title
+        elif hasattr(title, 'title'): 
+            #log('titleObjectToString: title', 'tOTS')
+            title = title.title() if callable(title.title) else title.title
         else:
             try:
-                if 'title' in title: title = title['title']
-                elif 'Title' in title: title = title['Title']
-            except: return ""
+                if hasattr(title, 'keys'):
+                    keys = title.keys() if callable(title.keys) else title.keys
+                    if 'title' in keys: 
+                        #log('titleObjectToString: keys[title]', 'tOTS')
+                        title = title['title']
+                    elif 'Title' in keys: 
+                        #log('titleObjectToString: keys[Title]', 'tOTS')
+                        title = title['Title']                              
+                elif 'title' in title: 
+                    #log('titleObjectToString: [title]', 'tOTS')
+                    title = title['title']
+                elif 'Title' in title: 
+                    #log('titleObjectToString: [Title]', 'tOTS')
+                    title = title['Title']          
+                elif FIELDS.TITLE in title:
+                    #log('titleObjectToString: [FIELDS.TITLE]', 'tOTS')
+                    title = title[FIELDS.TITLE] 
+                else:
+                    #log('titleObjectToString: Nothing Found', 'tOTS')
+                    #log(title)
+                    #log(title.keys())
+                    return title
+            except: 
+                #log('titleObjectToString: except', 'tOTS')
+                #log(title)
+                return title
         return EvernoteNoteTitle.titleObjectToString(title)
 
     @property
@@ -112,16 +178,17 @@ class EvernoteNoteTitle:
         """:rtype: str"""
         return self.__title__
 
-    def __init__(self, title):
-        self.__title__ = self.titleObjectToString(title)
-
-
+    def __init__(self, titleObj=None):
+        """:type titleObj: str | unicode | sqlite.Row | EvernoteNoteTitle | evernote.edam.type.ttypes.Note | EvernoteNotePrototype.EvernoteNotePrototype  """
+        self.__title__ = self.titleObjectToString(titleObj)
 
 def generateTitleParts(title):
+    title = EvernoteNoteTitle.titleObjectToString(title)    
     try:
         strTitle = re.sub(':+', ':', title)
     except:
-        print type(title)
+        log('generateTitleParts Unable to re.sub')
+        log(type(title))
         raise
     if strTitle[-1] == ':': strTitle = strTitle[:-1]
     if strTitle[0] == ':': strTitle = strTitle[1:]

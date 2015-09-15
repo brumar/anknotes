@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from anknotes.constants import *
 from anknotes.html import generate_evernote_link, generate_evernote_span
 from anknotes.logging import log_dump
@@ -40,13 +41,18 @@ def TOCSort(hash1, hash2):
 
 
 class TOCHierarchyClass:
-    title = None
-    note = None
-    outline = None
-    number = 1
-    children = []
-    parent = None
-    isSorted = False
+    Title = None
+    """:type : EvernoteNoteTitle"""
+    Note = None
+    """:type : EvernoteNote.EvernoteNote"""
+    Outline = None
+    """:type : TOCHierarchyClass"""
+    Number = 1
+    Children = []
+    """:type : list[TOCHierarchyClass]"""
+    Parent = None
+    """:type : TOCHierarchyClass"""
+    __isSorted__ = False
 
     @staticmethod
     def TOCItemSort(tocHierarchy1, tocHierarchy2):
@@ -61,154 +67,173 @@ class TOCHierarchyClass:
         # Lower value for item 1 = item 1 placed BEFORE item 2
         return lvl1 - lvl2
 
-    def isOutline(self):
-        if not self.note: return False
-        return EVERNOTE.TAG.OUTLINE in self.note.tags
+    @property
+    def IsOutline(self):
+        if not self.Note: return False
+        return EVERNOTE.TAG.OUTLINE in self.Note.Tags
 
     def sortIfNeeded(self):
-        if self.isSorted: return
+        if self.__isSorted__: return
         self.sortChildren()
 
+    @property
     def Level(self):
-        return self.title.Level
+        return self.Title.Level
 
+    @property
     def ChildrenCount(self):
-        return len(self.children)
+        return len(self.Children)
 
+    @property
     def TitleParts(self):
-        return self.title.TitleParts
+        return self.Title.TitleParts
 
     def addNote(self, note):
         tocHierarchy = TOCHierarchyClass(note=note)
         self.addHierarchy(tocHierarchy)
 
     def getChildIndex(self, tocChildHierarchy):
-        if not tocChildHierarchy in self.children: return -1
+        if not tocChildHierarchy in self.Children: return -1
         self.sortIfNeeded()
-        return self.children.index(tocChildHierarchy)
+        return self.Children.index(tocChildHierarchy)
 
-    def getListPrefix(self):
-        index = self.getIndex()
-        isSingleItem = self.getIsSingleItem()
+    @property
+    def ListPrefix(self):
+        index = self.Index
+        isSingleItem = self.IsSingleItem
         if isSingleItem is 0: return ""
         if isSingleItem is 1: return "*"
         return str(index) + "."
 
-    def getIsSingleItem(self):
-        index = self.getIndex()
+    @property
+    def IsSingleItem(self):
+        index = self.Index
         if index is 0: return 0
-        if index is 1 and len(self.parent.children) is 1:
+        if index is 1 and len(self.Parent.Children) is 1:
             return 1
         return -1
 
-    def getIndex(self):
-        if not self.parent: return 0
-        return self.parent.getChildIndex(self) + 1
+    @property
+    def Index(self):
+        if not self.Parent: return 0
+        return self.Parent.getChildIndex(self) + 1
 
     def addTitle(self, title):
         self.addHierarchy(TOCHierarchyClass(title))
 
     def addHierarchy(self, tocHierarchy):
-        tocNewTitle = tocHierarchy.title
+        tocNewTitle = tocHierarchy.Title
         tocNewLevel = tocNewTitle.Level
-        selfLevel = self.title.Level
-        selfTitleStr = self.title.FullTitle
-        # tocTitleStr = tocNewTitle.Title
+        selfLevel = self.Title.Level
+        tocTestBase = tocHierarchy.Title.FullTitle.replace(self.Title.FullTitle, '')
+        if tocTestBase[:2] == ': ':
+                tocTestBase = tocTestBase[2:]
 
-        if selfLevel is 1 and tocNewLevel is 1:
-            log_dump(self.title.FullTitle)
-            log_dump(tocHierarchy.note.tags)
-            assert tocHierarchy.isOutline()
-            tocHierarchy.parent = self
-            self.outline = tocHierarchy
-            return True
+        print " \nAdd Hierarchy: %-70s --> %-40s\n-------------------------------------" % (self.Title.FullTitle, tocTestBase)
 
-        parentTitle = tocNewTitle.Parent()
-        parentTitleStr = parentTitle.Title
-        parentLevel = parentTitle.Level
+        if selfLevel > tocHierarchy.Title.Level:
+            print "New Title Level is Below current level"
+            return False
 
-        if selfTitleStr == parentTitleStr or parentTitleStr.upper() == selfTitleStr:
-            tocHierarchy.parent = self
-            self.isSorted = False
-            self.children.append(tocHierarchy)
-            return True
+        selfTOCTitle = self.Title.TOCTitle
+        tocSelfSibling = tocNewTitle.Parents(self.Title.Level)
 
-        assert parentLevel > selfLevel
+        if tocSelfSibling.TOCTitle != selfTOCTitle:
+            print "New Title doesn't match current path"
+            return False
+        
+        if tocNewLevel is self.Title.Level:
+            if tocHierarchy.IsOutline:
+                tocHierarchy.Parent = self
+                self.Outline = tocHierarchy
+                print "SUCCESS: Outline added"
+                return True
+            print "New Title Level is current level, but New Title is not Outline"
+            return False
 
-        baseTitle = parentTitle.Parent(selfLevel + 1)
-        baseTitleStr = baseTitle.Title
-        baseTitleName = baseTitle.Name()
-        baseTitleChildren = tocNewTitle.Names(selfLevel + 1)
-        baseTitleChildrenStr = baseTitleChildren.Title
-        baseTitleParentTitle = baseTitle.Parent().Title
-        if selfTitleStr == baseTitleParentTitle:
-            for child in self.children:
-                # childTitleName = child.title.Name()
-                if child.title.Name() == baseTitleName:
-                    success = child.addHierarchy(tocHierarchy)
-                    if not success: print "Failed searching %s for child %s to add %s " % (
-                        selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
-                    return success
-            newChild = TOCHierarchyClass(baseTitleStr)
-            newChild.addHierarchy(tocHierarchy)
-            newChild.parent = self
-            self.isSorted = False
-            self.children.append(newChild)
-            return True
+
+        tocNewSelfChild =  tocNewTitle.Parents(self.Title.Level+1)
+        tocNewSelfChildTOCName = tocNewSelfChild.TOCName
+        isDirectChild = (tocHierarchy.Level == self.Level + 1)
+        if isDirectChild:
+            tocNewChildNamesTitle = "N/A"
+            print "New Title is a direct child of the current title"
         else:
-            print "baseTitleParentTitle Fail:  %s for child %s to add %s " % (
-                selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
+            tocNewChildNamesTitle = tocHierarchy.Title.Names(self.Title.Level+1).FullTitle
+            print "New Title is a Grandchild or deeper of the current title "
 
-        print "Total Fail:  %s for child %s to add %s " % (selfTitleStr, baseTitle.Name(), baseTitleChildrenStr)
-        return False
+        for tocChild in self.Children:
+            assert(isinstance(tocChild, TOCHierarchyClass))
+            if tocChild.Title.TOCName == tocNewSelfChildTOCName:
+                print "%-60s Child %-20s Match Succeeded for %s." % (self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+                success = tocChild.addHierarchy(tocHierarchy)
+                if success:
+                    return True
+                print "%-60s Child %-20s Match Succeeded for %s: However, unable to add to matched child" % (self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+        print "%-60s Child %-20s Search failed for %s" % (self.Title.FullTitle + ':', tocNewSelfChild.Name, tocNewChildNamesTitle)
+
+        newChild = tocHierarchy if isDirectChild else TOCHierarchyClass(tocNewSelfChild)
+        newChild.parent = self
+        if isDirectChild:
+            print "%-60s Child %-20s Created Direct Child for %s." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+            success = True
+        else:
+            print "%-60s Child %-20s Created Title-Only Child for %-40ss." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+            success = newChild.addHierarchy(tocHierarchy)
+            print "%-60s Child %-20s Created Title-Only Child for %-40s: Match %s." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle, "succeeded" if success else "failed")
+        self.__isSorted__ = False
+        self.Children.append(newChild)
+
+        print "%-60s Child %-20s Appended Child for %s. Operation was an overall %s." % (self.Title.FullTitle + ':', newChild.Title.Name + ':', tocNewChildNamesTitle, "success" if success else "failure")
+        return success
 
     def sortChildren(self):
-        self.children = sorted(self.children, self.TOCItemSort)
-        self.isSorted = True
+        self.Children = sorted(self.Children, self.TOCItemSort)
+        self.__isSorted__ = True
 
     def __strsingle__(self, fullTitle=False):
-        selfTitleStr = self.title.FullTitle
-        selfNameStr = self.title.Name()
-        selfLevel = self.title.Level
-        selfDepth = self.title.Depth
-        selfListPrefix = self.getListPrefix()
+        selfTitleStr = self.Title.FullTitle
+        selfNameStr = self.Title.Name
+        selfLevel = self.Title.Level
+        selfDepth = self.Title.Depth
+        selfListPrefix = self.ListPrefix
         strr = ''
         if selfLevel == 1:
-            strr += '  [%d]           ' % len(self.children)
+            strr += '  [%d]           ' % len(self.Children)
         else:
-            if len(self.children):
-                strr += '  [%d:%2d]       ' % (selfDepth, len(self.children))
+            if len(self.Children):
+                strr += '  [%d:%2d]       ' % (selfDepth, len(self.Children))
             else:
                 strr += '  [%d]          ' % selfDepth
             strr += ' ' * (selfDepth * 3)
             strr += ' %s ' % selfListPrefix
 
-        strr += '%-60s  %s' % (selfTitleStr if fullTitle else selfNameStr, '' if self.note else '(No Note)')
+        strr += '%-60s  %s' % (selfTitleStr if fullTitle else selfNameStr, '' if self.Note else '(No Note)')
         return strr
 
     def __str__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()
         lst = [self.__strsingle__(fullTitle)]
-        for child in self.children:
+        for child in self.Children:
             lst.append(child.__str__(fullChildrenTitles, fullChildrenTitles))
         return '\n'.join(lst)
 
     def GetOrderedListItem(self, title=None):
-        if not title: title = self.title.FullTitle
+        if not title: title = self.Title.FullTitle
         selfTitleStr = title
-        selfLevel = self.title.Level
-        selfDepth = self.title.Depth
+        selfLevel = self.Title.Level
+        selfDepth = self.Title.Depth
         if selfLevel == 1:
             guid = 'guid-pending'
-            if self.note: guid = self.note.guid
+            if self.Note: guid = self.Note.guid
             link = generate_evernote_link(guid, generateTOCTitle(selfTitleStr), 'TOC')
-            if self.outline:
-                link += ' ' + generate_evernote_link(self.outline.note.guid,
+            if self.Outline:
+                link += ' ' + generate_evernote_link(self.Outline.note.guid,
                                                      '(<span style="color: rgb(255, 255, 255);">O</span>)', 'Outline',
                                                      escape=False)
             return link
-        if self.note:
-            return self.note.generateLevelLink(selfDepth)
+        if self.Note:
+            return self.Note.generateLevelLink(selfDepth)
         else:
             return generate_evernote_span(selfTitleStr, 'Levels', selfDepth)
 
@@ -216,8 +241,8 @@ class TOCHierarchyClass:
         self.sortIfNeeded()
         lst = []
         header = (self.GetOrderedListItem(title))
-        if self.ChildrenCount() > 0:
-            for child in self.children:
+        if self.ChildrenCount > 0:
+            for child in self.Children:
                 lst.append(child.GetOrderedList())
             childHTML = '\n'.join(lst)
         else:
@@ -230,7 +255,7 @@ class TOCHierarchyClass:
             # childHTML = childHTML.encode('utf8')
             childHTML = base % (tag, childHTML, tag)
 
-        if self.Level() is 1:
+        if self.Level is 1:
             base = '<div> %s </div>\r\n %s \r\n'
             # base = base.encode('utf8')
             # childHTML = childHTML.encode('utf8')
@@ -245,131 +270,48 @@ class TOCHierarchyClass:
         return base
 
     def __reprsingle__(self, fullTitle=True):
-        selfTitleStr = self.title.FullTitle
-        selfNameStr = self.title.Name()
-        # selfLevel = self.title.Level()
-        # selfDepth = self.title.Depth()
-        selfListPrefix = self.getListPrefix()
+        selfTitleStr = self.Title.FullTitle
+        selfNameStr = self.Title.Name
+        # selfLevel = self.title.Level
+        # selfDepth = self.title.Depth
+        selfListPrefix = self.ListPrefix
         strr = "<%s:%s[%d] %s%s>" % (
-            self.__class__.__name__, selfListPrefix, len(self.children), selfTitleStr if fullTitle else selfNameStr,
-            '' if self.note else ' *')
+            self.__class__.__name__, selfListPrefix, len(self.Children), selfTitleStr if fullTitle else selfNameStr,
+            '' if self.Note else ' *')
         return strr
 
     def __repr__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()
         lst = [self.__reprsingle__(fullTitle)]
-        for child in self.children:
+        for child in self.Children:
             lst.append(child.__repr__(fullChildrenTitles, fullChildrenTitles))
         return '\n'.join(lst)
 
     def __init__(self, title=None, note=None, number=1):
+        """
+        :type title: EvernoteNoteTitle
+        :type note: EvernoteNotePrototype.EvernoteNotePrototype
+        """
         assert note or title
-        self.outline = None
+        self.Outline = None
         if note:
-            self.note = note
-            self.title = EvernoteNoteTitle(note.title.title)
+            self.Note = note
+            self.Title = EvernoteNoteTitle(note)
         else:
-            self.title = EvernoteNoteTitle(title)
-            self.note = None
-        self.number = number
-        self.children = []
-        self.isSorted = False
-        return
-
-        # class TOCListItem:
-        # tocHash = None
-        # tocValue = None
-        # def Level(self): return self.tocHash.Level()
-        # def __init__(self, tocHash, tocValue):
-        # self.tocHash = tocHash
-        # self.tocValue = tocValue
-
-        # class TOCList:
-        # toc = {}
-        # # tocKeyRoot = tocKey
-        # # tocKeyLast = tocKey
-        # tocKeyParents = {}
-
-        # def populateTOCValueWithChildren(self, tocValue, recursive=False):
-        # tocKey = tocValue.Key
-        # if not tocValue.Children:
-        # tocValue.Children = self.getChildren(tocKey)
-        # return tocValue
-
-        # def getChildrenRecursive(self, parentTitleOrTOCHash):
-        # tocKeyParent = TOCKey(parentTitleOrTOCHash)
-        # return {tocHash: self.populateTOCValueWithChildren(self.tocValue) for tocHash, tocValue in self.toc.iterItems() if tocHash['Level'] == tocKeyParent.Level() + 1 and tocHash['Parent'] == tocKeyParent.Title }
-
-        # def getChildren(self, parentTitleOrTOCHash, recursive=False):
-        # tocKeyParent = TOCKey(parentTitleOrTOCHash)
-        # return {tocHash: self.populateTOCValueWithChildren(tocValue, True) if recursive else tocValue for tocHash, tocValue in self.toc.iterItems() if tocHash['Level'] == tocKeyParent.Level() + 1 and tocHash['Parent'] == tocKeyParent.Title }
-
-        # def getTOCListItem(self, titleOrTOCHash):
-        # return TOCListItem(TOCKey(titleOrTOCHash), self.toc[titleOrTOCHash])
-
-        # def sortedKeys(self):
-        # return sorted(self.toc, TOCSort)
-
-        # def getTOCListItems(self):
-        # return [self.getTOCListItem(x) for x in self.sortedKeys()]
-
-        # def __str__(self):
-        # lst = []
-        # for tocListItem in self.getTOCListItems():
-        # tocHash = tocListItem.tocHash
-        # tocValue = tocListItem.tocValue
-        # lvl = tocListItem.Level()
-        # title = tocHash #.Title()
-        # if tocHash.Level() > 1:
-        # if not tocValue.Note:
-        # print "No Note for %d. %s" % (lvl, title)
-        # else: guid = tocValue.Note.guid
-        # note_str = '(+ Note)' if tocValue.Note else ' ** BLANK ENTRY WITHOUT NOTE **' if lvl> 1 else ''
-        # if not tocValue.Children:
-        # children_str = '(Children N/A)'
-        # else:
-        # children_str = '(%d Children)' % len(tocValue.Children) if len(tocValue.Children) > 1 else 'One Child' if len(tocValue.Children) is 1 else ''
-
-        # lst.append("%d: %-100s %-10s %-10s" % (lvl, title, note_str, children_str ))
-        # return '\n'.join(lst)
-
-        # def __repl__(self):
-        # lst = []
-        # for tocHash in self.sortedKeys():
-        # tocValue = self.toc[tocHash]
-        # lst.append("<TOCListItem:%d.%s" % (tocHash.Level(), tocHash.Title()))
-        # return "\n".join(lst)
-
-        # def __init__(self, title, note=None):
-        # self.toc = {}
-        # self.generateEntry(title, note)
-
-        # def generateParents(self, tocKeyParent):
-        # tocValueParent = TOCValue(tocKeyParent)
-        # self.addEntry(tocKeyParent, tocValueParent)
-
-        # def addEntry(self, tocKey, tocValue):
-        # # log_dump(tocKey)
-        # # log_dump(tocKey.Parent())
-        # # print "TOCList-> AddEntry %s " % (tocKey)
-        # parent = tocKey.Parent()
-        # if parent and not parent.Hash() in self.toc:
-        # # print "Adding Parent: %s " % parent.Title
-        # self.generateEntry(parent.Title)
-
-        # self.toc[tocKey.Hash()] = tocValue
-
-        # def generateEntry(self, title, note=None):
-        # tocKey = TOCKey(title)
-        # tocValue = TOCValue(tocKey, note)
-        # # print "TOCList -> Gen Entry %s = %s " % (title, tocKey )
-        # self.addEntry(tocKey, tocValue)
-
-        # class TOC:
-        # Key = None
-        # def __init__(self, name):
-        # self.Key = TOCList(name)
+            self.Title = EvernoteNoteTitle(title)
+            self.Note = None
+        self.Number = number
+        self.Children = []
+        self.__isSorted__ = False
 
 
-def generateTOCTitle(title):
-    return EvernoteNoteTitle.titleObjectToString(title).upper().replace(u'?', u'?').replace(u'?', u'?')
+
+#
+# tocTest = TOCHierarchyClass("My Root Title")
+# tocTest.addTitle("My Root Title: Somebody")
+# tocTest.addTitle("My Root Title: Somebody: Else")
+# tocTest.addTitle("My Root Title: Someone")
+# tocTest.addTitle("My Root Title: Someone: Else")
+# tocTest.addTitle("My Root Title: Someone: Else: Entirely")
+# tocTest.addTitle("My Root Title: Z This: HasNo: Direct Parent")
+# pass

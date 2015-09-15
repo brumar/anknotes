@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-
 PATH = os.path.dirname(os.path.abspath(__file__))
-
 
 class ANKNOTES:
     FOLDER_EXTRA = os.path.join(PATH, 'extra')
@@ -22,7 +20,7 @@ class ANKNOTES:
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer')))
     DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer.automate')))
-    UPLOAD_AUTO_TOC_NOTES = True  # Set false if debugging note creation
+    UPLOAD_AUTO_TOC_NOTES = False  # Set false if debugging note creation
     AUTO_TOC_NOTES_MAX = 5  # Set to -1 for unlimited
 
 

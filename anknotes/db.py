@@ -6,8 +6,7 @@ import time
 from anknotes.constants import *
 
 try:
-    # noinspection PyUnresolvedReferences
-    from aqt import mw
+        from aqt import mw
 except:
     pass
 

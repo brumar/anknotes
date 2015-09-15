@@ -14,11 +14,8 @@ from anknotes.html import *
 
 ### Anki and Evernote Imports
 try:
-    # noinspection PyUnresolvedReferences
     from aqt import mw
-    # noinspection PyUnresolvedReferences
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
-    # noinspection PyUnresolvedReferences
     from aqt.utils import tooltip
     from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
 except:

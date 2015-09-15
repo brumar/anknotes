@@ -25,13 +25,27 @@ def strip_tags(html):
 def strip_tags_and_new_lines(html):
     return strip_tags(html).replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ')
 
-
+__text_escape_phrases__ = u'&|&amp;|\'|&apos;|"|&quot;|>|&gt;|<|&lt;'.split('|')
 def escape_text(title):
-    repl = [u'&', u'&nbsp;', u'>', u'&gt;', u'<', u'&lt;']
-    for i in range(0, len(repl), 2):
-        title = title.replace(repl[i], repl[i + 1])
+    global __text_escape_phrases__
+    for i in range(0, len(__text_escape_phrases__), 2):
+        title = title.replace(__text_escape_phrases__[i], __text_escape_phrases__[i + 1])
     return title
 
+
+def unescape_text(title):
+    global __text_escape_phrases__
+    for i in range(0, len(__text_escape_phrases__), 2):
+        title = title.replace(__text_escape_phrases__[i + 1], __text_escape_phrases__[i])
+    title = title.replace("&nbsp;", " ")
+    return title
+
+def clean_title(title):
+    title = unescape_text(title)
+    if isinstance(title, str):
+        title = unicode(title, 'utf-8')
+    title = title.replace(u'\xa0', ' ')
+    return title
 
 def generate_evernote_url(guid):
     ids = get_evernote_account_ids()

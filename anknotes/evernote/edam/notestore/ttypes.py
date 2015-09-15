@@ -1605,6 +1605,7 @@ class NotesMetadataList(object):
     self.startIndex = startIndex
     self.totalNotes = totalNotes
     self.notes = notes
+    """:type : list[NoteMetadata]"""
     self.stoppedWords = stoppedWords
     self.searchedWords = searchedWords
     self.updateCount = updateCount

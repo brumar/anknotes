@@ -10,12 +10,9 @@ from anknotes.graphics import *
 
 ### Anki Imports
 try:
-    # noinspection PyUnresolvedReferences
-    from aqt import mw
-    # noinspection PyUnresolvedReferences
-    from aqt.utils import tooltip
-    # noinspection PyUnresolvedReferences
-    from aqt.qt import QMessageBox, QPushButton
+        from aqt import mw
+        from aqt.utils import tooltip
+        from aqt.qt import QMessageBox, QPushButton
 except:
     pass
 
@@ -41,7 +38,7 @@ def show_tooltip(text, time_out=3000, delay=None):
     tooltip(text, time_out)
 
 
-def report_tooltip(log_title, log_text="", delay=None):
+def report_tooltip(log_title, log_text="", delay=None, prefix='- '):
     str_tip = log_text
     if not str_tip:
         str_tip = log_title
@@ -54,7 +51,7 @@ def report_tooltip(log_title, log_text="", delay=None):
         if log_text:
             log_text = delimit + "<BR>%s\n" % log_text
         log(log_title)
-    log_text = log_text.replace('<BR><BR>', '<BR>').replace('<BR>', '\n   - ')
+    log_text = log_text.replace('<BR><BR>', '<BR>').replace('<BR>', '\n   ' + prefix )
     log(log_text, timestamp=False, replace_newline=True)
 
 

@@ -18,21 +18,6 @@ all_notes = ankDB().execute("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTE
 find_guids = {}
 
 
-# noinspection PyShadowingNames
-def clean_title(title):
-    title = title.replace('&amp;', '&')
-    title = title.replace('&apos;', "'")
-    title = title.replace('&gt;', '>')
-    title = title.replace('&lt;', '<')
-    title = title.replace('&amp;', '&')
-    title = title.replace('&quot;', '"')
-    title = title.replace('&nbsp;', ' ')
-    if isinstance(title, str):
-        title = unicode(title, 'utf-8')
-    title = title.replace(u'\xa0', ' ')
-    return title
-
-
 for line in all_notes:
     # line = line.split('::: ')
     # guid = line[0]

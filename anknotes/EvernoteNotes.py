@@ -12,7 +12,7 @@ except ImportError:
 ### Anknotes Imports
 # from anknotes.shared import *
 from anknotes.EvernoteNoteTitle import *
-from anknotes.EvernoteNote import EvernoteNote
+from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.toc import TOCHierarchyClass
 
 class EvernoteNoteProcessingFlags:
@@ -46,11 +46,13 @@ class EvernoteNotesCollection:
     TitlesList = []
     TitlesDict = {}
     NotesDict = {}
+    """:type : dict[str, EvernoteNote.EvernoteNote]"""
     ChildNotesDict = {}
+    """:type : dict[str, EvernoteNote.EvernoteNote]"""
     ChildTitlesDict = {}
 
     def __init__(self):
-        self.TitlesList = list()
+        self.TitlesList = []
         self.TitlesDict = {}
         self.NotesDict = {}
         self.ChildNotesDict = {}
@@ -60,6 +62,7 @@ class EvernoteNotesCollection:
 class EvernoteNotes:
     ################## CLASS Notes ################
     Notes = {}
+    """:type : dict[str, EvernoteNote.EvernoteNote]"""
     RootNotes = EvernoteNotesCollection()
     RootNotesChildren = EvernoteNotesCollection()
     processingFlags = EvernoteNoteProcessingFlags()
@@ -70,18 +73,29 @@ class EvernoteNotes:
         self.RootNotes = EvernoteNotesCollection()
 
     def addNoteSilently(self, enNote):
-        self.Notes[enNote.guid] = enNote
+        """:type enNote: EvernoteNote.EvernoteNote"""     
+        assert enNote
+        self.Notes[enNote.Guid] = enNote
 
     def addNote(self, enNote):
+        """:type enNote: EvernoteNote.EvernoteNote"""
+        assert enNote 
         self.addNoteSilently(enNote)
         if self.processingFlags.delayProcessing: return
         self.processNote(enNote)
 
     def addDBNote(self, dbNote):
-        enNote = EvernoteNote(db_note=dbNote)
+        """:type dbNote: sqlite.Row"""
+        enNote = EvernoteNotePrototype(db_note=dbNote)
+        if not enNote:
+            log(dbNote)
+            log(dbNote.keys)
+            log(dir(dbNote))
+        assert enNote            
         self.addNote(enNote)
 
     def addDBNotes(self, dbNotes):
+        """:type dbNotes: list[sqlite.Row]"""
         for dbNote in dbNotes:
             self.addDBNote(dbNote)
 
@@ -103,7 +117,7 @@ class EvernoteNotes:
         return self.getNoteFromDB(sql_query)
 
     # def addChildNoteHierarchically(self, enChildNotes, enChildNote):
-    #     parts = enChildNote.title.PartsText()
+    #     parts = enChildNote.Title.TitleParts
     #     dict_updated = {}
     #     dict_building = {parts[len(parts)-1]: enChildNote}
     #     print_safe(parts)
@@ -115,34 +129,40 @@ class EvernoteNotes:
     #     return enChildNotes
 
     def processNote(self, enNote):
+        """:type enNote: EvernoteNote.EvernoteNote"""
         if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict or self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
 
-            if enNote.isChild:
-                rootTitle = enNote.title.Root
-                rootTitleStr = generateTOCTitle(rootTitle.title)
+            if enNote.IsChild:
+                # log([enNote.Title, enNote.Level, enNote.Title.TitleParts, enNote.IsChild])
+                rootTitle = enNote.Title.Root
+                rootTitleStr = generateTOCTitle(rootTitle)
                 if self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
-                    if not rootTitleStr in self.RootNotesExisting.TitlesList and not rootTitleStr in self.RootNotesExisting.TitlesList:
+                    if not rootTitleStr in self.RootNotesExisting.TitlesList:
                         if not rootTitleStr in self.RootNotesMissing.TitlesList:
                             self.RootNotesMissing.TitlesList.append(rootTitleStr)
                             self.RootNotesMissing.ChildTitlesDict[rootTitleStr] = {}
                             self.RootNotesMissing.ChildNotesDict[rootTitleStr] = {}
-                        childBaseTitleStr = enNote.title.Base().title
+                        if not enNote.Title.Base:
+                            log(enNote.Title)
+                            log(enNote.Base)
+                        assert enNote.Title.Base
+                        childBaseTitleStr = enNote.Title.Base.FullTitle
                         if childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]:
                             log_dump(self.RootNotesMissing.ChildTitlesDict[rootTitleStr], repr(enNote))
                         assert not childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]
-                        self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr] = enNote.guid
-                        self.RootNotesMissing.ChildNotesDict[rootTitleStr][enNote.guid] = enNote
+                        self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr] = enNote.Guid
+                        self.RootNotesMissing.ChildNotesDict[rootTitleStr][enNote.Guid] = enNote
                 if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict:
                     if not rootTitleStr in self.RootNotes.TitlesList:
                         self.RootNotes.TitlesList.append(rootTitleStr)
                         if self.processingFlags.populateRootTitlesDict:
-                            self.RootNotes.TitlesDict[rootTitleStr][enNote.guid] = enNote.title.Base()
-                            self.RootNotes.NotesDict[rootTitleStr][enNote.guid] = enNote
+                            self.RootNotes.TitlesDict[rootTitleStr][enNote.Guid] = enNote.Title.Base()
+                            self.RootNotes.NotesDict[rootTitleStr][enNote.Guid] = enNote
         if self.processingFlags.populateChildRootTitles or self.processingFlags.populateExistingRootTitlesList or self.processingFlags.populateExistingRootTitlesDict:
-            if enNote.isRoot:
-                rootTitle = enNote.title
-                rootTitleStr = generateTOCTitle(rootTitle.title)
-                rootGuid = enNote.guid
+            if enNote.IsRoot:
+                rootTitle = enNote.Title
+                rootTitleStr = generateTOCTitle(rootTitle)
+                rootGuid = enNote.Guid
                 if self.processingFlags.populateExistingRootTitlesList or self.processingFlags.populateExistingRootTitlesDict or self.processingFlags.populateMissingRootTitlesList:
                     if not rootTitleStr in self.RootNotesExisting.TitlesList:
                         self.RootNotesExisting.TitlesList.append(rootTitleStr)
@@ -153,7 +173,7 @@ class EvernoteNotes:
                     for childDbNote in childNotes:
                         child_count += 1
                         childGuid = childDbNote['guid']
-                        childEnNote = EvernoteNote(db_note=childDbNote)
+                        childEnNote = EvernoteNotePrototype(db_note=childDbNote)
                         if child_count is 1:
                             self.RootNotesChildren.TitlesDict[rootGuid] = {}
                             self.RootNotesChildren.NotesDict[rootGuid] = {}
@@ -206,16 +226,15 @@ class EvernoteNotes:
         query = "title NOT LIKE '%%:%%'"
         if self.processingFlags.ignoreAutoTOCAsRootTitle:
             query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.AUTO_TOC
+        if self.processingFlags.ignoreOutlineAsRootTitle:
+            query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.OUTLINE
         self.addDbQuery(query, 'title ASC')
 
     def populateAllNonCustomRootNotes(self):
         return self.populateAllRootNotesMissing(True, True)
 
     def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False, ignoreOutlineAsRootTitle=False):
-        """
 
-        :rtype : object
-        """
         processingFlags = EvernoteNoteProcessingFlags(False)
         processingFlags.populateMissingRootTitlesList = True
         processingFlags.populateMissingRootTitlesDict = True
@@ -243,12 +262,16 @@ class EvernoteNotes:
         return self.processAllRootNotesMissing()
 
     def processAllRootNotesMissing(self):
+        """:rtype : list[EvernoteTOCEntry]"""
+        DEBUG_HTML = True
         count = 0
         count_isolated = 0
         # log (" CREATING TOC's "        , 'tocList', clear=True, timestamp=False)
-        # log ("------------------------------------------------"        , 'tocList', timestamp=False)     
-        # ols = []
+        # log ("------------------------------------------------"        , 'tocList', timestamp=False)
+        # if DEBUG_HTML: log('<h1>CREATING TOCs</h1>', 'extra\\logs\\anknotes-toc-ols\\toc-index.htm', timestamp=False, clear=True, extension='htm')
+        ols = []
         dbRows = []
+        """:type : list[EvernoteTOCEntry]"""
         ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.EVERNOTE.AUTO_TOC)
         # olsz = None
         for rootTitleStr in self.RootNotesMissing.TitlesList:
@@ -266,7 +289,7 @@ class EvernoteNotes:
                 childBaseTitle = childTitlesDictSortedKeys[0]
                 childGuid = self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitle]
                 enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
-                # tags = enChildNote.tags
+                # tags = enChildNote.Tags
                 log("  > ISOLATED ROOT TITLE: [%-3d]:  %-40s --> %-20s: %s %s" % (
                     count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles-Isolated',
                     timestamp=False)
@@ -277,23 +300,23 @@ class EvernoteNotes:
                 # tocList = TOCList(rootTitleStr)
                 tocHierarchy = TOCHierarchyClass(rootTitleStr)
                 if outline:
-                    tocHierarchy.outline = TOCHierarchyClass(note=outline)
-                    tocHierarchy.outline.parent = tocHierarchy
+                    tocHierarchy.Outline = TOCHierarchyClass(note=outline)
+                    tocHierarchy.Outline.parent = tocHierarchy
 
                 for childBaseTitle in childTitlesDictSortedKeys:
                     count_child += 1
                     childGuid = self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitle]
                     enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
                     if count_child == 1:
-                        tags = enChildNote.tags
+                        tags = enChildNote.Tags
                     else:
-                        tags = [x for x in tags if x in enChildNote.tags]
-                    if not enChildNote.notebookGuid in notebookGuids:
-                        notebookGuids[enChildNote.notebookGuid] = 0
-                    notebookGuids[enChildNote.notebookGuid] += 1
-                    level = enChildNote.title.Count()
-                    # childName = enChildNote.title.Name().title
-                    # childTitle = enChildNote.title.title
+                        tags = [x for x in tags if x in enChildNote.Tags]
+                    if not enChildNote.NotebookGuid in notebookGuids:
+                        notebookGuids[enChildNote.NotebookGuid] = 0
+                    notebookGuids[enChildNote.NotebookGuid] += 1
+                    level = enChildNote.Title.Level
+                    # childName = enChildNote.Title.Name
+                    # childTitle = enChildNote.Title.FullTitle
                     log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
                         'RootTitles-Missing', timestamp=False)
                     # tocList.generateEntry(childTitle, enChildNote)                    
@@ -310,13 +333,13 @@ class EvernoteNotes:
                 # file_object.close()
 
                 ol = tocHierarchy.GetOrderedList()
-                dbRows.append([realTitle, ol, ',' + ','.join(tags) + ',', notebookGuid])
+                dbRows.append(EvernoteTOCEntry(realTitle, ol, ',' + ','.join(tags) + ',', notebookGuid))
                 # ol = realTitleUTF8
                 # if olsz is None: olsz = ol
                 # olsz += ol
                 # ol = '<OL>\r\n%s</OL>\r\n' 
                 olutf8 = ol.encode('utf8')
-                # ols.append(olutf8)
+                ols.append(olutf8)
                 # strr = tocHierarchy.__str__()
                 fn = 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
                 full_path = os.path.join(ANKNOTES.FOLDER_LOGS, fn)
@@ -326,14 +349,14 @@ class EvernoteNotes:
                 file_object.write(olutf8)
                 file_object.close()
 
-                # log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
+                if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
                 # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
-        # ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
-        # fn = 'extra\\logs\\anknotes-toc-ols\\toc-index.htm'
-        # file_object = open(fn, 'w')
-        # file_object.write(ols_html)
-        # file_object.close()       
-
+        if DEBUG_HTML:
+            ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
+            fn = 'extra\\logs\\anknotes-toc-ols\\toc-index.htm'
+            file_object = open(fn, 'w')
+            file_object.write('<h1>CREATING TOCs</h1>\n\n' + ols_html)
+            file_object.close()
 
         # print dbRows
         ankDB().executemany(
@@ -357,8 +380,8 @@ class EvernoteNotes:
         for rootGuid, childBaseTitleDicts in self.RootNotesChildren.TitlesDict.items():
             rootEnNote = self.Notes[rootGuid]
             if len(childBaseTitleDicts.items()) > 0:
-                is_toc = EVERNOTE.TAG.TOC in rootEnNote.tags
-                is_outline = EVERNOTE.TAG.OUTLINE in rootEnNote.tags
+                is_toc = EVERNOTE.TAG.TOC in rootEnNote.Tags
+                is_outline = EVERNOTE.TAG.OUTLINE in rootEnNote.Tags
                 is_both = is_toc and is_outline
                 is_none = not is_toc and not is_outline
                 is_toc_outline_str = "BOTH ???" if is_both else "TOC" if is_toc else "OUTLINE" if is_outline else "N/A"

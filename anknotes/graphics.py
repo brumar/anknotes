@@ -1,8 +1,7 @@
 from anknotes.constants import *
 ### Anki Imports
 try:
-    # noinspection PyUnresolvedReferences
-    from aqt.qt import QIcon, QPixmap
+        from aqt.qt import QIcon, QPixmap
 except:
     pass
 

@@ -9,17 +9,17 @@ except ImportError:
 
 ### Anknotes Imports
 from anknotes.shared import *
-from anknotes.enums import *
 from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
 
 ### Evernote Imports 
-from evernote.edam.type.ttypes import Note
+from evernote.edam.type.ttypes import Note as EvernoteNote
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
 from evernote.api.client import EvernoteClient
 
+from aqt.utils import openLink
 
 ### Anki Imports
 # import anki
@@ -91,7 +91,7 @@ class Evernote(object):
         """
         Update a Note instance with title and body
         Send Note object to user's account
-        :rtype : (int, evernote.edam.type.ttypes.Note)
+        :rtype : (EvernoteAPIStatus, evernote.edam.type.ttypes.Note)
         :returns Status and Note
         """
         return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
@@ -122,12 +122,12 @@ class Evernote(object):
         Create or Update a Note instance with title and body
         Send Note object to user's account
         :type noteTitle: str
-        :rtype : (int, evernote.edam.type.ttypes.Note)
+        :rtype : (EvernoteAPIStatus, EvernoteNote)
         :returns Status and Note
         """
         callType = "create"
 
-        ourNote = Note()
+        ourNote = EvernoteNote()
         ourNote.title = noteTitle.encode('utf-8')
         if guid:
             callType = "update"
@@ -156,11 +156,11 @@ class Evernote(object):
         except EDAMSystemException as e:
             if HandleEDAMRateLimitError(e, api_action_str):
                 if DEBUG_RAISE_API_ERRORS: raise
-                return 1, None
+                return EvernoteAPIStatus.RateLimitError, None
         except socket.error, v:
             if HandleSocketError(v, api_action_str):
                 if DEBUG_RAISE_API_ERRORS: raise
-                return 2, None
+                return EvernoteAPIStatus.SocketError, None
         except EDAMUserException, edue:
             ## Something was wrong with the note data
             ## See EDAMErrorCode enumeration for error code explanation
@@ -172,7 +172,7 @@ class Evernote(object):
             log_error(str(ourNote.content))
             log_error("-------------------------------------------------\r\n")
             if DEBUG_RAISE_API_ERRORS: raise
-            return 3, None
+            return EvernoteAPIStatus.UserError, None
         except EDAMNotFoundException, ednfe:
             print "EDAMNotFoundException:", ednfe
             log_error("-------------------------------------------------")
@@ -183,7 +183,7 @@ class Evernote(object):
                 log_error(str(ourNote.notebookGuid))
             log_error("-------------------------------------------------\r\n")
             if DEBUG_RAISE_API_ERRORS: raise
-            return 4, None
+            return EvernoteAPIStatus.NotFoundError, None
         except Exception, e:
             print "Unknown Exception:", e
             log_error("-------------------------------------------------")
@@ -191,36 +191,36 @@ class Evernote(object):
             log_error(str(ourNote.tagNames))
             log_error(str(ourNote.content))
             log_error("-------------------------------------------------\r\n")
+            # return EvernoteAPIStatus.UnhandledError, None
             raise
         # noinspection PyUnboundLocalVariable
         note.content = nBody
-        return 0, note
+        return EvernoteAPIStatus.Success, note
 
     def create_evernote_notes(self, evernote_guids=None, use_local_db_only=False):
         """
         Create EvernoteNote objects from Evernote GUIDs using EvernoteNoteFetcher.getNote().
         Will prematurely return if fetcher.getNote fails
 
-        :rtype : (int, int, list[EvernoteNote.EvernoteNote)
+        :rtype : EvernoteNoteFetcherResults
         :param evernote_guids:
         :param use_local_db_only: Do not initiate API calls
-        :return: Tuple of status, local note count, and list of EvernoteNote
+        :return: EvernoteNoteFetcherResults
         """
         if not hasattr(self, 'guids') or evernote_guids: self.evernote_guids = evernote_guids
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()
         notes = []
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
+        if len(evernote_guids) == 0:
+            fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
+            return fetcher.results 
         fetcher.keepEvernoteTags = self.keepEvernoteTags
-        local_count = 0
         for evernote_guid in self.evernote_guids:
             self.evernote_guid = evernote_guid
             if not fetcher.getNote(evernote_guid):
-                return fetcher.result.status, local_count, notes
-            if fetcher.result.source is 1:
-                local_count += 1
-            notes.append(fetcher.result.note)
-        return 0, local_count, notes
+                return fetcher.results
+        return fetcher.results 
 
     def check_ancillary_data_up_to_date(self):
         if not self.check_tags_up_to_date():

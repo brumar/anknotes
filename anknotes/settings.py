@@ -6,21 +6,15 @@ from anknotes.graphics import *
 
 ### Anki Imports
 try:
-    # noinspection PyUnresolvedReferences
-    import anki
-    # noinspection PyUnresolvedReferences
-    import aqt
-    # noinspection PyUnresolvedReferences
-    from aqt.preferences import Preferences
-    # noinspection PyUnresolvedReferences
-    from aqt.utils import getText, openLink, getOnlyText
-    # noinspection PyUnresolvedReferences
-    from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
+        import anki
+        import aqt
+        from aqt.preferences import Preferences
+        from aqt.utils import getText, openLink, getOnlyText
+        from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
         QComboBox, QSpacerItem, QSizePolicy, QWidget, QSpinBox, QFormLayout, QGridLayout, QFrame, QPalette, \
         QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, \
         QMessageBox, QPixmap
-    # noinspection PyUnresolvedReferences
-    from aqt import mw
+        from aqt import mw
 except:
     pass
 
