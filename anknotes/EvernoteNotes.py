@@ -2,7 +2,7 @@
 ### Python Imports
 from operator import itemgetter
 
-from toc import generateTOCTitle
+from anknotes.EvernoteNoteTitle import generateTOCTitle
 
 try:
     from pysqlite2 import dbapi2 as sqlite
@@ -14,6 +14,7 @@ except ImportError:
 from anknotes.EvernoteNoteTitle import *
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.toc import TOCHierarchyClass
+
 
 class EvernoteNoteProcessingFlags:
     delayProcessing = False
@@ -73,13 +74,13 @@ class EvernoteNotes:
         self.RootNotes = EvernoteNotesCollection()
 
     def addNoteSilently(self, enNote):
-        """:type enNote: EvernoteNote.EvernoteNote"""     
+        """:type enNote: EvernoteNote.EvernoteNote"""
         assert enNote
         self.Notes[enNote.Guid] = enNote
 
     def addNote(self, enNote):
         """:type enNote: EvernoteNote.EvernoteNote"""
-        assert enNote 
+        assert enNote
         self.addNoteSilently(enNote)
         if self.processingFlags.delayProcessing: return
         self.processNote(enNote)
@@ -91,7 +92,7 @@ class EvernoteNotes:
             log(dbNote)
             log(dbNote.keys)
             log(dir(dbNote))
-        assert enNote            
+        assert enNote
         self.addNote(enNote)
 
     def addDBNotes(self, dbNotes):
@@ -131,7 +132,6 @@ class EvernoteNotes:
     def processNote(self, enNote):
         """:type enNote: EvernoteNote.EvernoteNote"""
         if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict or self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
-
             if enNote.IsChild:
                 # log([enNote.Title, enNote.Level, enNote.Title.TitleParts, enNote.IsChild])
                 rootTitle = enNote.Title.Root
@@ -156,7 +156,7 @@ class EvernoteNotes:
                     if not rootTitleStr in self.RootNotes.TitlesList:
                         self.RootNotes.TitlesList.append(rootTitleStr)
                         if self.processingFlags.populateRootTitlesDict:
-                            self.RootNotes.TitlesDict[rootTitleStr][enNote.Guid] = enNote.Title.Base()
+                            self.RootNotes.TitlesDict[rootTitleStr][enNote.Guid] = enNote.Title.Base
                             self.RootNotes.NotesDict[rootTitleStr][enNote.Guid] = enNote
         if self.processingFlags.populateChildRootTitles or self.processingFlags.populateExistingRootTitlesList or self.processingFlags.populateExistingRootTitlesDict:
             if enNote.IsRoot:
@@ -177,7 +177,7 @@ class EvernoteNotes:
                         if child_count is 1:
                             self.RootNotesChildren.TitlesDict[rootGuid] = {}
                             self.RootNotesChildren.NotesDict[rootGuid] = {}
-                        childBaseTitle = childEnNote.Title.Base()
+                        childBaseTitle = childEnNote.Title.Base
                         self.RootNotesChildren.TitlesDict[rootGuid][childGuid] = childBaseTitle
                         self.RootNotesChildren.NotesDict[rootGuid][childGuid] = childEnNote
 
@@ -230,11 +230,28 @@ class EvernoteNotes:
             query += " AND tagNames NOT LIKE '%%,%s,%%'" % EVERNOTE.TAG.OUTLINE
         self.addDbQuery(query, 'title ASC')
 
+    def populateAllPotentialRootNotes(self):
+        self.RootNotesMissing = EvernoteNotesCollection()
+        processingFlags = EvernoteNoteProcessingFlags(False)
+        processingFlags.populateMissingRootTitlesList = True
+        processingFlags.populateMissingRootTitlesDict = True
+        self.processingFlags = processingFlags
+
+        log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles-TOC', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles-TOC', timestamp=False)
+        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles-Isolated', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles-Isolated', timestamp=False)
+        self.getChildNotes()
+        log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles-TOC',
+            timestamp=False)
+        self.RootNotesMissing.TitlesList = sorted(self.RootNotesMissing.TitlesList, key=lambda s: s.lower())
+
+        return self.processAllRootNotesMissing()
+
     def populateAllNonCustomRootNotes(self):
         return self.populateAllRootNotesMissing(True, True)
 
     def populateAllRootNotesMissing(self, ignoreAutoTOCAsRootTitle=False, ignoreOutlineAsRootTitle=False):
-
         processingFlags = EvernoteNoteProcessingFlags(False)
         processingFlags.populateMissingRootTitlesList = True
         processingFlags.populateMissingRootTitlesDict = True
@@ -263,7 +280,7 @@ class EvernoteNotes:
 
     def processAllRootNotesMissing(self):
         """:rtype : list[EvernoteTOCEntry]"""
-        DEBUG_HTML = True
+        DEBUG_HTML = False
         count = 0
         count_isolated = 0
         # log (" CREATING TOC's "        , 'tocList', clear=True, timestamp=False)
@@ -271,6 +288,7 @@ class EvernoteNotes:
         # if DEBUG_HTML: log('<h1>CREATING TOCs</h1>', 'extra\\logs\\anknotes-toc-ols\\toc-index.htm', timestamp=False, clear=True, extension='htm')
         ols = []
         dbRows = []
+        returns = []
         """:type : list[EvernoteTOCEntry]"""
         ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.EVERNOTE.AUTO_TOC)
         # olsz = None
@@ -295,7 +313,7 @@ class EvernoteNotes:
                     timestamp=False)
             else:
                 count += 1
-                log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles-Missing',
+                log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles-TOC',
                     timestamp=False)
                 # tocList = TOCList(rootTitleStr)
                 tocHierarchy = TOCHierarchyClass(rootTitleStr)
@@ -318,7 +336,7 @@ class EvernoteNotes:
                     # childName = enChildNote.Title.Name
                     # childTitle = enChildNote.Title.FullTitle
                     log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
-                        'RootTitles-Missing', timestamp=False)
+                        'RootTitles-TOC', timestamp=False)
                     # tocList.generateEntry(childTitle, enChildNote)                    
                     tocHierarchy.addNote(enChildNote)
                 realTitle = ankDB().scalar(
@@ -333,29 +351,37 @@ class EvernoteNotes:
                 # file_object.close()
 
                 ol = tocHierarchy.GetOrderedList()
-                dbRows.append(EvernoteTOCEntry(realTitle, ol, ',' + ','.join(tags) + ',', notebookGuid))
+                tocEntry = EvernoteTOCEntry(realTitle, ol, ',' + ','.join(tags) + ',', notebookGuid)
+                returns.append(tocEntry)
+                dbRows.append(tocEntry.items())
                 # ol = realTitleUTF8
                 # if olsz is None: olsz = ol
                 # olsz += ol
                 # ol = '<OL>\r\n%s</OL>\r\n' 
-                olutf8 = ol.encode('utf8')
-                ols.append(olutf8)
-                # strr = tocHierarchy.__str__()
-                fn = 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
-                full_path = os.path.join(ANKNOTES.FOLDER_LOGS, fn)
-                if not os.path.exists(os.path.dirname(full_path)):
-                    os.mkdir(os.path.dirname(full_path))
-                file_object = open(full_path, 'w')
-                file_object.write(olutf8)
-                file_object.close()
 
-                if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
-                # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
+                # strr = tocHierarchy.__str__()
+                if DEBUG_HTML:
+                    ols.append(ol)
+                    olutf8 = ol.encode('utf8')
+                    fn = 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
+                    full_path = os.path.join(ANKNOTES.FOLDER_LOGS, fn)
+                    if not os.path.exists(os.path.dirname(full_path)):
+                        os.mkdir(os.path.dirname(full_path))
+                    file_object = open(full_path, 'w')
+                    file_object.write(olutf8)
+                    file_object.close()
+
+                    # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
+                    # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
         if DEBUG_HTML:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
-            fn = 'extra\\logs\\anknotes-toc-ols\\toc-index.htm'
-            file_object = open(fn, 'w')
-            file_object.write('<h1>CREATING TOCs</h1>\n\n' + ols_html)
+            fn = 'anknotes-toc-ols\\toc-index.htm'
+            file_object = open(os.path.join(ANKNOTES.FOLDER_LOGS, fn), 'w')
+            try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
+            except:
+                try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
+                except: pass
+
             file_object.close()
 
         # print dbRows
@@ -364,7 +390,7 @@ class EvernoteNotes:
             dbRows)
         ankDB().commit()
 
-        return dbRows
+        return returns
 
     def populateAllRootNotesWithoutTOCOrOutlineDesignation(self):
         processingFlags = EvernoteNoteProcessingFlags()

@@ -37,9 +37,11 @@ mult in 1.38282775879e-05 sec
 __version__ = '0.3.1'
 __author__ = 'John Paulett <http://blog.7oars.com>'
 
+
 class Timer(object):
     __times__ = []
     __stopped = None
+
     def __init__(self, begin=True):
         if begin:
             self.reset()
@@ -66,21 +68,24 @@ class Timer(object):
         of seconds from the instance creation until stop() was called.
         """
         return self.__last_time() - self.__start
+
     elapsed = property(elapsed)
-    
+
     def start_time(self):
         """The time at which the Timer instance was created.
         """
         return self.__start
+
     start_time = property(start_time)
-    
+
     def stop_time(self):
         """The time at which stop() was called, or None if stop was 
         never called.
         """
-        return self.__stopped 
-    stop_time = property(stop_time)        
-    
+        return self.__stopped
+
+    stop_time = property(stop_time)
+
     def __last_time(self):
         """Return the current time or the time at which stop() was call,
         if called at all.
@@ -88,24 +93,27 @@ class Timer(object):
         if self.__stopped is not None:
             return self.__stopped
         return self.__time()
-    
+
     def __time(self):
         """Wrapper for time.time() to allow unit testing.
         """
         return time.time()
-    
+
     def __str__(self):
         """Nicely format the elapsed time
         """
-        if self.elapsed < 60:
-            return str(self.elapsed) + ' sec'
-        m, s = divmod(self.elapsed, 60)
+        total_seconds = int(round(self.elapsed))
+        if total_seconds < 60:
+            return str(total_seconds) + ' sec'
+        m, s = divmod(total_seconds, 60)
         return '%dm %dsec' % (m, s)
+
 
 def clockit(func):
     """Function decorator that times the evaluation of *func* and prints the
     execution time.
     """
+
     def new(*args, **kw):
         t = Timer()
         retval = func(*args, **kw)
@@ -113,4 +121,5 @@ def clockit(func):
         log('Function %s completed in %s' % (func.__name__, t), "clockit")
         del t
         return retval
+
     return new

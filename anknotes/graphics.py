@@ -1,7 +1,7 @@
 from anknotes.constants import *
 ### Anki Imports
 try:
-        from aqt.qt import QIcon, QPixmap
+    from aqt.qt import QIcon, QPixmap
 except:
     pass
 

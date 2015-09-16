@@ -17,7 +17,6 @@ ENNotes = file(os.path.join(PATH, "^ Scratch Note.enex"), 'r').read()
 all_notes = ankDB().execute("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTES)
 find_guids = {}
 
-
 for line in all_notes:
     # line = line.split('::: ')
     # guid = line[0]

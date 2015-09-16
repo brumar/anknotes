@@ -1,11 +1,13 @@
 ### Anknotes Shared Imports
 from anknotes.shared import *
 
+
 def generateTOCTitle(title):
     title = EvernoteNoteTitle.titleObjectToString(title).upper()
     for chr in u'?????':
         title = title.replace(chr.upper(), chr)
     return title
+
 
 class EvernoteNoteTitle:
     level = 0
@@ -41,23 +43,23 @@ class EvernoteNoteTitle:
         return self.Level - 1
 
     def Parts(self, level=-1):
-        return self.Slice(level)    
-            
+        return self.Slice(level)
+
     def Part(self, level=-1):
         mySlice = self.Parts(level)
         if not mySlice: return None
         return mySlice.Root
-        
+
     def BaseParts(self, level=None):
         return self.Slice(1, level)
 
     def Parents(self, level=-1):
         # noinspection PyTypeChecker
         return self.Slice(None, level)
-    
+
     def Names(self, level=-1):
         return self.Parts(level)
-    
+
     @property
     def TOCTitle(self):
         return generateTOCTitle(self.FullTitle)
@@ -86,7 +88,7 @@ class EvernoteNoteTitle:
         # print "Slicing: <%s> %s ~ %d,%d" % (type(self.Title), self.Title, start, end)
         oldParts = self.TitleParts
         # print "Slicing: %s ~ %d,%d from parts %s" % (self.Title, start, end, str(oldParts))
-        assert self.FullTitle and oldParts 
+        assert self.FullTitle and oldParts
         if start is None and end is None:
             print "Slicing: %s ~ %d,%d from parts %s" % (self.FullTitle, start, end, str(oldParts))
         assert start is not None or end is not None
@@ -121,57 +123,71 @@ class EvernoteNoteTitle:
         return self.IsLevel(1)
 
     @staticmethod
-    def titleObjectToString(title):
+    def titleObjectToString(title, recursion=0):
         """
         :param title: Title in string, unicode, dict, sqlite, TOCKey or NoteTitle formats. Note objects are also parseable
         :type title: None | str | unicode | dict[str,str] | sqlite.Row | EvernoteNoteTitle
         :return: string Title
         :rtype: str
         """
+        # if recursion == 0:
+        #     strr = str_safe(title)
+        #     try: log(u'\n---------------------------------%s' % strr, 'tOTS', timestamp=False)
+        #     except: log(u'\n---------------------------------%s' % '[UNABLE TO DISPLAY TITLE]', 'tOTS', timestamp=False)
+        #     pass
+
         if title is None:
-            #log('titleObjectToString: NoneType', 'tOTS')
+            # log('NoneType', 'tOTS', timestamp=False)
             return ""
         if isinstance(title, str) or isinstance(title, unicode):
-            #log('titleObjectToString: str/unicode', 'tOTS')
+            # log('str/unicode', 'tOTS', timestamp=False)
             return title
-        if hasattr(title, 'FullTitle'): 
-            #log('titleObjectToString: FullTitle', 'tOTS')
+        if hasattr(title, 'FullTitle'):
+            # log('FullTitle', 'tOTS', timestamp=False)
             title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
-        elif hasattr(title, 'Title'): 
-            #log('titleObjectToString: Title', 'tOTS')
+        elif hasattr(title, 'Title'):
+            # log('Title', 'tOTS', timestamp=False)
             title = title.Title() if callable(title.Title) else title.Title
-        elif hasattr(title, 'title'): 
-            #log('titleObjectToString: title', 'tOTS')
+        elif hasattr(title, 'title'):
+            # log('title', 'tOTS', timestamp=False)
             title = title.title() if callable(title.title) else title.title
         else:
             try:
                 if hasattr(title, 'keys'):
                     keys = title.keys() if callable(title.keys) else title.keys
-                    if 'title' in keys: 
-                        #log('titleObjectToString: keys[title]', 'tOTS')
+                    if 'title' in keys:
+                        # log('keys[title]', 'tOTS', timestamp=False)
                         title = title['title']
-                    elif 'Title' in keys: 
-                        #log('titleObjectToString: keys[Title]', 'tOTS')
-                        title = title['Title']                              
-                elif 'title' in title: 
-                    #log('titleObjectToString: [title]', 'tOTS')
+                    elif 'Title' in keys:
+                        # log('keys[Title]', 'tOTS', timestamp=False)
+                        title = title['Title']
+                    elif len(keys) == 0:
+                        # log('keys[empty dict?]', 'tOTS', timestamp=False)
+                        raise
+                    else:
+                        # log('keys[Unknown Attr]: %s' % str(keys), 'tOTS', timestamp=False)
+                        return ""
+                elif 'title' in title:
+                    # log('[title]', 'tOTS', timestamp=False)
                     title = title['title']
-                elif 'Title' in title: 
-                    #log('titleObjectToString: [Title]', 'tOTS')
-                    title = title['Title']          
+                elif 'Title' in title:
+                    # log('[Title]', 'tOTS', timestamp=False)
+                    title = title['Title']
                 elif FIELDS.TITLE in title:
-                    #log('titleObjectToString: [FIELDS.TITLE]', 'tOTS')
-                    title = title[FIELDS.TITLE] 
+                    # log('[FIELDS.TITLE]', 'tOTS', timestamp=False)
+                    title = title[FIELDS.TITLE]
                 else:
-                    #log('titleObjectToString: Nothing Found', 'tOTS')
-                    #log(title)
-                    #log(title.keys())
+                    # log('Nothing Found', 'tOTS', timestamp=False)
+                    # log(title)
+                    # log(title.keys())
                     return title
-            except: 
-                #log('titleObjectToString: except', 'tOTS')
-                #log(title)
-                return title
-        return EvernoteNoteTitle.titleObjectToString(title)
+            except:
+                log('except', 'tOTS', timestamp=False)
+                log(title, 'toTS', timestamp=False)
+                raise LookupError
+        recursion += 1
+        # log(u'recursing %d: ' % recursion, 'tOTS', timestamp=False)
+        return EvernoteNoteTitle.titleObjectToString(title, recursion)
 
     @property
     def FullTitle(self):
@@ -182,8 +198,9 @@ class EvernoteNoteTitle:
         """:type titleObj: str | unicode | sqlite.Row | EvernoteNoteTitle | evernote.edam.type.ttypes.Note | EvernoteNotePrototype.EvernoteNotePrototype  """
         self.__title__ = self.titleObjectToString(titleObj)
 
+
 def generateTitleParts(title):
-    title = EvernoteNoteTitle.titleObjectToString(title)    
+    title = EvernoteNoteTitle.titleObjectToString(title)
     try:
         strTitle = re.sub(':+', ':', title)
     except:
@@ -204,4 +221,3 @@ def generateTitleParts(title):
             raise
         partsText[i - 1] = txt
     return partsText
-

@@ -11,10 +11,7 @@ from evernote.edam.error.ttypes import EDAMSystemException
 
 
 class EvernoteNoteFetcher(object):
-
-
-
-    def __init__(self, evernote, evernote_guid=None, use_local_db_only=False):
+    def __init__(self, evernote=None, evernote_guid=None, use_local_db_only=False):
         """
 
         :type evernote: ankEvernote.Evernote
@@ -23,16 +20,18 @@ class EvernoteNoteFetcher(object):
         self.result = EvernoteNoteFetcherResult()
         self.api_calls = 0
         self.keepEvernoteTags = True
-        self.evernote = evernote
         self.tagNames = []
+        self.tagGuids = []
         self.use_local_db_only = use_local_db_only
         self.__update_sequence_number__ = -1
         if not evernote_guid:
             self.evernote_guid = ""
             return
         self.evernote_guid = evernote_guid
-        if not self.use_local_db_only:
-            self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
+        if evernote:
+            self.evernote = evernote
+            if not self.use_local_db_only:
+                self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
         self.getNote()
 
     def UpdateSequenceNum(self):
@@ -42,19 +41,19 @@ class EvernoteNoteFetcher(object):
 
     def reportSuccess(self, note, source=None):
         self.reportResult(EvernoteAPIStatus.Success, note, source)
-    
-    def reportResult(self, status=None, note=None, source=None):         
+
+    def reportResult(self, status=None, note=None, source=None):
         if note:
-            self.result.Note = note             
+            self.result.Note = note
             status = EvernoteAPIStatus.Success
             if not source:
                 source = 2
-        if status: 
+        if status:
             self.result.Status = status
         if source:
-            self.result.Source = source         
-        self.results.reportResult(self.result)        
-        
+            self.result.Source = source
+        self.results.reportResult(self.result)
+
     def getNoteLocal(self):
         # Check Anknotes database for note
         query = "SELECT guid, title, content, notebookGuid, tagNames, updateSequenceNum FROM %s WHERE guid = '%s'" % (
@@ -68,11 +67,18 @@ class EvernoteNoteFetcher(object):
             log("                   > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
         assert db_note['guid'] == self.evernote_guid
         self.reportSuccess(EvernoteNotePrototype(db_note=db_note), 1)
-        self.tagNames = self.result.Note.TagNames if self.keepEvernoteTags else []        
+        self.tagNames = self.result.Note.TagNames if self.keepEvernoteTags else []
         return True
 
-    def addNoteFromServerToDB(self):
-        # Note that values inserted into the db need to be converted from byte strings (utf-8) to unicode
+    def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
+        """
+        Adds note to Anknote DB from an Evernote Note object provided by the Evernote API
+        :type whole_note : evernote.edam.type.ttypes.Note
+        """
+        if whole_note:
+            self.whole_note = whole_note
+        if tag_names:
+            self.tagNames = tag_names
         title = self.whole_note.title
         content = self.whole_note.content
         tag_names = u',' + u','.join(self.tagNames).decode('utf-8') + u','
@@ -85,6 +91,8 @@ class EvernoteNoteFetcher(object):
         title = title.replace(u'\'', u'\'\'')
         content = content.replace(u'\'', u'\'\'')
         tag_names = tag_names.replace(u'\'', u'\'\'')
+        if not self.tagGuids:
+            self.tagGuids = self.whole_note.tagGuids
         sql_query_header = u'INSERT OR REPLACE INTO `%s`' % TABLES.EVERNOTE.NOTES
         sql_query_header_history = u'INSERT INTO `%s`' % TABLES.EVERNOTE.NOTES_HISTORY
         sql_query_columns = u'(`guid`,`title`,`content`,`updated`,`created`,`updateSequenceNum`,`notebookGuid`,`tagGuids`,`tagNames`) VALUES (\'%s\',\'%s\',\'%s\',%d,%d,%d,\'%s\',\'%s\',\'%s\');' % (
@@ -126,11 +134,15 @@ class EvernoteNoteFetcher(object):
         # return None
         if not self.getNoteRemoteAPICall(): return False
         self.api_calls += 1
-        self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)        
+        self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)
         self.addNoteFromServerToDB()
         if not self.keepEvernoteTags: self.tagNames = []
-        self.reportSuccess(EvernoteNotePrototype(whole_note=self.whole_note, tags=self.tagNames))        
+        self.reportSuccess(EvernoteNotePrototype(whole_note=self.whole_note, tags=self.tagNames))
         return True
+
+    def setNote(self, whole_note):
+        self.whole_note = whole_note
+        self.addNoteFromServerToDB()
 
     def getNote(self, evernote_guid=None):
         if evernote_guid:

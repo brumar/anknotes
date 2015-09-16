@@ -3,7 +3,13 @@
 import socket
 import stopwatch
 from StringIO import StringIO
-from lxml import etree
+
+try:
+    from lxml import etree
+
+    eTreeImported = True
+except:
+    eTreeImported = False
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -13,15 +19,19 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.error import *
 
-### Anknotes Class Imports
-from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
+if not eTreeImported:
+    ### Anknotes Class Imports
+    from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
 
-### Evernote Imports 
-from evernote.edam.type.ttypes import Note as EvernoteNote
-from evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
-from evernote.api.client import EvernoteClient
+    ### Evernote Imports
+    from anknotes.evernote.edam.type.ttypes import Note as EvernoteNote
+    from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
+    from anknotes.evernote.api.client import EvernoteClient
 
-from aqt.utils import openLink, getText
+    try:
+        from aqt.utils import openLink, getText, showInfo
+    except: pass
+
 
 ### Anki Imports
 # import anki
@@ -42,14 +52,19 @@ class Evernote(object):
     tag_data = {}
     """:type : dict[str, anknotes.structs.EvernoteTag]"""
     DTD = None
+    hasValidator = None
 
     def __init__(self):
-        auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
-        self.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
+        global eTreeImported, dbLocal
         self.tag_data = {}
         self.notebook_data = {}
         self.noteStore = None
         self.getNoteCount = 0
+        self.hasValidator = eTreeImported
+        if ankDBIsLocal():
+            return
+        self.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
+        auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
             secrets = {'holycrepe': '36f46ea5dec83d4a', 'scriptkiddi-2682': '965f1873e4df583c'}
@@ -90,33 +105,32 @@ class Evernote(object):
             raise
         return 0
 
-    def validateNoteBody(self, noteBody,title="Note Body"):
+    def validateNoteBody(self, noteBody, title="Note Body"):
         timerFull = stopwatch.Timer()
         timerInterval = stopwatch.Timer(False)
-
         if not self.DTD:
             timerInterval.reset()
-            log("Loading ENML DTD", "lxml")
+            log("Loading ENML DTD", "lxml", timestamp=False, do_print=True)
             self.DTD = etree.DTD(ANKNOTES.ENML_DTD)
-            log("DTD Loaded in %s" % str(timerInterval), "lxml")
+            log("DTD Loaded in %s" % str(timerInterval), "lxml", timestamp=False, do_print=True)
             timerInterval.stop()
 
         timerInterval.reset()
-        log("Loading XML for %s" % title, "lxml")
+        log("Loading XML for %s" % title, "lxml", timestamp=False, do_print=False)
         try:
-            tree = etree.parse(noteBody)
+            tree = etree.parse(StringIO(noteBody))
         except Exception as e:
             timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
             log_str = "XML Loading of %s failed.%s\n    - Error Details: %s"
             log_str_error = log_str % (title, '', str(e))
             log_str = log_str % (title, timer_header, str(e))
-            log(log_str, "lxml")
+            log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str_error)
-            return False
-        log("XML Loaded in %s" % str(timerInterval), "lxml")
+            return False, log_str_error
+        log("XML Loaded in %s for %s" % (str(timerInterval), title), "lxml", timestamp=False, do_print=False)
         # timerInterval.stop()
         timerInterval.reset()
-        log("Validating %s with ENML DTD" % title, "lxml")
+        log("Validating %s with ENML DTD" % title, "lxml", timestamp=False, do_print=False)
         try:
             success = self.DTD.validate(tree)
         except Exception as e:
@@ -124,19 +138,24 @@ class Evernote(object):
             log_str = "DTD Validation of %s failed.%s\n    - Error Details: %s"
             log_str_error = log_str % (title, '', str(e))
             log_str = log_str % (title, timer_header, str(e))
-            log(log_str, "lxml")
+            log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str_error)
-            return False
-        log("Validation %s in %s. Entire process took %s" % ("Succeeded" if success else "Failed", str(timerInterval), str(timerFull)), "lxml")
+            return False, log_str_error
+        log("Validation %s in %s. Entire process took %s" % (
+        "Succeeded" if success else "Failed", str(timerInterval), str(timerFull)), "lxml", timestamp=False,
+            do_print=False)
         if not success:
-            log_str = "DTD Validation Errors for %s: \n%s\n" % (title, self.DTD.error_log.filter_from_errors())
+            print "Validation %-9s for %s" % ("Succeeded" if success else "Failed", title)
+        errors = self.DTD.error_log.filter_from_errors()
+        if not success:
+            log_str = "DTD Validation Errors for %s: \n%s\n" % (title, errors)
             log(log_str)
             log_error(log_str)
         timerInterval.stop()
         timerFull.stop()
         del timerInterval
         del timerFull
-        return success
+        return success, errors
 
     def validateNoteContent(self, content, title="Note Contents"):
         """
@@ -176,7 +195,25 @@ class Evernote(object):
             nBody = nBody.encode('utf-8')
         return nBody
 
-    def makeNote(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[], guid=None):
+    def addNoteToMakeNoteQueue(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[],
+                               guid=None):
+        sql = "SELECT validation_status FROM %s WHERE " % TABLES.MAKE_NOTE_QUEUE
+        if guid:
+            sql += "guid = '%s'" % guid
+        else:
+            sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
+        status = ankDB().execute(sql)
+        if status is 1:
+            return EvernoteAPIStatus.Success
+        # log_sql(sql)
+        # log_sql([ guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook])
+        ankDB().execute(
+            "INSERT INTO %s(guid, title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?, ?)" % TABLES.MAKE_NOTE_QUEUE,
+            guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook)
+        return EvernoteAPIStatus.RequestQueued
+
+    def makeNote(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[], guid=None,
+                 validated=None):
         """
         Create or Update a Note instance with title and body
         Send Note object to user's account
@@ -187,6 +224,15 @@ class Evernote(object):
         """
         callType = "create"
 
+        if validated is None:
+            if not ANKNOTES.ENABLE_VALIDATION:
+                validated = True
+            else:
+                validation_status = self.addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames, parentNotebook,
+                                                                resources, guid)
+                if not validation_status.IsSuccess and not self.hasValidator:
+                    return validation_status, None
+
         ourNote = EvernoteNote()
         ourNote.title = noteTitle.encode('utf-8')
         if guid:
@@ -195,19 +241,26 @@ class Evernote(object):
 
             ## Build body of note  
         nBody = self.makeNoteBody(noteContents, resources)
-        if not self.validateNoteBody(nBody, ourNote.title):
-            return EvernoteAPIStatus.UserError, None
+        if not validated is True and not validation_status.IsSuccess:
+            success, errors = self.validateNoteBody(nBody, ourNote.title)
+            if not success:
+                return EvernoteAPIStatus.UserError, None
         ourNote.content = nBody
 
-        if '' in tagNames: tagNames.remove('')
+        self.initialize_note_store()
+
+        while '' in tagNames: tagNames.remove('')
         if len(tagNames) > 0:
-            if ANKNOTES.EVERNOTE_IS_SANDBOXED:
+            if ANKNOTES.EVERNOTE_IS_SANDBOXED and not '#Sandbox' in tagNames:
                 tagNames.append("#Sandbox")
             ourNote.tagNames = tagNames
 
         ## parentNotebook is optional; if omitted, default notebook is used
-        if parentNotebook and hasattr(parentNotebook, 'guid'):
-            ourNote.notebookGuid = parentNotebook.guid
+        if parentNotebook:
+            if hasattr(parentNotebook, 'guid'):
+                ourNote.notebookGuid = parentNotebook.guid
+            elif isinstance(parentNotebook, str) or isinstance(parentNotebook, unicode):
+                ourNote.notebookGuid = parentNotebook
 
         ## Attempt to create note in Evernote account
 
@@ -276,13 +329,13 @@ class Evernote(object):
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         if len(evernote_guids) == 0:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
-            return fetcher.results 
+            return fetcher.results
         fetcher.keepEvernoteTags = self.keepEvernoteTags
         for evernote_guid in self.evernote_guids:
             self.evernote_guid = evernote_guid
             if not fetcher.getNote(evernote_guid):
                 return fetcher.results
-        return fetcher.results 
+        return fetcher.results
 
     def check_ancillary_data_up_to_date(self):
         if not self.check_tags_up_to_date():
@@ -389,6 +442,3 @@ class Evernote(object):
 
 
 DEBUG_RAISE_API_ERRORS = False
-
-testEN = Evernote()
-testEN.validateNoteBody("Test")

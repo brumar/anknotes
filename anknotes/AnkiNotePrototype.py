@@ -4,11 +4,12 @@ from anknotes.shared import *
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 ### Anki Imports
-import anki
-from anki.notes import Note as AnkiNote
+
 
 try:
-        from aqt import mw
+    import anki
+    from anki.notes import Note as AnkiNote
+    from aqt import mw
 except:
     pass
 
@@ -38,10 +39,12 @@ class AnkiNotePrototype:
     NotebookGuid = ""
     """:type : str"""
     __cloze_count__ = 0
+
     class Counts:
         Updated = 0
         Current = 0
         Max = 1
+
     OriginalGuid = None
     """:type : str"""
     Changed = False
@@ -425,7 +428,8 @@ class AnkiNotePrototype:
         if not (self.Changed or self.update_note_deck()):
             if self._log_update_if_unchanged_:
                 self.log_update("Not updating Note: The fields, tags, and deck are the same")
-            elif (self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
+            elif (
+                    self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
                 self.log_update()
             return False
             # i.e., the note deck has been changed but the tags and fields have not

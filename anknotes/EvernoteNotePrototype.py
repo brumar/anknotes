@@ -1,6 +1,7 @@
-from anknotes.EvernoteNoteTitle import EvernoteNoteTitle 
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 from anknotes.structs import upperFirst
+
 
 class EvernoteNotePrototype:
     ################## CLASS Note ################
@@ -36,7 +37,7 @@ class EvernoteNotePrototype:
         :type whole_note: evernote.edam.type.ttypes.Note
         :type db_note: sqlite.Row
         """
-        
+
         self.Status = -1
         self.TagNames = tags
         if whole_note is not None:
@@ -122,6 +123,6 @@ class EvernoteNotePrototype:
 
     @property
     def IsLevel(self, level_check):
-        return self.Title.IsLevel(level_check)        
-        
-    ################## END CLASS Note ################
+        return self.Title.IsLevel(level_check)
+
+        ################## END CLASS Note ################

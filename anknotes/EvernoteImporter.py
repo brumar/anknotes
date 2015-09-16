@@ -13,40 +13,43 @@ from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
-from toc import generateTOCTitle
+from anknotes.EvernoteNoteTitle import generateTOCTitle
 
 ### Anknotes Main Imports
 from anknotes.Anki import Anki
 from anknotes.ankEvernote import Evernote
 from anknotes.EvernoteNotes import EvernoteNotes
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
-from anknotes import settings
+
+try: from anknotes import settings
+except: pass
 
 ### Evernote Imports 
-from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec, NoteMetadata, NotesMetadataList
-from evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
-from evernote.edam.error.ttypes import EDAMSystemException
+from anknotes.evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec, NoteMetadata, NotesMetadataList
+from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
+from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 
 ### Anki Imports
-from aqt import mw
+try: from aqt import mw
+except: pass
 
 DEBUG_RAISE_API_ERRORS = False
 
+
 class EvernoteImporter:
-    forceAutoPage = False 
-    auto_page_callback = None 
+    forceAutoPage = False
+    auto_page_callback = None
     """:type : lambda"""
     anki = None
     """:type : Anki"""
-    evernote = None 
+    evernote = None
     """:type : Evernote"""
     updateExistingNotes = UpdateExistingNotes.UpdateNotesInPlace
-    
+
     def __init(self):
         self.updateExistingNotes = mw.col.conf.get(SETTINGS.UPDATE_EXISTING_NOTES,
                                                    UpdateExistingNotes.UpdateNotesInPlace)
 
-                                        
     def get_evernote_metadata(self):
         """
         :returns: Metadata Progress Instance
@@ -60,7 +63,8 @@ class EvernoteImporter:
         api_action_str = u'trying to search for note metadata'
         log_api("findNotesMetadata", "[Offset: %d]: Query: '%s'" % (self.MetadataProgress.Offset, query))
         try:
-            result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter, self.MetadataProgress.Offset,
+            result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter,
+                                                               self.MetadataProgress.Offset,
                                                                EVERNOTE.METADATA_QUERY_LIMIT, spec)
             """
             :type: NotesMetadataList
@@ -81,9 +85,7 @@ class EvernoteImporter:
         self.evernote.metadata = self.MetadataProgress.NotesMetadata
         log("                                - Metadata Results: %s" % self.MetadataProgress.Summary, timestamp=False)
         return True
-           
 
-                                                   
     def update_in_anki(self, evernote_guids):
         """ 
         :rtype : EvernoteNoteFetcherResults
@@ -96,13 +98,12 @@ class EvernoteImporter:
     def import_into_anki(self, evernote_guids):
         """ 
         :rtype : EvernoteNoteFetcherResults
-        """    
+        """
         Results = self.evernote.create_evernote_notes(evernote_guids)
         self.anki.notebook_data = self.evernote.notebook_data
         Results.Imported = self.anki.add_evernote_notes(Results.Notes)
         return Results
 
-                                                   
     def check_note_sync_status(self, evernote_guids):
         """
         Check for already existing, up-to-date, local db entries by Evernote GUID
@@ -131,9 +132,7 @@ class EvernoteImporter:
                 log("   > USN check for note '%s': %s: db/current/server = %s,%s,%s" % (
                     evernote_guid, log_info, str(db_usn), str(current_usn), str(server_usn)), 'usn')
         return notes_already_up_to_date
-                                                   
-                                                   
-                                                   
+
     def proceed(self, auto_paging=False):
         self.proceed_start(auto_paging)
         self.proceed_find_metadata(auto_paging)
@@ -159,7 +158,7 @@ class EvernoteImporter:
                 log("    > Note store does not exist. Aborting.")
                 return False
             self.evernote.getNoteCount = 0
-    
+
     def proceed_find_metadata(self, auto_paging=False):
         global latestEDAMRateLimit, latestSocketError
         anki_note_ids = self.anki.get_anknotes_note_ids()
@@ -168,65 +167,65 @@ class EvernoteImporter:
         self.get_evernote_metadata()
         if self.MetadataProgress.Status == EvernoteAPIStatus.RateLimitError:
             m, s = divmod(latestEDAMRateLimit, 60)
-            report_tooltip("   > Error: Delaying Operation",
-                           "Over the rate limit when searching for Evernote metadata<BR>Evernote requested we wait %d:%02d min" % (
-                               m, s), delay=5)
+            report_tooltips("   > Error: Delaying Operation",
+                            "Over the rate limit when searching for Evernote metadata<BR>Evernote requested we wait %d:%02d min" % (
+                                m, s), delay=5)
             mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(auto_paging), False)
             return False
         elif self.MetadataProgress.Status == EvernoteAPIStatus.SocketError:
-            report_tooltip("   > Error: Delaying Operation:",
-                           "%s when searching for Evernote metadata<BR>We will try again in 30 seconds" %
-                           latestSocketError['friendly_error_msg'], delay=5)
+            report_tooltips("   > Error: Delaying Operation:",
+                            "%s when searching for Evernote metadata" %
+                            latestSocketError['friendly_error_msg'], "We will try again in 30 seconds", delay=5)
             mw.progress.timer(30000, lambda: self.proceed(auto_paging), False)
             return False
 
         self.ImportProgress = EvernoteImportProgress(self.anki, self.MetadataProgress)
-        self.ImportProgress.loadAlreadyUpdated(self.check_note_sync_status(self.ImportProgress.GUIDs.Server.Existing.All))
-        log("                                - " + self.ImportProgress.Summary + "\n", timestamp=False)    
-    
+        self.ImportProgress.loadAlreadyUpdated(
+            self.check_note_sync_status(self.ImportProgress.GUIDs.Server.Existing.All))
+        log("                                - " + self.ImportProgress.Summary + "\n", timestamp=False)
+
     def proceed_import_notes(self):
-        self.anki.start_editing()                
+        self.anki.start_editing()
         self.ImportProgress.processResults(self.import_into_anki(self.ImportProgress.GUIDs.Server.New))
         if self.updateExistingNotes is UpdateExistingNotes.UpdateNotesInPlace:
-            self.ImportProgress.processUpdateInPlaceResults(self.update_in_anki(self.ImportProgress.GUIDs.Server.Existing.OutOfDate))
-        elif self.updateExistingNotes is UpdateExistingNotes.DeleteAndUpdate:
+            self.ImportProgress.processUpdateInPlaceResults(
+                self.update_in_anki(self.ImportProgress.GUIDs.Server.Existing.OutOfDate))
+        elif self.updateExistingNotes is UpdateExistingNotes.DeleteAndReAddNotes:
             self.anki.delete_anki_cards(self.ImportProgress.GUIDs.Server.Existing.OutOfDate)
-            self.ImportProgress.processDeleteAndUpdateResults(self.import_into_anki(self.ImportProgress.GUIDs.Server.Existing.OutOfDate))
-        report_tooltip("   > Import Complete", self.ImportProgress.ResultsSummary, prefix='')
+            self.ImportProgress.processDeleteAndUpdateResults(
+                self.import_into_anki(self.ImportProgress.GUIDs.Server.Existing.OutOfDate))
+        report_tooltips("   > Import Complete", self.ImportProgress.ResultsSummaryLines)
         self.anki.stop_editing()
-        self.anki.collection().autosave()    
-    
+        self.anki.collection().autosave()
+
     def proceed_autopage(self):
         if not self.autoPagingEnabled:
-            return 
+            return
         global latestEDAMRateLimit, latestSocketError
-        col = self.anki.collection()    
+        col = self.anki.collection()
         status = self.ImportProgress.Status
-        restart = 0
-        restart_msg = ""
-        restart_title = None
-        suffix = ""
         if status == EvernoteAPIStatus.RateLimitError:
             m, s = divmod(latestEDAMRateLimit, 60)
-            report_tooltip("   > Error: Delaying Auto Paging",
-                           "Over the rate limit when getting Evernote notes<BR>Evernote requested we wait %d:%02d min" % (
-                               m, s), delay=5)
+            report_tooltips("   > Error: Delaying Auto Paging",
+                            "Over the rate limit when getting Evernote notes<BR>Evernote requested we wait %d:%02d min" % (
+                                m, s), delay=5)
             mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(True), False)
             return False
         if status == EvernoteAPIStatus.SocketError:
-            report_tooltip("   > Error: Delaying Auto Paging:",
-                           "%s when getting Evernote notes<BR>We will try again in 30 seconds" % latestSocketError[
-                               'friendly_error_msg'], delay=5)
+            report_tooltips("   > Error: Delaying Auto Paging:",
+                            "%s when getting Evernote notes" % latestSocketError[
+                                'friendly_error_msg'],
+                            "We will try again in 30 seconds", delay=5)
             mw.progress.timer(30000, lambda: self.proceed(True), False)
             return False
         if self.MetadataProgress.IsFinished:
             self.currentPage = 1
             if self.forceAutoPage:
-                report_tooltip("   > Terminating Auto Paging",
-                               "All %d notes have been processed and forceAutoPage is True" % self.MetadataProgress.Total,
-                               delay=5)
+                report_tooltips("   > Terminating Auto Paging",
+                                "All %d notes have been processed and forceAutoPage is True" % self.MetadataProgress.Total,
+                                delay=5)
                 self.auto_page_callback()
-                return True 
+                return True
             elif col.conf.get(EVERNOTE.PAGING_RESTART_WHEN_COMPLETE, True):
                 restart = EVERNOTE.PAGING_RESTART_INTERVAL
                 restart_title = "   > Restarting Auto Paging"
@@ -234,20 +233,22 @@ class EvernoteImporter:
                               self.MetadataProgress.Total
                 suffix = "Per EVERNOTE.PAGING_RESTART_INTERVAL, "
             else:
-                report_tooltip("   > Completed Auto Paging",
-                               "All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is FALSE" %
-                               self.MetadataProgress.Total, delay=5)
-                return True 
-        else: # Paging still in progress 
+                report_tooltips("   > Completed Auto Paging",
+                                "All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is FALSE" %
+                                self.MetadataProgress.Total, delay=5)
+                return True
+        else:  # Paging still in progress
             self.currentPage = self.MetadataProgress.Page + 1
             restart_title = "   > Continuing Auto Paging"
             restart_msg = "Page %d completed. <BR>%d notes remain. <BR>%d of %d notes have been processed" % (
-                self.MetadataProgress.Page, self.MetadataProgress.Remaining, self.MetadataProgress.Completed, self.MetadataProgress.Total)
-            restart = 0 
+                self.MetadataProgress.Page, self.MetadataProgress.Remaining, self.MetadataProgress.Completed,
+                self.MetadataProgress.Total)
+            restart = 0
             if self.forceAutoPage:
                 suffix = "<BR>Not delaying as the forceAutoPage flag is set"
             elif self.ImportProgress.APICallCount < EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS:
-                suffix = "<BR>Not delaying as the API Call Count of %d is less than the minimum of %d set by EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS" % (self.ImportProgress.APICallCount, EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS)
+                suffix = "<BR>Not delaying as the API Call Count of %d is less than the minimum of %d set by EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS" % (
+                self.ImportProgress.APICallCount, EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS)
             else:
                 restart = EVERNOTE.PAGING_TIMER_INTERVAL
                 suffix = "<BR>Delaying Auto Paging: Per EVERNOTE.PAGING_TIMER_INTERVAL, "
@@ -256,16 +257,16 @@ class EvernoteImporter:
             col.conf[SETTINGS.EVERNOTE_PAGINATION_CURRENT_PAGE] = self.currentPage
             col.setMod()
             col.save()
-            
+
         if restart > 0:
             m, s = divmod(restart, 60)
             suffix += "will delay for %d:%02d min before continuing\n" % (m, s)
-        report_tooltip(restart_title, restart_msg + suffix, delay=5)
+        report_tooltips(restart_title, (restart_msg + suffix).split('<BR>'), delay=5)
         if restart > 0:
             mw.progress.timer(restart * 1000, lambda: self.proceed(True), False)
             return False
-        return self.proceed(True)    
-    
+        return self.proceed(True)
+
     @property
     def autoPagingEnabled(self):
-        return  (self.anki.collection().conf.get(SETTINGS.EVERNOTE_AUTO_PAGING, True) or self.forceAutoPage)
+        return self.anki.collection().conf.get(SETTINGS.EVERNOTE_AUTO_PAGING, True) or self.forceAutoPage

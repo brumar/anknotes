@@ -42,6 +42,8 @@ def import_timer_toggle():
 def anknotes_profile_loaded():
     log("Profile Loaded", "load")
     menu.anknotes_load_menu_settings()
+    if ANKNOTES.ENABLE_VALIDATION and ANKNOTES.AUTOMATE_VALIDATION:
+        menu.upload_validated_notes(True)
     import_timer_toggle()
     '''
      For testing purposes only:
@@ -51,6 +53,7 @@ def anknotes_profile_loaded():
         # menu.see_also()
         # menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))
         menu.see_also(3)
+        pass
 
 
 def anknotes_onload():

@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except ImportError:
+    from sqlite3 import dbapi2 as sqlite
 from anknotes.constants import *
 from anknotes.html import generate_evernote_link, generate_evernote_span
 from anknotes.logging import log_dump
-from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle, generateTOCTitle
+from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
+
 
 def TOCNamePriority(title):
     for index, value in enumerate(
@@ -44,7 +50,7 @@ class TOCHierarchyClass:
     Title = None
     """:type : EvernoteNoteTitle"""
     Note = None
-    """:type : EvernoteNote.EvernoteNote"""
+    """:type : EvernoteNotePrototype.EvernoteNotePrototype"""
     Outline = None
     """:type : TOCHierarchyClass"""
     Number = 1
@@ -127,9 +133,10 @@ class TOCHierarchyClass:
         selfLevel = self.Title.Level
         tocTestBase = tocHierarchy.Title.FullTitle.replace(self.Title.FullTitle, '')
         if tocTestBase[:2] == ': ':
-                tocTestBase = tocTestBase[2:]
+            tocTestBase = tocTestBase[2:]
 
-        print " \nAdd Hierarchy: %-70s --> %-40s\n-------------------------------------" % (self.Title.FullTitle, tocTestBase)
+        print " \nAdd Hierarchy: %-70s --> %-40s\n-------------------------------------" % (
+        self.Title.FullTitle, tocTestBase)
 
         if selfLevel > tocHierarchy.Title.Level:
             print "New Title Level is Below current level"
@@ -141,7 +148,7 @@ class TOCHierarchyClass:
         if tocSelfSibling.TOCTitle != selfTOCTitle:
             print "New Title doesn't match current path"
             return False
-        
+
         if tocNewLevel is self.Title.Level:
             if tocHierarchy.IsOutline:
                 tocHierarchy.Parent = self
@@ -151,40 +158,48 @@ class TOCHierarchyClass:
             print "New Title Level is current level, but New Title is not Outline"
             return False
 
-
-        tocNewSelfChild =  tocNewTitle.Parents(self.Title.Level+1)
+        tocNewSelfChild = tocNewTitle.Parents(self.Title.Level + 1)
         tocNewSelfChildTOCName = tocNewSelfChild.TOCName
         isDirectChild = (tocHierarchy.Level == self.Level + 1)
         if isDirectChild:
             tocNewChildNamesTitle = "N/A"
             print "New Title is a direct child of the current title"
         else:
-            tocNewChildNamesTitle = tocHierarchy.Title.Names(self.Title.Level+1).FullTitle
+            tocNewChildNamesTitle = tocHierarchy.Title.Names(self.Title.Level + 1).FullTitle
             print "New Title is a Grandchild or deeper of the current title "
 
         for tocChild in self.Children:
-            assert(isinstance(tocChild, TOCHierarchyClass))
+            assert (isinstance(tocChild, TOCHierarchyClass))
             if tocChild.Title.TOCName == tocNewSelfChildTOCName:
-                print "%-60s Child %-20s Match Succeeded for %s." % (self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+                print "%-60s Child %-20s Match Succeeded for %s." % (
+                self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
                 success = tocChild.addHierarchy(tocHierarchy)
                 if success:
                     return True
-                print "%-60s Child %-20s Match Succeeded for %s: However, unable to add to matched child" % (self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
-        print "%-60s Child %-20s Search failed for %s" % (self.Title.FullTitle + ':', tocNewSelfChild.Name, tocNewChildNamesTitle)
+                print "%-60s Child %-20s Match Succeeded for %s: However, unable to add to matched child" % (
+                self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+        print "%-60s Child %-20s Search failed for %s" % (
+        self.Title.FullTitle + ':', tocNewSelfChild.Name, tocNewChildNamesTitle)
 
         newChild = tocHierarchy if isDirectChild else TOCHierarchyClass(tocNewSelfChild)
         newChild.parent = self
         if isDirectChild:
-            print "%-60s Child %-20s Created Direct Child for %s." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+            print "%-60s Child %-20s Created Direct Child for %s." % (
+            self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
             success = True
         else:
-            print "%-60s Child %-20s Created Title-Only Child for %-40ss." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+            print "%-60s Child %-20s Created Title-Only Child for %-40ss." % (
+            self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
             success = newChild.addHierarchy(tocHierarchy)
-            print "%-60s Child %-20s Created Title-Only Child for %-40s: Match %s." % (self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle, "succeeded" if success else "failed")
+            print "%-60s Child %-20s Created Title-Only Child for %-40s: Match %s." % (
+            self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle,
+            "succeeded" if success else "failed")
         self.__isSorted__ = False
         self.Children.append(newChild)
 
-        print "%-60s Child %-20s Appended Child for %s. Operation was an overall %s." % (self.Title.FullTitle + ':', newChild.Title.Name + ':', tocNewChildNamesTitle, "success" if success else "failure")
+        print "%-60s Child %-20s Appended Child for %s. Operation was an overall %s." % (
+        self.Title.FullTitle + ':', newChild.Title.Name + ':', tocNewChildNamesTitle,
+        "success" if success else "failure")
         return success
 
     def sortChildren(self):
@@ -219,16 +234,16 @@ class TOCHierarchyClass:
         return '\n'.join(lst)
 
     def GetOrderedListItem(self, title=None):
-        if not title: title = self.Title.FullTitle
+        if not title: title = self.Title.Name
         selfTitleStr = title
         selfLevel = self.Title.Level
         selfDepth = self.Title.Depth
         if selfLevel == 1:
             guid = 'guid-pending'
-            if self.Note: guid = self.Note.guid
+            if self.Note: guid = self.Note.Guid
             link = generate_evernote_link(guid, generateTOCTitle(selfTitleStr), 'TOC')
             if self.Outline:
-                link += ' ' + generate_evernote_link(self.Outline.note.guid,
+                link += ' ' + generate_evernote_link(self.Outline.Note.Guid,
                                                      '(<span style="color: rgb(255, 255, 255);">O</span>)', 'Outline',
                                                      escape=False)
             return link
@@ -295,6 +310,9 @@ class TOCHierarchyClass:
         assert note or title
         self.Outline = None
         if note:
+            if (isinstance(note, sqlite.Row)):
+                note = EvernoteNotePrototype(db_note=note)
+
             self.Note = note
             self.Title = EvernoteNoteTitle(note)
         else:
@@ -306,12 +324,12 @@ class TOCHierarchyClass:
 
 
 
-#
-# tocTest = TOCHierarchyClass("My Root Title")
-# tocTest.addTitle("My Root Title: Somebody")
-# tocTest.addTitle("My Root Title: Somebody: Else")
-# tocTest.addTitle("My Root Title: Someone")
-# tocTest.addTitle("My Root Title: Someone: Else")
-# tocTest.addTitle("My Root Title: Someone: Else: Entirely")
-# tocTest.addTitle("My Root Title: Z This: HasNo: Direct Parent")
-# pass
+        #
+        # tocTest = TOCHierarchyClass("My Root Title")
+        # tocTest.addTitle("My Root Title: Somebody")
+        # tocTest.addTitle("My Root Title: Somebody: Else")
+        # tocTest.addTitle("My Root Title: Someone")
+        # tocTest.addTitle("My Root Title: Someone: Else")
+        # tocTest.addTitle("My Root Title: Someone: Else: Entirely")
+        # tocTest.addTitle("My Root Title: Z This: HasNo: Direct Parent")
+        # pass

@@ -6,15 +6,15 @@ from anknotes.graphics import *
 
 ### Anki Imports
 try:
-        import anki
-        import aqt
-        from aqt.preferences import Preferences
-        from aqt.utils import getText, openLink, getOnlyText
-        from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
+    import anki
+    import aqt
+    from aqt.preferences import Preferences
+    from aqt.utils import getText, openLink, getOnlyText
+    from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QHBoxLayout, QGroupBox, SIGNAL, QCheckBox, \
         QComboBox, QSpacerItem, QSizePolicy, QWidget, QSpinBox, QFormLayout, QGridLayout, QFrame, QPalette, \
         QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, \
         QMessageBox, QPixmap
-        from aqt import mw
+    from aqt import mw
 except:
     pass
 

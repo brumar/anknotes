@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+
 PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 class ANKNOTES:
     FOLDER_EXTRA = os.path.join(PATH, 'extra')
@@ -12,6 +14,7 @@ class ANKNOTES:
     TEMPLATE_FRONT = os.path.join(FOLDER_ANCILLARY, 'FrontTemplate.htm')
     CSS = u'_AviAnkiCSS.css'
     ENML_DTD = os.path.join(FOLDER_ANCILLARY, 'enml2.dtd')
+    VALIDATION_SCRIPT = os.path.join(os.path.dirname(PATH), 'test.py')  # anknotes-standAlone.py')
     ICON_EVERNOTE_WEB = os.path.join(FOLDER_GRAPHICS, u'evernote_web.ico')
     IMAGE_EVERNOTE_WEB = ICON_EVERNOTE_WEB.replace('.ico', '.png')
     ICON_EVERNOTE_ARTCORE = os.path.join(FOLDER_GRAPHICS, u'evernote_artcore.ico')
@@ -21,8 +24,11 @@ class ANKNOTES:
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer')))
     DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer.automate')))
-    UPLOAD_AUTO_TOC_NOTES = False  # Set false if debugging note creation
-    AUTO_TOC_NOTES_MAX = 5  # Set to -1 for unlimited
+    UPLOAD_AUTO_TOC_NOTES = True  # Set False if debugging note creation
+    AUTO_TOC_NOTES_MAX = -1  # Set to -1 for unlimited
+    ENABLE_VALIDATION = True
+    AUTOMATE_VALIDATION = True
+    ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
 
 
 class MODELS:
@@ -84,6 +90,7 @@ class EVERNOTE:
 
 class TABLES:
     SEE_ALSO = "anknotes_see_also"
+    MAKE_NOTE_QUEUE = "anknotes_make_note_queue"
 
     class EVERNOTE:
         NOTEBOOKS = "anknotes_evernote_notebooks"

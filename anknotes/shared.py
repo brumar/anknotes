@@ -17,7 +17,8 @@ try:
     from aqt import mw
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from aqt.utils import tooltip
-    from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
+    from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
+        EDAMNotFoundException
 except:
     pass
 

@@ -6,7 +6,7 @@ import time
 from anknotes.constants import *
 
 try:
-        from aqt import mw
+    from aqt import mw
 except:
     pass
 
@@ -17,6 +17,11 @@ dbLocal = False
 def ankDBSetLocal():
     global dbLocal
     dbLocal = True
+
+
+def ankDBIsLocal():
+    global dbLocal
+    return dbLocal
 
 
 def ankDB():
@@ -172,5 +177,7 @@ class ank_DB(object):
             """CREATE TABLE IF NOT EXISTS `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id) );""" % TABLES.SEE_ALSO)
         self.execute(
             """CREATE TABLE IF NOT EXISTS `%s` ( 	`root_title`	TEXT NOT NULL UNIQUE, 	`contents`	TEXT NOT NULL, 	`tagNames`	TEXT NOT NULL, 	`notebookGuid`	TEXT NOT NULL, 	PRIMARY KEY(root_title) );""" % TABLES.EVERNOTE.AUTO_TOC)
+        self.execute(
+            """CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT, `title` TEXT NOT NULL, `contents` TEXT NOT NULL, `tagNames` TEXT NOT NULL DEFAULT ',,', `notebookGuid` TEXT, `validation_status` INTEGER NOT NULL DEFAULT 0, `validation_result` TEXT);""" % TABLES.MAKE_NOTE_QUEUE)
         self.InitTags()
         self.InitNotebooks()

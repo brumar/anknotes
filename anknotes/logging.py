@@ -10,9 +10,9 @@ from anknotes.graphics import *
 
 ### Anki Imports
 try:
-        from aqt import mw
-        from aqt.utils import tooltip
-        from aqt.qt import QMessageBox, QPushButton
+    from aqt import mw
+    from aqt.utils import tooltip
+    from aqt.qt import QMessageBox, QPushButton
 except:
     pass
 
@@ -38,22 +38,16 @@ def show_tooltip(text, time_out=3000, delay=None):
     tooltip(text, time_out)
 
 
-def report_tooltip(log_title, log_text="", delay=None, prefix='- '):
-    str_tip = log_text
-    if not str_tip:
-        str_tip = log_title
-
-    show_tooltip(str_tip, delay=delay)
-
-    if log_title:
-        log_title += ": "
-        delimit = "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
-        if log_text:
-            log_text = delimit + "<BR>%s\n" % log_text
-        log(log_title)
-    log_text = log_text.replace('<BR><BR>', '<BR>').replace('<BR>', '\n   ' + prefix )
-    log(log_text, timestamp=False, replace_newline=True)
-
+def report_tooltips(title, header, log_lines=[], delay=None):
+    lines = []
+    for line in header.split('<BR>') + log_lines.join('<BR>').split('<BR>'):
+        while line[0] is '-': line = '\t' + line[1:]
+        lines.append('- ' + line)
+    if len(lines) > 1: lines[0] += ': '
+    log_text = '<BR>'.join(lines)
+    show_tooltip(log_text, delay=delay)
+    log(title, replace_newline=False)
+    log(" " + "-" * 192 + '\n' + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True)
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0):
     global imgEvernoteWebMsgBox, icoEvernoteArtcore
@@ -108,7 +102,7 @@ def obj2log_simple(content):
 
 
 def log(content='', filename='', prefix='', clear=False, timestamp=True, extension='log', blank=False,
-        replace_newline=None):
+        replace_newline=None, do_print=False):
     if blank:
         filename = content
         content = ''
@@ -144,6 +138,8 @@ def log(content='', filename='', prefix='', clear=False, timestamp=True, extensi
         os.mkdir(os.path.dirname(full_path))
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         print>> fileLog, prefix + ' ' + st + content
+    if do_print:
+        print prefix + ' ' + st + content
 
 
 log("Log Loaded", "load")
@@ -153,8 +149,8 @@ def log_sql(value):
     log(value, 'sql')
 
 
-def log_error(value):
-    log(value, '+error')
+def log_error(value, crossPost=True):
+    log(value, '+' if crossPost else '' + 'error')
 
 
 def print_dump(obj):

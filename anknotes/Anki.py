@@ -19,11 +19,12 @@ from anknotes.shared import *
 # from evernote.api.client import EvernoteClient
 
 ### Anki Imports
-import anki
-from anki.notes import Note as AnkiNote
-import aqt
-from aqt import mw
-
+try:
+    import anki
+    from anki.notes import Note as AnkiNote
+    import aqt
+    from aqt import mw
+except: pass
 DEBUG_RAISE_API_ERRORS = False
 
 
@@ -92,11 +93,11 @@ class Anki:
                 if isinstance(content, str):
                     content = unicode(content, 'utf-8')
                 anki_field_info = {
-                    FIELDS.TITLE: title,
-                    FIELDS.CONTENT: content,
-                    FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + ankiNote.Guid,
+                    FIELDS.TITLE:               title,
+                    FIELDS.CONTENT:             content,
+                    FIELDS.EVERNOTE_GUID:       FIELDS.EVERNOTE_GUID_PREFIX + ankiNote.Guid,
                     FIELDS.UPDATE_SEQUENCE_NUM: str(ankiNote.UpdateSequenceNum),
-                    FIELDS.SEE_ALSO: u''
+                    FIELDS.SEE_ALSO:            u''
                 }
             except:
                 log_error("Unable to set field info for: Note '%s': '%s'" % (ankiNote.Title, ankiNote.Guid))
@@ -211,9 +212,11 @@ class Anki:
         self.evernoteModels[modelName] = model['id']
 
     def get_templates(self):
-        field_names = {"Title": FIELDS.TITLE, "Content": FIELDS.CONTENT, "Extra": FIELDS.EXTRA,
-                       "See Also": FIELDS.SEE_ALSO, "TOC": FIELDS.TOC, "Outline": FIELDS.OUTLINE,
-                       "Evernote GUID Prefix": FIELDS.EVERNOTE_GUID_PREFIX, "Evernote GUID": FIELDS.EVERNOTE_GUID}
+        field_names = {
+            "Title":                FIELDS.TITLE, "Content": FIELDS.CONTENT, "Extra": FIELDS.EXTRA,
+            "See Also":             FIELDS.SEE_ALSO, "TOC": FIELDS.TOC, "Outline": FIELDS.OUTLINE,
+            "Evernote GUID Prefix": FIELDS.EVERNOTE_GUID_PREFIX, "Evernote GUID": FIELDS.EVERNOTE_GUID
+            }
         if not self.templates:
             # Generate Front and Back Templates from HTML Template in anknotes' addon directory
             self.templates = {"Front": file(ANKNOTES.TEMPLATE_FRONT, 'r').read() % field_names}
@@ -463,8 +466,8 @@ class Anki:
             toc_count = 0
             outline_count = 0
             toc_and_outline_links = ankDB().execute(
-                            "select target_evernote_guid, is_toc, is_outline from %s WHERE source_evernote_guid = '%s' AND (is_toc = 1 OR is_outline = 1) ORDER BY number ASC" % (
-                            TABLES.SEE_ALSO, source_evernote_guid))
+                "select target_evernote_guid, is_toc, is_outline from %s WHERE source_evernote_guid = '%s' AND (is_toc = 1 OR is_outline = 1) ORDER BY number ASC" % (
+                    TABLES.SEE_ALSO, source_evernote_guid))
             for target_evernote_guid, is_toc, is_outline in toc_and_outline_links:
                 if target_evernote_guid in linked_notes_fields:
                     linked_note_contents = linked_notes_fields[target_evernote_guid][FIELDS.CONTENT]
@@ -479,8 +482,10 @@ class Anki:
                         elif FIELDS.TITLE in fld.get('name'):
                             linked_note_title = linked_note.fields[fld.get('ord')]
                     if linked_note_contents:
-                        linked_notes_fields[target_evernote_guid] = {FIELDS.TITLE: linked_note_title,
-                                                                     FIELDS.CONTENT: linked_note_contents}
+                        linked_notes_fields[target_evernote_guid] = {
+                            FIELDS.TITLE:   linked_note_title,
+                            FIELDS.CONTENT: linked_note_contents
+                            }
                 if linked_note_contents:
                     if isinstance(linked_note_contents, str):
                         linked_note_contents = unicode(linked_note_contents, 'utf-8')
