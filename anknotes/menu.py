@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-### Python Imports
+# Python Imports
 from subprocess import *
 
 try:
@@ -7,14 +7,14 @@ try:
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
 
-### Anknotes Shared Imports
+# Anknotes Shared Imports
 from anknotes.shared import *
 from anknotes.constants import *
 
-### Anknotes Main Imports
+# Anknotes Main Imports
 from anknotes.Controller import Controller
 
-### Anki Imports
+# Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
 from aqt import mw
 
@@ -121,7 +121,7 @@ def validate_pending_notes(showAlerts=True, uploadAfterValidation=True):
 
     Anki will be unresponsive until the validation tool completes. This will take at least 45 seconds.
 
-    The tool's output will be shown. If it is truncated, you may view the full log in the anknotes addon folder at extra\\logs\\anknotes-MakeNoteQueue-*.log""" \
+    The tool's output will be shown. If it is truncated, you may view the full log in the anknotes addon folder at extra\\logs\\anknotes-MakeNoteQueue-*.log"""
                  % 'Any validated notes will be automatically uploaded once your Anki collection is reopened.\n\n' if uploadAfterValidation else '')
     mw.col.close()
     # mw.closeAllCollectionWindows()
@@ -146,7 +146,7 @@ def see_also(steps=None):
     if isinstance(steps, int): steps = [steps]
     showAlerts = (len(steps) == 1)
     if 1 in steps:
-        # Should be unnecessary once See Also algorithms are finalized 
+        # Should be unnecessary once See Also algorithms are finalized
         log(" > See Also: Step 1: Processing Un Added See Also Notes")
         controller.process_unadded_see_also_notes()
     if 2 in steps:

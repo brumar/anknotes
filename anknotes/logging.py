@@ -1,14 +1,14 @@
-### Python Imports
+# Python Imports
 from datetime import datetime, timedelta
 import difflib
 import pprint
 import re
 
-### Anknotes Shared Imports
+# Anknotes Shared Imports
 from anknotes.constants import *
 from anknotes.graphics import *
 
-### Anki Imports
+# Anki Imports
 try:
     from aqt import mw
     from aqt.utils import tooltip
@@ -46,8 +46,11 @@ def report_tooltips(title, header, log_lines=[], delay=None):
     if len(lines) > 1: lines[0] += ': '
     log_text = '<BR>'.join(lines)
     show_tooltip(log_text, delay=delay)
-    log(title, replace_newline=False)
+    log_blank()
+    log(title)
     log(" " + "-" * 192 + '\n' + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True)
+    log_blank()
+
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0):
     global imgEvernoteWebMsgBox, icoEvernoteArtcore
@@ -101,12 +104,19 @@ def obj2log_simple(content):
     return content
 
 
-def log(content='', filename='', prefix='', clear=False, timestamp=True, extension='log', blank=False,
+def log_blank(filename='', clear=False, extension='log'):
+    log(timestamp=False, filename=filename, clear=clear, extension=extension)
+
+
+def log_plain(content=None, filename='', prefix='', clear=False, extension='log',
+              replace_newline=None, do_print=False):
+    log(timestamp=False, content=content, filename=filename, prefix=prefix, clear=clear, extension=extension,
+        replace_newline=replace_newline, do_print=do_print)
+
+
+def log(content=None, filename='', prefix='', clear=False, timestamp=True, extension='log',
         replace_newline=None, do_print=False):
-    if blank:
-        filename = content
-        content = ''
-        timestamp = False
+    if content is None: content = ''
     else:
         content = obj2log_simple(content)
         if len(content) == 0: content = '{EMPTY STRING}'
