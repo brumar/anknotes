@@ -88,10 +88,14 @@ class Controller:
         queries1 = []
         queries2 = []
         noteFetcher = EvernoteNoteFetcher()
+        SIMULATE = True
         if len(dbRows) == 0:
             if not automated:
-                report_tooltips("   > Upload of Validated Notes Aborted", "No Qualifying Validated Notes Found")
+                show_report("   > Upload of Validated Notes Aborted", "No Qualifying Validated Notes Found")
             return
+        else:
+            log("   > Upload of Validated Notes Initiated", "%d Successfully Validated Notes Found" % len(dbRows))
+
         for dbRow in dbRows:
             entry = EvernoteValidationEntry(dbRow)
             evernote_guid, rootTitle, contents, tagNames, notebookGuid = entry.items()
@@ -99,7 +103,10 @@ class Controller:
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
                             ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
                 continue
-            status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid,
+            if SIMULATE:
+                status = EvernoteAPIStatus.Success
+            else:
+                status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid,
                                                         validated=True)
             if status.IsError:
                 error += 1
@@ -109,35 +116,40 @@ class Controller:
                     continue
             count += 1
             if status.IsSuccess:
-                noteFetcher.addNoteFromServerToDB(whole_note, tagNames)
-                note = EvernoteNotePrototype(whole_note=whole_note, tags=tagNames)
+                if not SIMULATE:
+                    noteFetcher.addNoteFromServerToDB(whole_note, tagNames)
+                    note = EvernoteNotePrototype(whole_note=whole_note, tags=tagNames)
                 if evernote_guid:
-                    notes_updated.append(note)
+                    if not SIMULATE:
+                        notes_updated.append(note)
                     queries1.append([evernote_guid])
                     count_update += 1
                 else:
-                    notes_created.append(note)
+                    if not SIMULATE:
+                        notes_created.append(note)
                     queries2.append([rootTitle, contents])
                     count_create += 1
-        if count_update + count_create > 0:
+        if not SIMULATE and count_update + count_create > 0:
             number_updated = self.anki.update_evernote_notes(notes_updated)
             number_created = self.anki.add_evernote_notes(notes_created)
+        count_max = len(dbRows)
 
-        str_tip_header = "%d of %d total Validated note(s) successfully generated." % (count, len(dbRows))
+        str_tip_header = "%s Validated Note(s) successfully generated." % counts_as_str(count, count_max)
         str_tips = []
-        if count_create: str_tips.append("%d Validated note(s) were newly created " % count_create)
-        if number_created: str_tips.append("-%d of these were successfully added to Anki " % number_created)
-        if count_update: str_tips.append(
-            "%d Validated note(s) already exist in local db and were updated" % count_update)
-        if number_updated: str_tips.append("-%d of these were successfully updated in Anki " % number_updated)
-        if error > 0: str_tips.append("%d error(s) occurred " % error)
-        report_tooltips("   > Upload of Validated Notes Complete", str_tip_header, str_tips)
+        if count_create: str_tips.append("%s Validated Note(s) were newly created " % counts_as_str(count_create))
+        if number_created: str_tips.append("-%-3d of these were successfully added to Anki " % number_created)
+        if count_update: str_tips.append("%s Validated Note(s) already exist in local db and were updated" % counts_as_str(count_update))
+        if number_updated: str_tips.append("-%-3d of these were successfully updated in Anki " % number_updated)
+        if error > 0: str_tips.append("%d Error(s) occurred " % error)
+        show_report("   > Upload of Validated Notes Complete", str_tip_header, str_tips)
 
         if len(queries1) > 0:
             ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.MAKE_NOTE_QUEUE, queries1)
         if len(queries2) > 0:
             ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.MAKE_NOTE_QUEUE, queries2)
+        log(queries1)
 
+        ankDB().commit()
         return status, count, exist
 
     def create_auto_toc(self):
@@ -168,7 +180,7 @@ class Controller:
         :type: list[EvernoteNote]
         """
         if len(dbRows) == 0:
-            report_tooltips("   > TOC Creation Aborted", 'No Qualifying Root Titles Found')
+            show_report("   > TOC Creation Aborted", 'No Qualifying Root Titles Found')
             return
         for dbRow in dbRows:
             rootTitle, contents, tagNames, notebookGuid = dbRow.items()
@@ -186,14 +198,17 @@ class Controller:
                 "SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES,
                 rootTitle.upper(), EVERNOTE.TAG.AUTO_TOC)
             evernote_guid = None
-            noteBody = self.evernote.makeNoteBody(contents, encode=False)
+            noteBody = self.evernote.makeNoteBody(contents, encode=True)
+
+            noteBody2 = self.evernote.makeNoteBody(contents, encode=True)
             if old_values:
                 evernote_guid, old_content = old_values
-                if old_content == noteBody:
+                if old_content == noteBody or old_content == noteBody2:
                     count += 1
                     count_update_skipped += 1
                     continue
-                log(generate_diff(old_content, noteBody), 'AutoTOC-Create-Diffs')
+                log(generate_diff(old_content, noteBody2), 'AutoTOC-Create-Diffs')
+            continue
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
                             ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
                 continue
@@ -221,22 +236,19 @@ class Controller:
         if count_update + count_create > 0:
             number_updated = self.anki.update_evernote_notes(notes_updated)
             number_created = self.anki.add_evernote_notes(notes_created)
-
-        str_tip_header = "%d of %d total Auto TOC note(s) successfully generated" % (count + count_queued, len(dbRows))
+        count_total = count + count_queued
+        count_max = len(dbRows)
+        str_tip_header = "%s Auto TOC note(s) successfully generated" % counts_as_str(count_total, count_max)
         str_tips = []
-        if count_create: str_tips.append("%d Auto TOC note(s) were newly created " % count_create)
+        if count_create: str_tips.append("%-3d Auto TOC note(s) were newly created " % count_create)
         if number_created: str_tips.append("-%d of these were successfully added to Anki " % number_created)
-        if count_queued_create: str_tips.append(
-            "%d new Auto TOC note(s) were queued to be added to Anki " % count_queued_create)
-        if count_update: str_tips.append(
-            "%d Auto TOC note(s) already exist in local db and were updated" % count_update)
-        if number_updated: str_tips.append("-%d of these were successfully updated in Anki " % number_updated)
-        if count_queued_update: str_tips.append(
-            "%d Auto TOC note(s) already exist in local db and were queued to be updated in Anki" % count_queued_update)
-        if count_update_skipped: str_tips.append(
-            "%d Auto TOC note(s) already exist in local db and were unchanged" % count_update_skipped)
-        if error > 0: str_tips.append("%d error(s) occurred " % error)
-        report_tooltips("   > TOC Creation Complete: ", str_tip_header, str_tips)
+        if count_queued_create: str_tips.append("-%s Auto TOC note(s) are brand new and and were queued to be added to Anki " % counts_as_str(count_queued_create))
+        if count_update: str_tips.append("%-3d Auto TOC note(s) already exist in local db and were updated" % count_update)
+        if number_updated: str_tips.append("-%s of these were successfully updated in Anki " % counts_as_str(number_updated))
+        if count_queued_update:  str_tips.append("-%s Auto TOC note(s) already exist in local db and were queued to be updated in Anki" % counts_as_str(count_queued_update))
+        if count_update_skipped: str_tips.append("-%s Auto TOC note(s) already exist in local db and were unchanged" % counts_as_str(count_update_skipped))
+        if error > 0: str_tips.append("%d Error(s) occurred " % error)
+        show_report("   > TOC Creation Complete: ", str_tip_header, str_tips)
 
         if count_queued > 0:
             ankDB().commit()
@@ -253,7 +265,11 @@ class Controller:
             self.evernoteImporter.evernote = self.evernote
         self.evernoteImporter.forceAutoPage = self.forceAutoPage
         self.evernoteImporter.auto_page_callback = self.auto_page_callback
+        if not hasattr(self, 'currentPage'):
+            self.currentPage = 1
         self.evernoteImporter.currentPage = self.currentPage
+        if hasattr(self, 'ManualGUIDs'):
+            self.evernoteImporter.ManualGUIDs = self.ManualGUIDs
         self.evernoteImporter.proceed(auto_paging)
 
     def resync_with_local_db(self):
@@ -264,4 +280,4 @@ class Controller:
         number = self.anki.update_evernote_notes(notes, log_update_if_unchanged=False)
         tooltip = '%d Entries in Local DB<BR>%d Evernote Notes Created<BR>%d Anki Notes Successfully Updated' % (
             len(evernote_guids), local_count, number)
-        report_tooltips('Resync with Local DB Complete', tooltip)
+        show_report('Resync with Local DB Complete', tooltip)

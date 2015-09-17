@@ -1,13 +1,13 @@
 from anknotes.db import *
 from anknotes.enum import Enum
-from anknotes.logging import log, str_safe
-
+from anknotes.logging import log, str_safe, pad_center
 
 # from evernote.edam.notestore.ttypes import NoteMetadata, NotesMetadataList
 
 def upperFirst(name):
     return name[0].upper() + name[1:]
 
+from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 
 class EvernoteStruct(object):
     success = False
@@ -196,43 +196,45 @@ class EvernoteNoteFetcherResults(object):
 
     @property
     def SummaryShort(self):
-        add_update_strs = ['New', "Added"] if self.ImportType == EvernoteImportType.Add else  ['Existing',
-                                                                                               'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated']
+        add_update_strs = ['New', "Added"] if self.ImportType == EvernoteImportType.Add else  ['Existing', 'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated']
         return "%d %s Notes Have Been %s" % (self.Imported, add_update_strs[0], add_update_strs[1])
 
     @property
     def SummaryLines(self):
-        add_update_strs = ['New', "Added to"] if self.ImportType == EvernoteImportType.Add else  ['Existing',
-                                                                                                  "%s in" % (
-                                                                                                  'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated')]
-        add_update_strs[1] += " Anki"
         if self.Max is 0: return []
+        add_update_strs = ['New', "Added to"] if self.ImportType == EvernoteImportType.Add else  ['Existing', "%s in" % ('Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated')]
+        add_update_strs[1] += " Anki"
+
         ## Evernote Status
         if self.DownloadSuccess:
-            line = "All %d" % self.Max
+            line = "All %3d" % self.Max
         else:
-            line = "%d of %d" % (self.Count, self.Max)
+            line = "%3d of %3d" % (self.Count, self.Max)
         lines = [line + " %s Evernote Metadata Results Were Successfully Downloaded%s." % (
         add_update_strs[0], (' And %s' % add_update_strs[1]) if self.AnkiSuccess else '')]
         if self.Status.IsError:
-            lines.append("An error occurred during download (%s)." % str(self.Status))
+            lines.append("-An error occurred during download (%s)." % str(self.Status))
+
+        ## Local Calls
+        if self.LocalDownloadsOccurred:
+            lines.append(
+                "-%d %s note(s) were unexpectedly found in the local db and did not require an API call." % (self.Local, add_update_strs[0]))
+            lines.append("-%d %s note(s) required an API call" % (self.Remote, add_update_strs[0]))
+        if not self.ImportType == EvernoteImportType.Add and self.AlreadyUpToDate > 0:
+            lines.append(
+                "-%3d existing note(s) are already up-to-date with Evernote's servers, so they were not retrieved." % self.AlreadyUpToDate)
+
+        ## Anki Status
         if self.DownloadSuccess:
             return lines
         if self.AnkiSuccess:
-            line = "All %d" % self.Imported
+            line = "All %3d" % self.Imported
         else:
-            line = "%d of %d" % (self.Imported, self.Count)
+            line = "%3d of %3d" % (self.Imported, self.Count)
         lines.append(line + " %s Downloaded Evernote Notes Have Been Successfully %s." % (
         add_update_strs[0], add_update_strs[1]))
 
-        if self.LocalDownloadsOccurred:
-            lines.append(
-                "-%d %s note(s) were unexpectedly found in the local db and did not require an API call." % self.Local)
-            lines.append("-%d %s note(s) required an API call" % self.Remote)
 
-        if not self.ImportType == EvernoteImportType.Add and self.AlreadyUpToDate > 0:
-            lines.append(
-                "%d existing note(s) are already up-to-date with Evernote's servers, so they were not retrieved." % self.AlreadyUpToDate)
 
         return lines
 
@@ -268,6 +270,9 @@ class EvernoteNoteFetcherResults(object):
         self.Local = local
         self.Imported = 0
         self.Notes = []
+        """
+        :type : list[EvernoteNotePrototype]
+        """
 
     def reportResult(self, result):
         """
@@ -276,7 +281,7 @@ class EvernoteNoteFetcherResults(object):
         self.Status = result.Status
         if self.Status == EvernoteAPIStatus.Success:
             self.Notes.append(result.Note)
-            if self.Source == 1:
+            if result.Source == 1:
                 self.Local += 1
 
 
@@ -465,12 +470,8 @@ class EvernoteMetadataProgress:
     def ListPadded(self):
         lst = []
         for val in self.List:
-            pad = 20 - len(val)
-            padl = int(round(pad / 2))
-            padr = padl
-            if padl + padr > pad: padr -= 1
-            val = ' ' * padl + val + ' ' * padr
-            lst.append(val)
+
+            lst.append(pad_center(val, 25))
         return lst
 
     @property

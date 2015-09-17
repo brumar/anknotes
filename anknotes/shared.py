@@ -64,6 +64,8 @@ def get_tag_names_to_import(tagNames, evernoteTags=None, evernoteTagsToDelete=No
     return sorted([v for v in tagNames if v not in evernoteTags and v not in evernoteTagsToDelete],
                   key=lambda s: s.lower())
 
+def find_evernote_guids(content):
+    return [x.group('guid') for x in re.finditer(r'(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)', content)]
 
 def find_evernote_links_as_guids(content):
     return [x.group('guid') for x in find_evernote_links(content)]
@@ -71,8 +73,8 @@ def find_evernote_links_as_guids(content):
 
 def find_evernote_links(content):
     # .NET regex saved to regex.txt as 'Finding Evernote Links'
-
-    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?: shape="rect")?(?: style="[^\"].+?")?(?: shape="rect")?>(?P<Title>.+?)</a>'
+    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?|' \
+                r'https://www.evernote.com/shard/(?P<shard>s\d+)/[\w\d]+/(?P<uid>[\d]+?)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))"(?:[^>]*)?(?: style="[^\"].+?")?(?: shape="rect")?>(?P<Title>.+?)</a>'
     ids = get_evernote_account_ids()
     if not ids.valid:
         match = re.search(regex_str, content)

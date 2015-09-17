@@ -17,6 +17,8 @@ from anknotes.Controller import Controller
 # Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
 from aqt import mw
+from aqt.utils import getText
+from anki.storage import Collection
 
 DEBUG_RAISE_API_ERRORS = False
 
@@ -30,7 +32,9 @@ def anknotes_setup_menu():
              ["&Enable Auto Import On Profile Load", {'action': anknotes_menu_auto_import_changed, 'checkable': True}],
              ["Note &Validation",
               [
-                  ["&Validate Pending Notes", validate_pending_notes],
+                  ["Validate &And Upload Pending Notes", lambda: validate_pending_notes],
+                  ["SEPARATOR", None],
+                  ["&Validate Pending Notes", lambda: validate_pending_notes(True, False)],
                   ["&Upload Validated Notes", upload_validated_notes]
               ]
               ],
@@ -49,8 +53,14 @@ def anknotes_setup_menu():
                   ["Step &7: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(7)]
               ]
               ],
-             ["Res&ync with Local DB", resync_with_local_db],
-             ["Update Evernote &Ancillary Data", update_ancillary_data]
+             ["&Maintenance Tasks",
+              [
+                  ["Find &Deleted Notes", find_deleted_notes],
+                  ["Res&ync with Local DB", resync_with_local_db],
+                  ["Update Evernote &Ancillary Data", update_ancillary_data]
+              ]
+             ]
+
          ]
          ]
     ]
@@ -97,6 +107,17 @@ def anknotes_load_menu_settings():
             SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX + '_' + title.replace(' ', '_').replace('&', ''), False))
 
 
+def import_from_evernote_manual_metadata(guids=None):
+    if not guids:
+        guids = find_evernote_guids(file(ANKNOTES.FOLDER_LOGS + 'anknotes-Find Deleted Notes\\MissingFromAnki.log', 'r').read())
+    showInfo("Manually downloading %n Notes: \n%s" % (len(guids), str(guids)))
+    controller = Controller()
+    controller.evernote.initialize_note_store()
+    controller.forceAutoPage = True
+    controller.currentPage = 1
+    controller.ManualGUIDs = guids
+    controller.proceed()
+
 def import_from_evernote(auto_page_callback=None):
     controller = Controller()
     controller.evernote.initialize_note_store()
@@ -114,28 +135,69 @@ def upload_validated_notes(automated=False):
     controller = Controller()
     controller.upload_validated_notes(automated)
 
+def find_deleted_notes():
+    showInfo("""In order for this to work, you must create a 'Table of Contents' Note using the Evernote desktop application. Include all notes that you want to sync with Anki.
+
+Export this note to the following path: '%s'.
+
+Press Okay to save and close your Anki collection, open the command-line deleted notes detection tool, and then re-open your Anki collection.
+
+Once the command line tool is done running, you will get a summary of the results, and will be prompted to delete Anki Orphan Notes or download Missing Evernote Notes""" % ANKNOTES.TABLE_OF_CONTENTS_ENEX)
+
+    mw.col.close()
+    handle = Popen(ANKNOTES.FIND_DELETED_NOTES_SCRIPT, stdin=PIPE, stderr=PIPE, stdout=PIPE, shell=True)
+    stdoutdata, stderrdata = handle.communicate()
+    info = ("ERROR: {%s}\n\n" % stderrdata) if stderrdata else ''
+    info += "Return data: \n%s" % stdoutdata
+    showInfo(info)
+    dels = file(os.path.join(ANKNOTES.FOLDER_LOGS, ANKNOTES.LOG_BASE_NAME + '-Find Deleted Notes\\MissingFromEvernote.log'), 'r').read()
+    guids = find_evernote_guids(dels)
+    count = len(guids)
+    mfile = os.path.join(ANKNOTES.FOLDER_LOGS, ANKNOTES.LOG_BASE_NAME + '-Find Deleted Notes\\MissingFromAnki.log')
+    missing = file(mfile, 'r').read()
+    missing_guids = find_evernote_guids(missing)
+    count_missing = len(missing_guids)
+
+    showInfo("Completed: %s\n\n%s" + ('Press Okay and we will show you a prompt to confirm deletion of the %d orphan Anki notes' % count) if count > 0 else 'No Orpan Anki Notes Found', info[:1000])
+    mw.col.reopen()
+    mw.col.load()
+    if count > 0:
+        code = getText("Please enter code 'ANKI_DEL_%d' to delete your orphan Anki note(s)" % count)[0]
+        if code is 'ANKI_DEL_%d' % count:
+            ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, [[x] for x in guids])
+            ankDB().commit()
+            show_tooltip("Deleted all %d Orphan Anki Notes" % count, time_out=5000)
+    if count_missing > 0:
+        ret = showInfo("Would you like to import %d missing Evernote Notes?\n\n<a href='%s'>Click to view results</a>" % mfile, cancelButton=True, richText=True)
+        if ret:
+            show_tooltip("YES !")
+            # import_from_evernote_manual_metadata()
+        else:
+            show_tooltip("NO  !")
+
+
+
+
 
 def validate_pending_notes(showAlerts=True, uploadAfterValidation=True):
     if showAlerts:
         showInfo("""Press Okay to save and close your Anki collection, open the command-line note validation tool, and then re-open your Anki collection.%s
 
-    Anki will be unresponsive until the validation tool completes. This will take at least 45 seconds.
+Anki will be unresponsive until the validation tool completes. This will take at least 45 seconds.
 
-    The tool's output will be shown. If it is truncated, you may view the full log in the anknotes addon folder at extra\\logs\\anknotes-MakeNoteQueue-*.log"""
-                 % 'Any validated notes will be automatically uploaded once your Anki collection is reopened.\n\n' if uploadAfterValidation else '')
+The tool's output will be shown. If it is truncated, you may view the full log in the anknotes addon folder at extra\\logs\\anknotes-MakeNoteQueue-*.log"""
+                 % ' Any validated notes will be automatically uploaded once your Anki collection is reopened.' if uploadAfterValidation else '')
     mw.col.close()
     # mw.closeAllCollectionWindows()
     handle = Popen(ANKNOTES.VALIDATION_SCRIPT, stdin=PIPE, stderr=PIPE, stdout=PIPE, shell=True)
     stdoutdata, stderrdata = handle.communicate()
-    info = ""
-    if stderrdata:
-        info += "ERROR: {%s}\n\n" % stderrdata
+    info = ("ERROR: {%s}\n\n" % stderrdata) if stderrdata else ''
     info += "Return data: \n%s" % stdoutdata
-
-    if showAlerts:
-        showInfo("Completed: %s" % info[:500])
+    if showAlerts: showInfo("Completed: %s\n\n%s" % ('Press Okay to begin uploading successfully validated notes to the Evernote Servers' if uploadAfterValidation else '', info[:1000]))
 
     mw.col.reopen()
+    mw.col.load()
+
     if uploadAfterValidation:
         upload_validated_notes()
 

@@ -1,7 +1,7 @@
 from HTMLParser import HTMLParser
 from anknotes.constants import SETTINGS
 from anknotes.db import get_evernote_title_from_guid
-
+from anknotes.logging import log
 
 class MLStripper(HTMLParser):
     def __init__(self):
@@ -36,15 +36,25 @@ def escape_text(title):
     return title
 
 
-def unescape_text(title):
+def unescape_text(title, try_decoding=False):
+    title_orig = title
     global __text_escape_phrases__
-    for i in range(0, len(__text_escape_phrases__), 2):
-        title = title.replace(__text_escape_phrases__[i + 1], __text_escape_phrases__[i])
-    title = title.replace("&nbsp;", " ")
+    if try_decoding: title = title.decode('utf-8')
+    try:
+        for i in range(0, len(__text_escape_phrases__), 2):
+            title = title.replace(__text_escape_phrases__[i + 1], __text_escape_phrases__[i])
+        title = title.replace(u"&nbsp;", u" ")
+    except:
+        if try_decoding: raise UnicodeError
+        title_new = unescape_text(title, True)
+        log(title + '\n' + title_new + '\n\n', 'unicode')
+        return title_new
     return title
 
 
 def clean_title(title):
+    if isinstance(title, str):
+        title = unicode(title, 'utf-8')
     title = unescape_text(title)
     if isinstance(title, str):
         title = unicode(title, 'utf-8')

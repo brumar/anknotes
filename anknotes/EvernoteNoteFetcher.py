@@ -24,14 +24,13 @@ class EvernoteNoteFetcher(object):
         self.tagGuids = []
         self.use_local_db_only = use_local_db_only
         self.__update_sequence_number__ = -1
+        if evernote: self.evernote = evernote
         if not evernote_guid:
             self.evernote_guid = ""
             return
         self.evernote_guid = evernote_guid
-        if evernote:
-            self.evernote = evernote
-            if not self.use_local_db_only:
-                self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
+        if evernote and not self.use_local_db_only:
+            self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
         self.getNote()
 
     def UpdateSequenceNum(self):

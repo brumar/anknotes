@@ -29,7 +29,7 @@ def print_safe(strr, prefix=''):
     print str_safe(strr, prefix)
 
 
-def show_tooltip(text, time_out=3000, delay=None):
+def show_tooltip(text, time_out=7000, delay=None):
     if delay:
         try:
             return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
@@ -37,37 +37,50 @@ def show_tooltip(text, time_out=3000, delay=None):
             pass
     tooltip(text, time_out)
 
+def counts_as_str(count, max=None):
+    if max is None: return pad_center(count, 3)
+    if count == max: return "All  %s" % (pad_center(count, 3))
+    return "Total %s of %s" % (pad_center(count, 3), pad_center(max, 3))
 
-def report_tooltips(title, header, log_lines=[], delay=None):
+def show_report(title, header, log_lines=[], delay=None, log_header_prefix = ' '*5):
     lines = []
-    for line in header.split('<BR>') + log_lines.join('<BR>').split('<BR>'):
-        while line[0] is '-': line = '\t' + line[1:]
-        lines.append('- ' + line)
+    for line in header.split('<BR>') + ('<BR>'.join(log_lines).split('<BR>') if log_lines else []):
+        level = 0
+        while line and line[level] is '-': level += 1
+        lines.append('\t'*level + ('\t- ' if lines else '') + line[level:])
     if len(lines) > 1: lines[0] += ': '
     log_text = '<BR>'.join(lines)
-    show_tooltip(log_text, delay=delay)
+    show_tooltip(log_text.replace('\t', '&nbsp; '), delay=delay)
     log_blank()
     log(title)
-    log(" " + "-" * 192 + '\n' + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True)
+    log(" " + "-" * 192 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True)
     log_blank()
 
 
-def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0):
+def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False):
     global imgEvernoteWebMsgBox, icoEvernoteArtcore
     msgDefaultButton = QPushButton(icoEvernoteArtcore, "Okay!", mw)
+    msgCancelButton = QPushButton(icoTomato, "No Thanks", mw)
 
     if not isinstance(message, str) and not isinstance(message, unicode):
         message = str(message)
 
+    if richText: textFormat = 1
+
     messageBox = QMessageBox()
     messageBox.addButton(msgDefaultButton, QMessageBox.AcceptRole)
+    if cancelButton:
+        messageBox.addButton(msgCancelButton, QMessageBox.NoRole)
     messageBox.setDefaultButton(msgDefaultButton)
     messageBox.setIconPixmap(imgEvernoteWebMsgBox)
     messageBox.setTextFormat(textFormat)
     messageBox.setText(message)
     messageBox.setWindowTitle(title)
     messageBox.exec_()
-
+    if not cancelButton: return True
+    if messageBox.clickedButton() == cancelButton or messageBox.clickedButton() == 0:
+        return False
+    return True
 
 def diffify(content):
     for tag in ['div', 'ol', 'ul', 'li']:
@@ -75,6 +88,12 @@ def diffify(content):
     content = re.sub(r'[\r\n]+', '\n', content)
     return content.splitlines()
 
+def pad_center(val, length=20, favor_right=True):
+    val = str(val)
+    pad = max(length - len(val), 0)
+    pads = [int(round(float(pad) / 2))]*2
+    if sum(pads) > pad: pads[favor_right] -= 1
+    return ' ' * pads[0] + val + ' ' * pads[1]
 
 def generate_diff(value_original, value):
     try:
@@ -113,6 +132,11 @@ def log_plain(content=None, filename='', prefix='', clear=False, extension='log'
     log(timestamp=False, content=content, filename=filename, prefix=prefix, clear=clear, extension=extension,
         replace_newline=replace_newline, do_print=do_print)
 
+def log_banner(title, filename, length=80, append_newline=True):
+    log("-" * length, filename, clear=True, timestamp=False)
+    log(pad_center(title, length),filename, timestamp=False)
+    log("-" * length, filename, timestamp=False)
+    if append_newline: log_blank(filename)
 
 def log(content=None, filename='', prefix='', clear=False, timestamp=True, extension='log',
         replace_newline=None, do_print=False):
@@ -137,10 +161,10 @@ def log(content=None, filename='', prefix='', clear=False, timestamp=True, exten
     except Exception:
         pass
     if timestamp or replace_newline is True:
-        content = content.replace('\r', '\r                              ').replace('\n',
-                                                                                    '\n                              ')
+        spacer = '\t'*6
+        content = content.replace('\r\n', '\n').replace('\r', '\r'+spacer).replace('\n', '\n'+spacer)
     if timestamp:
-        st = '[%s]: ' % datetime.now().strftime(ANKNOTES.DATE_FORMAT)
+        st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT)
     else:
         st = ''
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
@@ -151,13 +175,8 @@ def log(content=None, filename='', prefix='', clear=False, timestamp=True, exten
     if do_print:
         print prefix + ' ' + st + content
 
-
-log("Log Loaded", "load")
-
-
 def log_sql(value):
     log(value, 'sql')
-
 
 def log_error(value, crossPost=True):
     log(value, '+' if crossPost else '' + 'error')
@@ -254,7 +273,7 @@ def get_api_call_count():
         call = api_log[i - 1]
         if not "API_CALL" in call:
             continue
-        ts = call.split(': ')[0][2:-1]
+        ts = call.replace(':\t', ': ').split(': ')[0][2:-1]
         td = datetime.now() - datetime.strptime(ts, ANKNOTES.DATE_FORMAT)
         if td < timedelta(hours=1):
             count += 1

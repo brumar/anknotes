@@ -116,6 +116,5 @@ if eTreeImported:
     timerFull.stop()    
     log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)), 'MakeNoteQueue-'+currentLog, timestamp=False, do_print=True)
 
-
     db.commit()
     db.close()

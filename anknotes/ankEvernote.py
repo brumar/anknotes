@@ -22,6 +22,7 @@ from anknotes.error import *
 if not eTreeImported:
     ### Anknotes Class Imports
     from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
+    from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 
     ### Evernote Imports
     from anknotes.evernote.edam.type.ttypes import Note as EvernoteNote
@@ -106,55 +107,48 @@ class Evernote(object):
         return 0
 
     def validateNoteBody(self, noteBody, title="Note Body"):
-        timerFull = stopwatch.Timer()
-        timerInterval = stopwatch.Timer(False)
+        # timerFull = stopwatch.Timer()
+        # timerInterval = stopwatch.Timer(False)
         if not self.DTD:
-            timerInterval.reset()
+            timerInterval = stopwatch.Timer()
             log("Loading ENML DTD", "lxml", timestamp=False, do_print=True)
             self.DTD = etree.DTD(ANKNOTES.ENML_DTD)
-            log("DTD Loaded in %s" % str(timerInterval), "lxml", timestamp=False, do_print=True)
+            log("DTD Loaded in %s\n" % str(timerInterval), "lxml", timestamp=False, do_print=True)
             timerInterval.stop()
+            del timerInterval
 
-        timerInterval.reset()
-        log("Loading XML for %s" % title, "lxml", timestamp=False, do_print=False)
+        # timerInterval.reset()
+        # log("Loading XML for %s" % title, "lxml", timestamp=False, do_print=False)
         try:
             tree = etree.parse(StringIO(noteBody))
         except Exception as e:
-            timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
-            log_str = "XML Loading of %s failed.%s\n    - Error Details: %s"
-            log_str_error = log_str % (title, '', str(e))
-            log_str = log_str % (title, timer_header, str(e))
+            # timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
+            log_str = "XML Loading of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
-            log_error(log_str_error)
-            return False, log_str_error
-        log("XML Loaded in %s for %s" % (str(timerInterval), title), "lxml", timestamp=False, do_print=False)
+            log_error(log_str, False)
+            return False, log_str
+        # log("XML Loaded in %s for %s" % (str(timerInterval), title), "lxml", timestamp=False, do_print=False)
         # timerInterval.stop()
-        timerInterval.reset()
-        log("Validating %s with ENML DTD" % title, "lxml", timestamp=False, do_print=False)
+        # timerInterval.reset()
+        # log("Validating %s with ENML DTD" % title, "lxml", timestamp=False, do_print=False)
         try:
             success = self.DTD.validate(tree)
         except Exception as e:
-            timer_header = ' at %s. The whole process took %s' % (str(timerInterval), str(timerFull))
-            log_str = "DTD Validation of %s failed.%s\n    - Error Details: %s"
-            log_str_error = log_str % (title, '', str(e))
-            log_str = log_str % (title, timer_header, str(e))
+            log_str = "DTD Validation of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
-            log_error(log_str_error)
-            return False, log_str_error
-        log("Validation %s in %s. Entire process took %s" % (
-        "Succeeded" if success else "Failed", str(timerInterval), str(timerFull)), "lxml", timestamp=False,
-            do_print=False)
-        if not success:
-            print "Validation %-9s for %s" % ("Succeeded" if success else "Failed", title)
+            log_error(log_str, False)
+            return False, log_str
+        log("Validation %-9s for %s" % ("Succeeded" if success else "Failed", title), "lxml", timestamp=False,
+            do_print=True)
         errors = self.DTD.error_log.filter_from_errors()
         if not success:
             log_str = "DTD Validation Errors for %s: \n%s\n" % (title, errors)
-            log(log_str)
-            log_error(log_str)
-        timerInterval.stop()
-        timerFull.stop()
-        del timerInterval
-        del timerFull
+            log(log_str, "lxml", timestamp=False)
+            log_error(log_str, False)
+        # timerInterval.stop()
+        # timerFull.stop()
+        # del timerInterval
+        # del timerFull
         return success, errors
 
     def validateNoteContent(self, content, title="Note Contents"):
@@ -197,14 +191,15 @@ class Evernote(object):
 
     def addNoteToMakeNoteQueue(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[],
                                guid=None):
-        sql = "SELECT validation_status FROM %s WHERE " % TABLES.MAKE_NOTE_QUEUE
+        sql = "FROM %s WHERE " % TABLES.MAKE_NOTE_QUEUE
         if guid:
             sql += "guid = '%s'" % guid
         else:
             sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
-        status = ankDB().execute(sql)
-        if status is 1:
-            return EvernoteAPIStatus.Success
+        statuses = ankDB().all('SELECT validation_status ' + sql)
+        if len(statuses) > 0:
+            if str(statuses[0]['validation_status']) == '1': return EvernoteAPIStatus.Success
+            ankDB().execute("DELETE " + sql)
         # log_sql(sql)
         # log_sql([ guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook])
         ankDB().execute(
@@ -325,7 +320,6 @@ class Evernote(object):
         if not hasattr(self, 'guids') or evernote_guids: self.evernote_guids = evernote_guids
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()
-        notes = []
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         if len(evernote_guids) == 0:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
@@ -346,6 +340,24 @@ class Evernote(object):
     def update_ancillary_data(self):
         self.update_tags_db()
         self.update_notebook_db()
+
+    def check_notebook_metadata(self, notes):
+        """
+        :param notes:
+        :type : list[EvernoteNotePrototype]
+        :return:
+        """
+        if not hasattr(self, 'notebook_data'):
+            self.notebook_data = {x.guid:{'stack': x.stack, 'name': x.name} for x in ankDB().execute("SELECT * FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS) }
+        for note in notes:
+            assert(isinstance(note, EvernoteNotePrototype))
+            if not note.NotebookGuid in self.notebook_data:
+                self.update_notebook_db()
+                if not note.NotebookGuid in self.notebook_data:
+                    log_error("FATAL ERROR: Notebook GUID %s for Note %s: %s does not exist on Evernote servers" % (note.NotebookGuid, note.Guid, note.Title))
+                    raise EDAMNotFoundException()
+                    return False
+        return True
 
     def check_notebooks_up_to_date(self):
         for evernote_guid in self.evernote_guids:
@@ -397,6 +409,7 @@ class Evernote(object):
                 return False
             else:
                 note_metadata = self.metadata[evernote_guid]
+                if not note_metadata.tagGuids: continue
                 for tag_guid in note_metadata.tagGuids:
                     if tag_guid not in self.tag_data:
                         tag = EvernoteTag(fetch_guid=tag_guid)
@@ -421,6 +434,7 @@ class Evernote(object):
                 return None
             raise
         data = []
+        if not hasattr(self, 'tag_data'): self.tag_data = {}
         for tag in tags:
             self.tag_data[tag.guid] = tag.name
             data.append([tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum])
@@ -433,11 +447,25 @@ class Evernote(object):
     def get_tag_names_from_evernote_guids(self, tag_guids_original):
         tagGuids = []
         tagNames = []
+        if not hasattr(self, 'tag_data'):
+            self.tag_data = {x.guid: x.name for x in ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}
+        missing_tags = [x for x in tag_guids_original if x not in self.tag_data]
+        if len(missing_tags) > 0:
+            self.update_tags_db()
+            missing_tags = [x for x in tag_guids_original if x not in self.tag_data]
+            if len(missing_tags) > 0:
+                log_error("FATAL ERROR: Tag Guid(s) %s were not found on the Evernote Servers" % str(missing_tags))
+                raise EDAMNotFoundException()
+
         tagNamesToImport = get_tag_names_to_import({x: self.tag_data[x] for x in tag_guids_original})
-        for k, v in tagNamesToImport.items():
-            tagGuids.append(k)
-            tagNames.append(v)
-        tagNames = sorted(tagNames, key=lambda s: s.lower())
+        """:type : dict[string, EvernoteTag]"""
+        if tagNamesToImport:
+            is_struct = None
+            for k, v in tagNamesToImport.items():
+                if is_struct is None: is_struct = isinstance(v, EvernoteTag)
+                tagGuids.append(k)
+                tagNames.append(v.Name if is_struct else v)
+            tagNames = sorted(tagNames, key=lambda s: s.lower())
         return tagGuids, tagNames
 
 
