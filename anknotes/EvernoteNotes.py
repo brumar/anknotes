@@ -10,10 +10,11 @@ except ImportError:
     from sqlite3 import dbapi2 as sqlite
 
 ### Anknotes Imports
-# from anknotes.shared import *
+from anknotes.shared import *
 from anknotes.EvernoteNoteTitle import *
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.toc import TOCHierarchyClass
+from anknotes.db import ankDB
 
 
 class EvernoteNoteProcessingFlags:

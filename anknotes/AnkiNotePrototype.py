@@ -200,7 +200,6 @@ class AnkiNotePrototype:
         ################################### Step 6: Process "See Also: " Links
         see_also_match = regex_see_also().search(content)
         if see_also_match:
-            # log_dump(see_also_match.group('SeeAlso'), "-See Also match for Note '%s': %s" % (self.evernote_guid, self.fields[FIELDS.TITLE]))
             content = content.replace(see_also_match.group(0), see_also_match.group('Suffix'))
             see_also = see_also_match.group('SeeAlso')
             see_also_header = see_also_match.group('SeeAlsoHeader')
@@ -244,33 +243,6 @@ class AnkiNotePrototype:
         self.process_note_content()
         self.detect_note_model()
 
-        # def _changeCards(self, nids, oldModel, newModel, map):
-        # d = []
-        # deleted = []
-        # for (cid, ord) in mw.col.db.execute(
-        # "select id, ord from cards where nid in "+ids2str(nids)):
-        # # if the src model is a cloze, we ignore the map, as the gui
-        # # doesn't currently support mapping them
-        # if oldModel['type'] == MODEL_CLOZE:
-        # new = ord
-        # if newModel['type'] != MODEL_CLOZE:
-        # # if we're mapping to a regular note, we need to check if
-        # # the destination ord is valid
-        # if len(newModel['tmpls']) <= ord:
-        # new = None
-        # else:
-        # # mapping from a regular note, so the map should be valid
-        # new = map[ord] # Line 460
-        # if new is not None:
-        # d.append(dict(
-        # cid=cid,new=new,u=mw.col.usn(),m=intTime()))
-        # else:
-        # deleted.append(cid)
-        # mw.col.db.executemany(
-        # "update cards set ord=:new,usn=:u,mod=:m where id=:cid",
-        # d)
-        # mw.col.remCards(deleted)        
-
     def update_note_model(self):
         modelNameNew = self.ModelName
         if not modelNameNew: return False
@@ -291,8 +263,6 @@ class AnkiNotePrototype:
                 cmap = {0: None, 1: 0}
             else:
                 cmap[1] = None
-                # log("Changing model:\n From: '%s' \n To:   '%s'" % (modelNameOld, modelNameNew  ))
-        # log("NID %d  cmap- %s" % (self.note.id, str(cmap)))
         self.log_update("Changing model:\n From: '%s' \n To:   '%s'" % (modelNameOld, modelNameNew))
         # self.log_update("NID %d  cmap- %s" % (self.note.id, str(cmap)))
         mm.change(modelOld, [self.note.id], modelNew, fmap, cmap)

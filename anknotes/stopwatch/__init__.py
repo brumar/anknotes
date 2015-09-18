@@ -7,7 +7,7 @@
 # you should have received as part of this distribution.
 
 import time
-from anknotes.logging import log
+# from anknotes.logging import log
 
 """stopwatch is a very simple Python module for measuring time.
 Great for finding out how long code takes to execute.
@@ -118,7 +118,7 @@ def clockit(func):
         t = Timer()
         retval = func(*args, **kw)
         t.stop()
-        log('Function %s completed in %s' % (func.__name__, t), "clockit")
+        # log('Function %s completed in %s' % (func.__name__, t), "clockit")
         del t
         return retval
 

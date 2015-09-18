@@ -24,9 +24,9 @@ def ankDBIsLocal():
     return dbLocal
 
 
-def ankDB():
+def ankDB(reset=False):
     global ankNotesDBInstance, dbLocal
-    if not ankNotesDBInstance:
+    if not ankNotesDBInstance or reset:
         if dbLocal:
             ankNotesDBInstance = ank_DB(os.path.join(PATH, '..\\..\\Evernote\\collection.anki2'))
         else:

@@ -12,7 +12,7 @@ from anknotes.graphics import *
 try:
     from aqt import mw
     from aqt.utils import tooltip
-    from aqt.qt import QMessageBox, QPushButton
+    from aqt.qt import QMessageBox, QPushButton, QSizePolicy, QSpacerItem, QGridLayout, QLayout
 except:
     pass
 
@@ -44,10 +44,10 @@ def counts_as_str(count, max=None):
 
 def show_report(title, header, log_lines=[], delay=None, log_header_prefix = ' '*5):
     lines = []
-    for line in header.split('<BR>') + ('<BR>'.join(log_lines).split('<BR>') if log_lines else []):
+    for line in ('<BR>'.join(header) if isinstance(header, list) else header).split('<BR>') + ('<BR>'.join(log_lines).split('<BR>') if log_lines else []):
         level = 0
         while line and line[level] is '-': level += 1
-        lines.append('\t'*level + ('\t- ' if lines else '') + line[level:])
+        lines.append('\t'*level + ('\t\t- ' if lines else '') + line[level:])
     if len(lines) > 1: lines[0] += ': '
     log_text = '<BR>'.join(lines)
     show_tooltip(log_text.replace('\t', '&nbsp; '), delay=delay)
@@ -57,28 +57,53 @@ def show_report(title, header, log_lines=[], delay=None, log_header_prefix = ' '
     log_blank()
 
 
-def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False):
-    global imgEvernoteWebMsgBox, icoEvernoteArtcore
+def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False, minHeight=None, minWidth=400, styleSheet=None, convertNewLines=True):
+    global imgEvernoteWebMsgBox, icoEvernoteArtcore, icoEvernoteWeb
     msgDefaultButton = QPushButton(icoEvernoteArtcore, "Okay!", mw)
     msgCancelButton = QPushButton(icoTomato, "No Thanks", mw)
+    if not styleSheet:
+        styleSheet = file(ANKNOTES.QT_CSS_QMESSAGEBOX, 'r').read()
 
     if not isinstance(message, str) and not isinstance(message, unicode):
         message = str(message)
 
-    if richText: textFormat = 1
-
+    if richText:
+        textFormat = 1
+        message = message.replace('\n', '<BR>\n')
+        message = '<style>\n%s</style>\n\n%s' % (styleSheet, message)
+    global messageBox
     messageBox = QMessageBox()
     messageBox.addButton(msgDefaultButton, QMessageBox.AcceptRole)
     if cancelButton:
-        messageBox.addButton(msgCancelButton, QMessageBox.NoRole)
+        messageBox.addButton(msgCancelButton, QMessageBox.RejectRole)
     messageBox.setDefaultButton(msgDefaultButton)
     messageBox.setIconPixmap(imgEvernoteWebMsgBox)
     messageBox.setTextFormat(textFormat)
+
+    # message = ' %s %s' % (styleSheet, message)
+    # log(message, replace_newline=False)
+    messageBox.setWindowIcon(icoEvernoteWeb)
+    messageBox.setWindowIconText("Anknotes")
     messageBox.setText(message)
     messageBox.setWindowTitle(title)
-    messageBox.exec_()
-    if not cancelButton: return True
-    if messageBox.clickedButton() == cancelButton or messageBox.clickedButton() == 0:
+    # if minHeight:
+    #     messageBox.setMinimumHeight(minHeight)
+    # messageBox.setMinimumWidth(minWidth)
+    #
+    # messageBox.setFixedWidth(1000)
+    hSpacer = QSpacerItem(minWidth, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+    layout = messageBox.layout()
+    """:type : QGridLayout """
+    # layout.addItem(hSpacer, layout.rowCount() + 1, 0, 1, layout.columnCount())
+    layout.addItem(hSpacer, layout.rowCount() + 1, 0, 1, layout.columnCount())
+    # messageBox.setStyleSheet(styleSheet)
+
+
+    ret = messageBox.exec_()
+    if not cancelButton:
+        return True
+    if messageBox.clickedButton() == msgCancelButton or messageBox.clickedButton() == 0:
         return False
     return True
 
@@ -122,6 +147,8 @@ def obj2log_simple(content):
         content = str(content)
     return content
 
+def convert_filename_to_local_link(filename):
+    return 'file:///' + filename.replace("\\", "//")
 
 def log_blank(filename='', clear=False, extension='log'):
     log(timestamp=False, filename=filename, clear=clear, extension=extension)
@@ -138,6 +165,17 @@ def log_banner(title, filename, length=80, append_newline=True):
     log("-" * length, filename, timestamp=False)
     if append_newline: log_blank(filename)
 
+def get_log_full_path(filename='', extension='log', as_url_link=False):
+    if not filename:
+        filename = ANKNOTES.LOG_BASE_NAME + '.' + extension
+    else:
+        if filename[0] is '+':
+            filename = filename[1:]
+        filename = ANKNOTES.LOG_BASE_NAME + '-%s.%s' % (filename, extension)
+    full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
+    if as_url_link: return convert_filename_to_local_link(full_path)
+    return full_path
+
 def log(content=None, filename='', prefix='', clear=False, timestamp=True, extension='log',
         replace_newline=None, do_print=False):
     if content is None: content = ''
@@ -147,15 +185,11 @@ def log(content=None, filename='', prefix='', clear=False, timestamp=True, exten
         if content[0] == "!":
             content = content[1:]
             prefix = '\n'
-    if not filename:
-        filename = ANKNOTES.LOG_BASE_NAME + '.' + extension
-    else:
-        if filename[0] is '+':
-            filename = filename[1:]
-            summary = " ** CROSS-POST TO %s: " % filename + content
-            if len(summary) > 200: summary = summary[:200]
-            log(summary)
-        filename = ANKNOTES.LOG_BASE_NAME + '-%s.%s' % (filename, extension)
+    if filename and filename[0] is '+':
+        # filename = filename[1:]
+        summary = " ** CROSS-POST TO %s: " % filename[1:] + content
+        log(summary[:200])
+    full_path = get_log_full_path(filename, extension)
     try:
         content = content.encode('utf-8')
     except Exception:
@@ -167,7 +201,6 @@ def log(content=None, filename='', prefix='', clear=False, timestamp=True, exten
         st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT)
     else:
         st = ''
-    full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
     if not os.path.exists(os.path.dirname(full_path)):
         os.mkdir(os.path.dirname(full_path))
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
@@ -192,22 +225,15 @@ def print_dump(obj):
     print content
 
 
-def log_dump(obj, title="Object", filename='', clear=False, timestamp=True):
+def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, extension='.log'):
     content = pprint.pformat(obj, indent=4, width=80)
-    if not filename:
-        filename = ANKNOTES.LOG_BASE_NAME + '-dump.log'
-    else:
-        if filename[0] is '+':
-            filename = filename[1:]
-            # noinspection PyUnboundLocalVariable
-            summary = " ** CROSS-POST TO %s: " % filename + content
-            if len(summary) > 200: summary = summary[:200]
-            log(summary)
-        filename = ANKNOTES.LOG_BASE_NAME + '-dump-%s.log' % filename
-    try:
-        content = content.encode('ascii', 'ignore')
-    except Exception:
-        pass
+    try: content = content.decode('utf-8', 'ignore')
+    except Exception: pass
+    if filename and filename[0] is '+':
+        summary = " ** CROSS-POST TO %s: " % filename[1:] + content
+        log(summary[:200])
+    filename = 'dump' + ('-%s' % filename) if filename else ''
+    full_path = get_log_full_path(filename, extension)
     st = ''
     if timestamp:
         st = datetime.now().strftime(ANKNOTES.DATE_FORMAT)
@@ -218,14 +244,19 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True):
     else:
         prefix = " **** Dumping %s" % title
         log(prefix)
-    prefix += '\r\n'
-    content = prefix + content.replace(', ', ', \n ')
-    content = content.replace("': {", "': {\n ")
-    content = content.replace('\r', '\r                              ').replace('\n',
-                                                                                '\n                              ')
-    full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
+
     if isinstance(content, str):
         content = unicode(content, 'utf-8')
+
+    try:
+        prefix += '\r\n'
+        content = prefix + content.replace(', ', ', \n ')
+        content = content.replace("': {", "': {\n ")
+        content = content.replace('\r', '\r                              ').replace('\n',
+                                                                                    '\n                              ')
+    except:
+        pass
+
     if not os.path.exists(os.path.dirname(full_path)):
         os.mkdir(os.path.dirname(full_path))
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
@@ -280,3 +311,5 @@ def get_api_call_count():
         else:
             return count
     return count
+
+log('completed %s' % __name__, 'import')

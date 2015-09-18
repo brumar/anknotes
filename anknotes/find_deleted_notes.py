@@ -7,67 +7,122 @@ except ImportError:
 from anknotes.shared import *
 
 
-Error = sqlite.Error
-ankDBSetLocal()
+def do_find_deleted_notes(all_anki_notes=None):
+    """
+    :param all_anki_notes: from Anki.get_evernote_guids_and_anki_fields_from_anki_note_ids()
+    :type : dict[str, dict[str, str]]
+    :return:
+    """
 
-ENNotes = file(ANKNOTES.TABLE_OF_CONTENTS_ENEX, 'r').read()
-# find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
-# replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
+    Error = sqlite.Error
 
-all_notes = ankDB().all("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTES)
-ankDB().close()
-find_guids = {}
+    ENNotes = file(ANKNOTES.TABLE_OF_CONTENTS_ENEX, 'r').read()
+    # find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
+    # replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
 
-log1='Find Deleted Notes\\MissingFromAnki'
-log2='Find Deleted Notes\\MissingFromEvernote'
-log3='Find Deleted Notes\\TitleMismatch'
-log_banner(' FIND DELETED EVERNOTE NOTES: EVERNOTE NOTES MISSING FROM ANKI ', log1)
-log_banner(' FIND DELETED EVERNOTE NOTES: ANKI NOTES DELETED FROM EVERNOTE ', log2)
-log_banner(' FIND DELETED EVERNOTE NOTES: TITLE MISMATCHES ', log3)
-
-for line in all_notes:
-    # line = line.split('::: ')
-    # guid = line[0]
-    # title = line[1]
-    guid = line['guid']
-    title = line['title']
-    title = clean_title(title)
-    find_guids[guid] = title
-mismatch=0
-missingfromanki=0
-for match in find_evernote_links(ENNotes):
-    guid = match.group('guid')
-    title = match.group('Title')
-    title = clean_title(title)
-    title_safe = str_safe(title)
-    if guid in find_guids:
-        find_title = find_guids[guid]
-        find_title_safe = str_safe(find_title)
-        if find_title_safe == title_safe:
-            del find_guids[guid]
-        else:
-            # print("Found guid match, title mismatch for %s: \n - %s\n - %s" % (guid, title_safe, find_title_safe))
-            log_plain(guid + ': ' + title_safe, log3)
-            mismatch += 1
-    else:
+    all_anknotes_notes = ankDB().all("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTES)
+    find_guids = {}
+    log_banner(' FIND DELETED EVERNOTE NOTES: UNIMPORTED EVERNOTE NOTES ', ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES)
+    log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKI NOTES ', ANKNOTES.LOG_FDN_ANKI_ORPHANS)
+    log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKNOTES DB ENTRIES ', ANKNOTES.LOG_FDN_ANKI_ORPHANS)
+    log_banner(' FIND DELETED EVERNOTE NOTES: ANKNOTES TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKNOTES_TITLE_MISMATCHES)
+    log_banner(' FIND DELETED EVERNOTE NOTES: ANKI TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES)
+    anki_mismatch = 0
+    for line in all_anknotes_notes:
+        guid = line['guid']
+        title = line['title']
+        title = clean_title(title)
         title_safe = str_safe(title)
-        # print("COULD NOT FIND Anknotes database GUID for Evernote Server GUID %s: %s" % (guid, title_safe))
-        log_plain(guid + ': ' + title_safe, log1)
-        missingfromanki += 1
+        find_guids[guid] = title
+        if all_anki_notes:
+            if guid in all_anki_notes:
+                find_title = all_anki_notes[guid][FIELDS.TITLE]
+                find_title_safe = str_safe(find_title)
+                if find_title_safe == title_safe:
+                    del all_anki_notes[guid]
+                else:
+                    log_plain(guid + '::: ' + title, ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES)
+                    anki_mismatch += 1
+    mismatch = 0
+    missing_evernote_notes = []
+    for match in find_evernote_links(ENNotes):
+        guid = match.group('guid')
+        title = match.group('Title')
+        title = clean_title(title)
+        title_safe = str_safe(title)
+        if guid in find_guids:
+            find_title = find_guids[guid]
+            find_title_safe = str_safe(find_title)
+            if find_title_safe == title_safe:
+                del find_guids[guid]
+            else:
+                log_plain(guid + '::: ' + title, ANKNOTES.LOG_FDN_ANKNOTES_TITLE_MISMATCHES)
+                mismatch += 1
+        else:
+            log_plain(guid + '::: ' + title, ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES)
+            missing_evernote_notes.append(guid)
 
-dels = []
-for guid, title in find_guids.items():
-    title_safe = str_safe(title)
-    log_plain(guid + ': ' + title_safe, log2)
-    dels.append(guid)
-print "\nTotal %3d notes deleted from Evernote but still present in Anki" % len(dels)
-print "Total %3d notes present in Evernote but not present in Anki" % missingfromanki
-print "Total %3d title mismatches" % mismatch
+    anki_dels = []
+    anknotes_dels = []
+    if all_anki_notes:
+        for guid, fields in all_anki_notes.items():
+            log_plain(guid + '::: ' + fields[FIELDS.TITLE], ANKNOTES.LOG_FDN_ANKI_ORPHANS)
+            anki_dels.append(guid)
+    for guid, title in find_guids.items():
+        log_plain(guid + '::: ' + title, ANKNOTES.LOG_FDN_ANKNOTES_ORPHANS)
+        anknotes_dels.append(guid)
 
-# confirm = raw_input("Please type in the total number of results (%d) to confirm deletion from the Anknotes DB. Note that the notes will not be deleted from Anknotes' Notes History database.\n   >> " % len(dels))
-#
-# if confirm == str(len(dels)):
-#     print "Confirmed!"
-#     ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, dels)
-#     ankDB().commit()
-#
+    logs = [
+        ["Orphan Anknotes DB Note(s)",
+
+         len(anknotes_dels),
+         ANKNOTES.LOG_FDN_ANKNOTES_ORPHANS,
+         "(not present in Evernote)"
+
+         ],
+
+        ["Orphan Anki Note(s)",
+
+         len(anki_dels),
+         ANKNOTES.LOG_FDN_ANKI_ORPHANS,
+         "(not present in Anknotes DB)"
+
+         ],
+
+        ["Unimported Evernote Note(s)",
+
+         len(missing_evernote_notes),
+         ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES,
+         "(not present in Anknotes DB"
+
+         ],
+
+        ["Anknotes DB Title Mismatches",
+
+         mismatch,
+         ANKNOTES.LOG_FDN_ANKNOTES_TITLE_MISMATCHES
+
+         ],
+
+        ["Anki Title Mismatches",
+
+         anki_mismatch,
+         ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES
+
+         ]
+    ]
+    # '<tr class=tr{:d}><td class=t1>{val[0]}</td><td class=t2><a href="{fn}">{title}</a></td><td class=t3>{val[1]}</td></tr>'.format(i, title=log[0], val=log[1], fn=convert_filename_to_local_link(log[1][1]))
+    results = [
+        [
+            log[1],
+            log[0] if log[1] == 0 else '<a href="%s">%s</a>' % (get_log_full_path(log[2], True), log[0]),
+            log[3] if len(log) > 3 else ''
+        ]
+        for log in logs]
+
+    # showInfo(str(results))
+
+    return {
+        "Summary":              results, "AnknotesOrphans": anknotes_dels, "AnkiOrphans": anki_dels,
+        "MissingEvernoteNotes": missing_evernote_notes
+    }

@@ -7,9 +7,11 @@ except ImportError:
 
 ### Anknotes Imports
 from anknotes.constants import *
+from anknotes.logging import *
 from anknotes.structs import *
 from anknotes.db import *
-from anknotes.logging import *
+
+log('strting %s' % __name__, 'import')
 from anknotes.html import *
 
 ### Anki and Evernote Imports
@@ -21,10 +23,7 @@ try:
         EDAMNotFoundException
 except:
     pass
-
-
-# __all__ = ['ankDB']
-
+log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def get_friendly_interval_string(lastImport):
     if not lastImport: return ""
     td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
@@ -65,16 +64,19 @@ def get_tag_names_to_import(tagNames, evernoteTags=None, evernoteTagsToDelete=No
                   key=lambda s: s.lower())
 
 def find_evernote_guids(content):
-    return [x.group('guid') for x in re.finditer(r'(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)', content)]
+    return [x.group('guid') for x in re.finditer(r'\b(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b', content)]
 
 def find_evernote_links_as_guids(content):
     return [x.group('guid') for x in find_evernote_links(content)]
 
+def replace_evernote_web_links(content):
+    return re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
+                 r'evernote:///view/\2/\1/\3/\3/', content)
 
 def find_evernote_links(content):
     # .NET regex saved to regex.txt as 'Finding Evernote Links'
-    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?|' \
-                r'https://www.evernote.com/shard/(?P<shard>s\d+)/[\w\d]+/(?P<uid>[\d]+?)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))"(?:[^>]*)?(?: style="[^\"].+?")?(?: shape="rect")?>(?P<Title>.+?)</a>'
+    content = replace_evernote_web_links(content)
+    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<Title>.+?)</a>'
     ids = get_evernote_account_ids()
     if not ids.valid:
         match = re.search(regex_str, content)

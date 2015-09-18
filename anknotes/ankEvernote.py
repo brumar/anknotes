@@ -114,6 +114,7 @@ class Evernote(object):
             log("Loading ENML DTD", "lxml", timestamp=False, do_print=True)
             self.DTD = etree.DTD(ANKNOTES.ENML_DTD)
             log("DTD Loaded in %s\n" % str(timerInterval), "lxml", timestamp=False, do_print=True)
+            log(' '*7+' > Note Validation: ENML DTD Loaded in %s' % str(timerInterval))
             timerInterval.stop()
             del timerInterval
 
@@ -365,7 +366,7 @@ class Evernote(object):
             notebookGuid = note_metadata.notebookGuid
             if not notebookGuid:
                 log_error("   > Notebook check: Unable to find notebook guid for '%s'. Returned '%s'. Metadata: %s" % (
-                    evernote_guid, str(notebookGuid), str(note_metadata)))
+                    evernote_guid, str(notebookGuid), str(note_metadata)), crossPost=False)
             elif notebookGuid not in self.notebook_data:
                 nb = EvernoteNotebook(fetch_guid=notebookGuid)
                 if not nb.success:

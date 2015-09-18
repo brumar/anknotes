@@ -5,6 +5,7 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class ANKNOTES:
+    FOLDER_ADDONS_ROOT = os.path.dirname(PATH)
     FOLDER_EXTRA = os.path.join(PATH, 'extra')
     FOLDER_ANCILLARY = os.path.join(FOLDER_EXTRA, 'ancillary')
     FOLDER_GRAPHICS = os.path.join(FOLDER_EXTRA, 'graphics')
@@ -13,10 +14,17 @@ class ANKNOTES:
     LOG_BASE_NAME = 'anknotes'
     TEMPLATE_FRONT = os.path.join(FOLDER_ANCILLARY, 'FrontTemplate.htm')
     CSS = u'_AviAnkiCSS.css'
+    QT_CSS_QMESSAGEBOX = os.path.join(FOLDER_ANCILLARY, 'QMessageBox.css')
     ENML_DTD = os.path.join(FOLDER_ANCILLARY, 'enml2.dtd')
     TABLE_OF_CONTENTS_ENEX = os.path.join(FOLDER_TESTING, "Table of Contents.enex")
-    VALIDATION_SCRIPT = os.path.join(os.path.dirname(PATH), 'test.py')  # anknotes-standAlone.py')
-    FIND_DELETED_NOTES_SCRIPT = os.path.join(os.path.dirname(PATH), 'find_deleted_notes.py')  # anknotes-standAlone.py')
+    VALIDATION_SCRIPT = os.path.join(FOLDER_ADDONS_ROOT, 'anknotes_start_note_validation.py')  # anknotes-standAlone.py')
+    FIND_DELETED_NOTES_SCRIPT = os.path.join(FOLDER_ADDONS_ROOT, 'anknotes_start_find_deleted_notes.py')  # anknotes-standAlone.py')
+    LOG_FDN_ANKI_ORPHANS = 'Find Deleted Notes\\'
+    LOG_FDN_UNIMPORTED_EVERNOTE_NOTES = LOG_FDN_ANKI_ORPHANS + 'UnimportedEvernoteNotes'
+    LOG_FDN_ANKI_TITLE_MISMATCHES = LOG_FDN_ANKI_ORPHANS + 'AnkiTitleMismatches'
+    LOG_FDN_ANKNOTES_TITLE_MISMATCHES = LOG_FDN_ANKI_ORPHANS + 'AnknotesTitleMismatches'
+    LOG_FDN_ANKNOTES_ORPHANS = LOG_FDN_ANKI_ORPHANS + 'AnknotesOrphans'
+    LOG_FDN_ANKI_ORPHANS += 'AnkiOrphans'
     ICON_EVERNOTE_WEB = os.path.join(FOLDER_GRAPHICS, u'evernote_web.ico')
     IMAGE_EVERNOTE_WEB = ICON_EVERNOTE_WEB.replace('.ico', '.png')
     ICON_EVERNOTE_ARTCORE = os.path.join(FOLDER_GRAPHICS, u'evernote_artcore.ico')

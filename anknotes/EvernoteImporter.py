@@ -45,6 +45,7 @@ class EvernoteImporter:
     evernote = None
     """:type : Evernote"""
     updateExistingNotes = UpdateExistingNotes.UpdateNotesInPlace
+    ManualGUIDs = None
     @property
     def ManualMetadataMode(self):
         return (self.ManualGUIDs is not None and len(self.ManualGUIDs) > 0)
@@ -65,9 +66,8 @@ class EvernoteImporter:
         result.startIndex = self.MetadataProgress.Offset
         result.notes = []
         """:type : list[NoteMetadata]"""
-        for i in range(self.MetadataProgress.Offset, self.MetadataProgress.Completed + 1):
+        for i in range(self.MetadataProgress.Offset, self.MetadataProgress.Completed):
             result.notes.append(NoteMetadata(guids[i]))
-        result.totalNotes = len(guids)
         self.MetadataProgress.loadResults(result)
         self.evernote.metadata = self.MetadataProgress.NotesMetadata
         return True
@@ -83,7 +83,7 @@ class EvernoteImporter:
         spec = NotesMetadataResultSpec(includeTitle=False, includeUpdated=False, includeUpdateSequenceNum=True,
                                        includeTagGuids=True, includeNotebookGuid=True)
         api_action_str = u'trying to search for note metadata'
-        log_api("findNotesMetadata", "[Offset: %d]: Query: '%s'" % (self.MetadataProgress.Offset, query))
+        log_api("findNotesMetadata", "[Offset: %3d]: Query: '%s'" % (self.MetadataProgress.Offset, query))
         try:
             result = self.evernote.noteStore.findNotesMetadata(self.evernote.token, evernote_filter,
                                                                self.MetadataProgress.Offset,
@@ -261,7 +261,8 @@ class EvernoteImporter:
                 show_report("   > Terminating Auto Paging",
                                 "All %d notes have been processed and forceAutoPage is True" % self.MetadataProgress.Total,
                                 delay=5)
-                self.auto_page_callback()
+                if self.auto_page_callback:
+                    self.auto_page_callback()
                 return True
             elif col.conf.get(EVERNOTE.PAGING_RESTART_WHEN_COMPLETE, True):
                 restart = EVERNOTE.PAGING_RESTART_INTERVAL
@@ -277,7 +278,7 @@ class EvernoteImporter:
         else:  # Paging still in progress
             self.currentPage = self.MetadataProgress.Page + 1
             restart_title = "   > Continuing Auto Paging"
-            restart_msg = "Page %d completed. <BR>%d notes remain. <BR>%d of %d notes have been processed" % (
+            restart_msg = "Page %d completed<BR>%d notes remain<BR>%d of %d notes have been processed" % (
                 self.MetadataProgress.Page, self.MetadataProgress.Remaining, self.MetadataProgress.Completed,
                 self.MetadataProgress.Total)
             restart = 0

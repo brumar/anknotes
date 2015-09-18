@@ -248,7 +248,9 @@ class Anki:
             raise
         return get_dict_from_list(items, fields_to_ignore)
 
-    def get_evernote_guids_from_anki_note_ids(self, ids):
+    def get_evernote_guids_from_anki_note_ids(self, ids=None):
+        if ids is None:
+            ids = self.get_anknotes_note_ids()
         evernote_guids = []
         self.usns = {}
         for a_id in ids:
@@ -263,7 +265,9 @@ class Anki:
                 log("   ! get_evernote_guids_from_anki_note_ids: Note '%s' is missing USN!" % evernote_guid)
         return evernote_guids
 
-    def get_evernote_guids_and_anki_fields_from_anki_note_ids(self, ids):
+    def get_evernote_guids_and_anki_fields_from_anki_note_ids(self, ids=None):
+        if ids is None:
+            ids = self.get_anknotes_note_ids()
         evernote_guids = {}
         for a_id in ids:
             fields = self.get_anki_fields_from_anki_note_id(a_id)
@@ -321,7 +325,7 @@ class Anki:
                 if anki_note_prototype.Fields[FIELDS.SEE_ALSO]:
                     log("Detected see also contents for Note '%s': %s" % (
                         get_evernote_guid_from_anki_fields(fields), fields[FIELDS.TITLE]))
-                    log(u" → %s " % strip_tags_and_new_lines(fields[FIELDS.SEE_ALSO]))
+                    log(u" :::   %s " % strip_tags_and_new_lines(fields[FIELDS.SEE_ALSO]))
                     if anki_note_prototype.update_note():
                         count_update += 1
             count += 1
@@ -341,7 +345,7 @@ class Anki:
         grouped_results = {}
         # log('           INSERT TOCS INTO ANKI NOTES ', 'dump-insert_toc', timestamp=False, clear=True)
         # log('------------------------------------------------', 'dump-insert_toc', timestamp=False)        
-        log('           <h1>INSERT TOCS INTO ANKI NOTES</h1> <HR><BR><BR>', 'see_also', timestamp=False, clear=True,
+        log('           <h1>INSERT TOC LINKS INTO ANKI NOTES</h1> <HR><BR><BR>', 'see_also', timestamp=False, clear=True,
             extension='htm')
         toc_titles = {}
         for row in results:
@@ -405,12 +409,11 @@ class Anki:
                                 see_also_new = see_also_toc_header_ul + u'%s\n</ul>' % see_also_new
                             else:
                                 see_also_new = see_also_toc_header + u'%s\n</ol>' % see_also_new
-                                # log('\n\nWould like to add the following to %s: \n-----------------------\n%s\n-----------------------\n%s\n' % (fields[FIELDS.TITLE], see_also_new, see_also_html), 'dump-insert_toc', timestamp=False)
                     if see_also_count == 0:
                         see_also_html = generate_evernote_span(u'See Also:', 'Links', 'See Also')
                     see_also_html += see_also_new
                 see_also_html = see_also_html.replace('<ol>', '<ol style="margin-top:3px;">')
-                log('<h3>%s</h3><BR>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
+                log('<h3>%s</h3><br>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
                                                                'TOC') + see_also_html + u'<HR>', 'see_also',
                     timestamp=False, extension='htm')
                 fields[FIELDS.SEE_ALSO] = see_also_html.replace('evernote:///', 'evernote://')

@@ -1,7 +1,7 @@
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 from anknotes.structs import upperFirst
-
+from anknotes.logging import log
 
 class EvernoteNotePrototype:
     ################## CLASS Note ################
@@ -35,7 +35,7 @@ class EvernoteNotePrototype:
         """
 
         :type whole_note: evernote.edam.type.ttypes.Note
-        :type db_note: sqlite.Row
+        :type db_note: sqlite3.dbapi2.Row
         """
 
         self.Status = -1
@@ -49,10 +49,15 @@ class EvernoteNotePrototype:
             return
         if db_note is not None:
             self.Title = EvernoteNoteTitle(db_note)
+            db_note_keys = db_note.keys()
             if isinstance(db_note['tagNames'], str):
                 db_note['tagNames'] = unicode(db_note['tagNames'], 'utf-8')
             for key in ['content', 'guid', 'notebookGuid', 'updateSequenceNum', 'tagNames', 'tagGuids']:
-                setattr(self, upperFirst(key), db_note[key])
+                if not key in db_note_keys:
+                    log("Unable to find key %s in db note %s! \n%s" % (key, self.Title.FullTitle, db_note_keys))
+                    log("Values: \n\n" + str({k: db_note[k] for k in db_note_keys  }), 'EvernoteNotePrototypeInit')
+                else:
+                    setattr(self, upperFirst(key), db_note[key])
             if isinstance(self.Content, str):
                 self.Content = unicode(self.Content, 'utf-8')
             self.process_tags()

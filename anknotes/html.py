@@ -84,7 +84,6 @@ def generate_evernote_link(guid, title=None, value=None, escape=True):
 def generate_evernote_link_by_level(guid, title=None, value=None, escape=True):
     return generate_evernote_link_by_type(guid, title, 'Levels', value, escape=escape)
 
-
 def generate_evernote_html_element_style_attribute(link_type, value, bold=True, group=None):
     global evernote_link_colors
     colors = None
@@ -201,6 +200,16 @@ def get_evernote_account_ids():
         enAccountIDs = EvernoteAccountIDs()
     return enAccountIDs
 
+def tableify_column(column):
+    return str(column).replace('\n', '\n<BR>').replace('  ', '&nbsp;&nbsp;')
+
+def tableify_lines(rows, columns=None, tr_index_offset=0, return_html=True):
+    if columns is None: columns = []
+    elif not isinstance(columns, list): columns = [columns]
+    trs = ['<tr class="tr%d">%s\n</tr>\n' % (i_row, ''.join(['\n <td class="td%d">%s</td>' % (i_col+1, tableify_column(column)) for i_col, column in enumerate(row if isinstance(row, list) else row.split('|'))])) for i_row, row in enumerate(columns + rows)]
+    if return_html:
+        return '<table>%s</table>' % ''.join(trs)
+    return trs
 
 class EvernoteAccountIDs:
     uid = '0'

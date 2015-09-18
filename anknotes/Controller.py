@@ -88,7 +88,7 @@ class Controller:
         queries1 = []
         queries2 = []
         noteFetcher = EvernoteNoteFetcher()
-        SIMULATE = True
+        SIMULATE = False
         if len(dbRows) == 0:
             if not automated:
                 show_report("   > Upload of Validated Notes Aborted", "No Qualifying Validated Notes Found")
@@ -147,7 +147,7 @@ class Controller:
             ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.MAKE_NOTE_QUEUE, queries1)
         if len(queries2) > 0:
             ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.MAKE_NOTE_QUEUE, queries2)
-        log(queries1)
+        # log(queries1)
 
         ankDB().commit()
         return status, count, exist
@@ -200,15 +200,20 @@ class Controller:
             evernote_guid = None
             noteBody = self.evernote.makeNoteBody(contents, encode=True)
 
-            noteBody2 = self.evernote.makeNoteBody(contents, encode=True)
+            noteBody2 = self.evernote.makeNoteBody(contents, encode=False)
             if old_values:
                 evernote_guid, old_content = old_values
-                if old_content == noteBody or old_content == noteBody2:
+                if type(old_content) != type(noteBody2):
+                    log([rootTitle, type(old_content), type(noteBody), type(noteBody2)], 'AutoTOC-Create-Diffs\\_')
+                    raise UnicodeWarning
+                eq2 = (old_content == noteBody2)
+
+                if eq2:
                     count += 1
                     count_update_skipped += 1
                     continue
-                log(generate_diff(old_content, noteBody2), 'AutoTOC-Create-Diffs')
-            continue
+                log(generate_diff(old_content, noteBody2), 'AutoTOC-Create-Diffs\\'+rootTitle)
+            # continue
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
                             ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
                 continue

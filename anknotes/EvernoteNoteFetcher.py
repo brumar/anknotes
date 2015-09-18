@@ -55,7 +55,7 @@ class EvernoteNoteFetcher(object):
 
     def getNoteLocal(self):
         # Check Anknotes database for note
-        query = "SELECT guid, title, content, notebookGuid, tagNames, updateSequenceNum FROM %s WHERE guid = '%s'" % (
+        query = "SELECT * FROM %s WHERE guid = '%s'" % (
             TABLES.EVERNOTE.NOTES, self.evernote_guid)
         if self.UpdateSequenceNum() > -1:
             query += " AND `updateSequenceNum` = %d" % self.UpdateSequenceNum()
@@ -63,7 +63,7 @@ class EvernoteNoteFetcher(object):
         """:type : sqlite.Row"""
         if not db_note: return False
         if not self.use_local_db_only:
-            log("                   > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
+            log("                    > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
         assert db_note['guid'] == self.evernote_guid
         self.reportSuccess(EvernoteNotePrototype(db_note=db_note), 1)
         self.tagNames = self.result.Note.TagNames if self.keepEvernoteTags else []
@@ -79,6 +79,7 @@ class EvernoteNoteFetcher(object):
         if tag_names:
             self.tagNames = tag_names
         title = self.whole_note.title
+        log('Adding  %s: %s' % (self.whole_note.guid, title), 'ankDB')
         content = self.whole_note.content
         tag_names = u',' + u','.join(self.tagNames).decode('utf-8') + u','
         if isinstance(title, str):
@@ -103,6 +104,7 @@ class EvernoteNoteFetcher(object):
         ankDB().execute(sql_query)
         sql_query = sql_query_header_history + sql_query_columns
         ankDB().execute(sql_query)
+        ankDB().commit()
 
     def getNoteRemoteAPICall(self):
         api_action_str = u'trying to retrieve a note. We will save the notes downloaded thus far.'

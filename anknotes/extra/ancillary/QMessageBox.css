@@ -1,0 +1,9 @@
+table tr.tr0, table tr.tr0 td.t1, table tr.tr0 td.t2, table tr.tr0 td.t3 { background-color: green; background: rgb(105, 170, 53); height: 42px; font-size: 32px; cell-spacing: 0px; padding-top: 10px; padding-bottom: 10px; }
+
+tr.tr0 td { background-color: green; background: rgb(105, 170, 53); height: 42px; font-size: 32px; cell-spacing: 0px;  }
+a {   color: rgb(105, 170, 53); font-weight:bold; }
+a:hover {   color: rgb(135, 187, 93); font-weight:bold; text-decoration: none; }
+a:active {   color: rgb(135, 187, 93); font-weight:bold; text-decoration: none; }
+td.t1 { font-weight: bold; color: #bf0060; text-align: center;  padding-left: 10px;  padding-right: 10px; }  
+td.t2 { text-transform: uppercase; font-weight: bold;  color: #0060bf;  padding-left:20px; padding-right:20px; font-size: 18px; }  
+td.t3 { color: #666; font-size: 10px; }  
