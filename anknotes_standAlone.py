@@ -50,7 +50,7 @@ if eTreeImported:
 
     currentLog = 'Successful'
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
+    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
 
     for result in success_queued_items:
@@ -61,7 +61,7 @@ if eTreeImported:
 
     currentLog = 'Failed'
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue-' + currentLog, clear=False, timestamp=False, do_print=True)
+    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue\\' + currentLog, clear=False, timestamp=False, do_print=True)
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
 
 
@@ -78,7 +78,7 @@ if eTreeImported:
 
     currentLog = 'Pending'
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue-' + currentLog, clear=False, timestamp=False, do_print=True)
+    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue\\' + currentLog, clear=False, timestamp=False, do_print=True)
     log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
 
     timerFull = stopwatch.Timer()

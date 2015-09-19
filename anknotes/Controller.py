@@ -155,9 +155,9 @@ class Controller:
     def create_auto_toc(self):
         update_regex()
         self.anki.evernoteTags = []
-        NoteDB = EvernoteNotes()
-        NoteDB.baseQuery = ANKNOTES.ROOT_TITLES_BASE_QUERY
-        dbRows = NoteDB.populateAllNonCustomRootNotes()
+        NotesDB = EvernoteNotes()
+        NotesDB.baseQuery = ANKNOTES.ROOT_TITLES_BASE_QUERY
+        dbRows = NotesDB.populateAllNonCustomRootNotes()
         # dbRows = NoteDB.populateAllPotentialRootNotes()
         number_updated = 0
         number_created = 0
@@ -198,22 +198,22 @@ class Controller:
                 "SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES,
                 rootTitle.upper(), EVERNOTE.TAG.AUTO_TOC)
             evernote_guid = None
-            noteBody = self.evernote.makeNoteBody(contents, encode=True)
+            # noteBody = self.evernote.makeNoteBody(contents, encode=True)
 
-            noteBody2 = self.evernote.makeNoteBody(contents, encode=False)
+            noteBodyUnencoded = self.evernote.makeNoteBody(contents, encode=False)
             if old_values:
                 evernote_guid, old_content = old_values
-                if type(old_content) != type(noteBody2):
-                    log([rootTitle, type(old_content), type(noteBody), type(noteBody2)], 'AutoTOC-Create-Diffs\\_')
+                if type(old_content) != type(noteBodyUnencoded):
+                    log([rootTitle, type(old_content), type(noteBody)], 'AutoTOC-Create-Diffs\\_')
                     raise UnicodeWarning
-                eq2 = (old_content == noteBody2)
-
-                if eq2:
+                old_content = old_content.replace('guid-pending', evernote_guid)
+                noteBodyUnencoded = noteBodyUnencoded.replace('guid-pending', evernote_guid)
+                if old_content == noteBodyUnencoded:
                     count += 1
                     count_update_skipped += 1
                     continue
-                log(generate_diff(old_content, noteBody2), 'AutoTOC-Create-Diffs\\'+rootTitle)
-            # continue
+                contents = contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
+                log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create-Diffs\\'+rootTitle)
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
                             ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
                 continue

@@ -23,7 +23,7 @@ try:
         EDAMNotFoundException
 except:
     pass
-log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
+# log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def get_friendly_interval_string(lastImport):
     if not lastImport: return ""
     td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
@@ -67,13 +67,19 @@ def find_evernote_guids(content):
     return [x.group('guid') for x in re.finditer(r'\b(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b', content)]
 
 def find_evernote_links_as_guids(content):
-    return [x.group('guid') for x in find_evernote_links(content)]
+    return [x.Guid for x in find_evernote_links(content)]
 
 def replace_evernote_web_links(content):
     return re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
                  r'evernote:///view/\2/\1/\3/\3/', content)
 
 def find_evernote_links(content):
+    """
+
+    :param content:
+    :return:
+    :rtype : list[EvernoteLink]
+    """
     # .NET regex saved to regex.txt as 'Finding Evernote Links'
     content = replace_evernote_web_links(content)
     regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<Title>.+?)</a>'
@@ -82,8 +88,7 @@ def find_evernote_links(content):
         match = re.search(regex_str, content)
         if match:
             ids.update(match.group('uid'), match.group('shard'))
-    return re.finditer(regex_str, content)
-
+    return [EvernoteLink(m) for m in re.finditer(regex_str, content)]
 
 def get_dict_from_list(lst, keys_to_ignore=list()):
     dic = {}
@@ -91,9 +96,7 @@ def get_dict_from_list(lst, keys_to_ignore=list()):
         if not key in keys_to_ignore: dic[key] = value
     return dic
 
-
 _regex_see_also = None
-
 
 def update_regex():
     global _regex_see_also

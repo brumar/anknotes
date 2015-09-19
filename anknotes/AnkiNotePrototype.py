@@ -16,7 +16,7 @@ except:
 
 def get_self_referential_fmap():
     fmap = {}
-    for i in range(0, len(FIELDS_LIST)):
+    for i in range(0, len(FIELDS.LIST)):
         fmap[i] = i
     return fmap
 
@@ -26,8 +26,8 @@ class AnkiNotePrototype:
     """:type : anknotes.Anki.Anki """
     BaseNote = None
     """:type : AnkiNote """
-    Title = None
-    """:type : EvernoteNoteTitle.EvernoteNoteTitle """
+    enNote = None
+    """:type: EvernoteNotePrototype.EvernoteNotePrototype"""
     Fields = {}
     """:type : dict[str, str]"""
     Tags = []
@@ -47,11 +47,21 @@ class AnkiNotePrototype:
 
     OriginalGuid = None
     """:type : str"""
-    Changed = False
+    Changed = False    
+    _unprocessed_content_ = ""
+    _unprocessed_see_also_ = ""
     _log_update_if_unchanged_ = True
 
-    def __init__(self, anki, fields, tags, base_note=None, notebookGuid=None, count=-1, count_update=0,
-                 max_count=1, counts=None):
+    @property
+    def Content(self):
+        return self.Fields[FIELDS.CONTENT]
+    
+    @Content.setter
+    def Content(self, value):
+        self.Fields[FIELDS.CONTENT] = value
+
+    def __init__(self, anki=None, fields=None, tags=None, base_note=None, notebookGuid=None, count=-1, count_update=0,
+                 max_count=1, counts=None, light_processing=False, enNote=None):
         """
         Create Anki Note Prototype Class from fields or Base Anki Note
         :param anki: Anki: Anknotes Main Class Instance
@@ -61,6 +71,8 @@ class AnkiNotePrototype:
         :type tags : list[str]
         :param base_note: Base Anki Note if Updating an Existing Note
         :type base_note : anki.notes.Note
+        :param enNote: Base Evernote Note Prototype from Anknotes DB, usually used just to process a note's contents
+        :type enNote : EvernoteNotePrototype.EvernoteNotePrototype
         :param notebookGuid:
         :param count:
         :param count_update:
@@ -69,10 +81,13 @@ class AnkiNotePrototype:
         :type counts :  AnkiNotePrototype.Counts
         :return: AnkiNotePrototype
         """
-
+        self.light_processing = light_processing
         self.Anki = anki
         self.Fields = fields
         self.BaseNote = base_note
+        if enNote and light_processing and not fields:
+            self.Fields = {FIELDS.TITLE: enNote.Title.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'', FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid}
+            self.enNote = enNote
         self.Changed = False
         self.logged = False
         if counts:
@@ -82,14 +97,14 @@ class AnkiNotePrototype:
             self.Counts.Current = count + 1
             self.Counts.Max = max_count
         self.initialize_fields()
-        self.Guid = get_evernote_guid_from_anki_fields(fields)
+        self.Guid = get_evernote_guid_from_anki_fields(self.Fields)
         self.NotebookGuid = notebookGuid
         self.ModelName = None  # MODELS.EVERNOTE_DEFAULT
-        self.Title = EvernoteNoteTitle()
-        if not self.NotebookGuid:
+        # self.Title = EvernoteNoteTitle()
+        if not self.NotebookGuid and self.Anki:
             self.NotebookGuid = self.Anki.get_notebook_guid_from_ankdb(self.Guid)
-        assert self.Guid and self.NotebookGuid
-        self._deck_parent_ = self.Anki.deck
+        assert self.Guid and (self.light_processing or self.NotebookGuid)
+        self._deck_parent_ = self.Anki.deck if self.Anki else ''
         self.Tags = tags
         self.__cloze_count__ = 0
         self.process_note()
@@ -97,10 +112,10 @@ class AnkiNotePrototype:
     def initialize_fields(self):
         if self.BaseNote:
             self.originalFields = get_dict_from_list(self.BaseNote.items())
-        for field in FIELDS_LIST:
+        for field in FIELDS.LIST:
             if not field in self.Fields:
                 self.Fields[field] = self.originalFields[field] if self.BaseNote else u''
-        self.Title = EvernoteNoteTitle(self.Fields)
+        # self.Title = EvernoteNoteTitle(self.Fields)
 
     def deck(self):
         if EVERNOTE.TAG.TOC in self.Tags or EVERNOTE.TAG.AUTO_TOC in self.Tags:
@@ -129,91 +144,111 @@ class AnkiNotePrototype:
             return
         ankDB().execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
         link_num = 0
-        for match in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
+        for enLink in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
             link_num += 1
-            title_text = strip_tags(match.group('Title'))
+            title_text = enLink.FullTitle
             is_toc = 1 if (title_text == "TOC") else 0
             is_outline = 1 if (title_text is "O" or title_text is "Outline") else 0
             ankDB().execute(
                 "INSERT INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', 0, %d, %d)" % (
-                    TABLES.SEE_ALSO, self.Guid, link_num, int(match.group('uid')), match.group('shard'),
-                    match.group('guid'), match.group('Title'), title_text, is_toc, is_outline))
+                    TABLES.SEE_ALSO, self.Guid, link_num, enLink.Uid, enLink.Shard,
+                    enLink.Guid, enLink.HTML, title_text, is_toc, is_outline))
 
     def process_note_content(self):
-        if not FIELDS.CONTENT in self.Fields:
-            return
-        content = self.Fields[FIELDS.CONTENT]
-        self.unprocessed_content = content
-        self.unprocessed_see_also = self.Fields[FIELDS.SEE_ALSO]
 
-        ################################### Step 0: Correct weird Evernote formatting 
-        remove_style_attrs = '-webkit-text-size-adjust: auto|-webkit-text-stroke-width: 0px|background-color: rgb(255, 255, 255)|color: rgb(0, 0, 0)|font-family: Tahoma|font-size: medium;|font-style: normal|font-variant: normal|font-weight: normal|letter-spacing: normal|orphans: 2|text-align: -webkit-auto|text-indent: 0px|text-transform: none|white-space: normal|widows: 2|word-spacing: 0px'.replace(
-            '(', '\\(').replace(')', '\\)')
-        # 'margin: 0px; padding: 0px 0px 0px 40px; '
-        content = re.sub(r' ?(%s);? ?' % remove_style_attrs, '', content)
-        content = content.replace(' style=""', '')
+        def step_0_remove_evernote_css_attributes():
+            ################################### Step 0: Correct weird Evernote formatting
+            remove_style_attrs = '-webkit-text-size-adjust: auto|-webkit-text-stroke-width: 0px|background-color: rgb(255, 255, 255)|color: rgb(0, 0, 0)|font-family: Tahoma|font-size: medium;|font-style: normal|font-variant: normal|font-weight: normal|letter-spacing: normal|orphans: 2|text-align: -webkit-auto|text-indent: 0px|text-transform: none|white-space: normal|widows: 2|word-spacing: 0px'.replace(
+                '(', '\\(').replace(')', '\\)')
+            # 'margin: 0px; padding: 0px 0px 0px 40px; '
+            self.Content = re.sub(r' ?(%s);? ?' % remove_style_attrs, '', self.Content)
+            self.Content = self.Content.replace(' style=""', '')
 
-        ################################### Step 1: Modify Evernote Links
-        # We need to modify Evernote's "Classic" Style Note Links due to an Anki bug with executing the evernote command with three forward slashes.
-        # For whatever reason, Anki cannot handle evernote links with three forward slashes, but *can* handle links with two forward slashes.
-        content = content.replace("evernote:///", "evernote://")
+        def step_1_modify_evernote_links():
+            ################################### Step 1: Modify Evernote Links
+            # We need to modify Evernote's "Classic" Style Note Links due to an Anki bug with executing the evernote command with three forward slashes.
+            # For whatever reason, Anki cannot handle evernote links with three forward slashes, but *can* handle links with two forward slashes.
+            self.Content = self.Content.replace("evernote:///", "evernote://")
 
-        # Modify Evernote's "New" Style Note links that point to the Evernote website. Normally these links open the note using Evernote's web client.
-        # The web client then opens the local Evernote executable. Modifying the links as below will skip this step and open the note directly using the local Evernote executable
-        content = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
-                         r'evernote://view/\2/\1/\3/\3/', content)
+            # Modify Evernote's "New" Style Note links that point to the Evernote website. Normally these links open the note using Evernote's web client.
+            # The web client then opens the local Evernote executable. Modifying the links as below will skip this step and open the note directly using the local Evernote executable
+            self.Content = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
+                             r'evernote://view/\2/\1/\3/\3/', self.Content)
 
-        ################################### Step 2: Modify Image Links        
-        # Currently anknotes does not support rendering images embedded into an Evernote note. 
-        # As a work around, this code will convert any link to an image on Dropbox, to an embedded <img> tag. 
-        # This code modifies the Dropbox link so it links to a raw image file rather than an interstitial web page
-        # Step 2.1: Modify HTML links to Dropbox images
-        dropbox_image_url_regex = r'(?P<URL>https://www.dropbox.com/s/[\w\d]+/.+\.(jpg|png|jpeg|gif|bmp))(?P<QueryString>(?:\?dl=(?:0|1))?)'
-        dropbox_image_src_subst = r'<a href="\g<URL>}\g<QueryString>}" shape="rect"><img src="\g<URL>?raw=1" alt="Dropbox Link %s Automatically Generated by Anknotes" /></a>'
-        content = re.sub(r'<a href="%s".*?>(?P<Title>.+?)</a>' % dropbox_image_url_regex,
-                         dropbox_image_src_subst % "'\g<Title>'", content)
+            if self.light_processing:
+                self.Content = self.Content.replace("evernote://", "evernote:///")
 
-        # Step 2.2: Modify Plain-text links to Dropbox images
-        try:
-            dropbox_image_url_regex = dropbox_image_url_regex.replace('(?P<QueryString>(?:\?dl=(?:0|1))?)',
-                                                                      '(?P<QueryString>\?dl=(?:0|1))')
-            content = re.sub(dropbox_image_url_regex, dropbox_image_src_subst % "From Plain-Text Link", content)
-        except:
-            log_error("\nERROR processing note, Step 2.2.  Content: %s" % content)
+        def step_2_modify_image_links():
+            ################################### Step 2: Modify Image Links
+            # Currently anknotes does not support rendering images embedded into an Evernote note.
+            # As a work around, this code will convert any link to an image on Dropbox, to an embedded <img> tag.
+            # This code modifies the Dropbox link so it links to a raw image file rather than an interstitial web page
+            # Step 2.1: Modify HTML links to Dropbox images
+            dropbox_image_url_regex = r'(?P<URL>https://www.dropbox.com/s/[\w\d]+/.+\.(jpg|png|jpeg|gif|bmp))(?P<QueryString>(?:\?dl=(?:0|1))?)'
+            dropbox_image_src_subst = r'<a href="\g<URL>}\g<QueryString>}" shape="rect"><img src="\g<URL>?raw=1" alt="Dropbox Link %s Automatically Generated by Anknotes" /></a>'
+            self.Content = re.sub(r'<a href="%s".*?>(?P<Title>.+?)</a>' % dropbox_image_url_regex,
+                             dropbox_image_src_subst % "'\g<Title>'", self.Content)
 
-        # Step 2.3: Modify HTML links with the inner text of exactly "(Image Link)"
-        content = re.sub(r'<a href="(?P<URL>.+)"[^>]*>(?P<Title>\(Image Link.*\))</a>',
-                         r'''<img src="\g<URL>" alt="'\g<Title>' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>">\g<Title></a>''',
-                         content)
+            # Step 2.2: Modify Plain-text links to Dropbox images
+            try:
+                dropbox_image_url_regex = dropbox_image_url_regex.replace('(?P<QueryString>(?:\?dl=(?:0|1))?)',
+                                                                          '(?P<QueryString>\?dl=(?:0|1))')
+                self.Content = re.sub(dropbox_image_url_regex, dropbox_image_src_subst % "From Plain-Text Link", self.Content)
+            except:
+                log_error("\nERROR processing note, Step 2.2.  Content: %s" % self.Content)
 
-        ################################### Step 3: Change white text to transparent 
-        # I currently use white text in Evernote to display information that I want to be initially hidden, but visible when desired by selecting the white text.
-        # We will change the white text to a special "occluded" CSS class so it can be visible on the back of cards, and also so we can adjust the color for the front of cards when using night mode
-        content = content.replace('<span style="color: rgb(255, 255, 255);">', '<span class="occluded">')
+            # Step 2.3: Modify HTML links with the inner text of exactly "(Image Link)"
+            self.Content = re.sub(r'<a href="(?P<URL>.+)"[^>]*>(?P<Title>\(Image Link.*\))</a>',
+                             r'''<img src="\g<URL>" alt="'\g<Title>' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>">\g<Title></a>''',
+                             self.Content)
 
-        ################################### Step 4: Automatically Occlude Text in <<Double Angle Brackets>>
-        content = re.sub(r'&lt;&lt;(.+?)&gt;&gt;', r'&lt;&lt;<span class="occluded">$1</span>&gt;&gt;', content)
+        def step_3_occlude_text():
+            ################################### Step 3: Change white text to transparent
+            # I currently use white text in Evernote to display information that I want to be initially hidden, but visible when desired by selecting the white text.
+            # We will change the white text to a special "occluded" CSS class so it can be visible on the back of cards, and also so we can adjust the color for the front of cards when using night mode
+            self.Content = self.Content.replace('<span style="color: rgb(255, 255, 255);">', '<span class="occluded">')
 
-        ################################### Step 5: Create Cloze fields from shorthand. Syntax is {Text}. Optionally {#Text} will prevent the Cloze # from incrementing.
-        content = re.sub(r'([^{]){(.+?)}([^}])', self.evernote_cloze_regex, content)
+            ################################### Step 4: Automatically Occlude Text in <<Double Angle Brackets>>
+            self.Content = re.sub(r'&lt;&lt;(.+?)&gt;&gt;', r'&lt;&lt;<span class="occluded">$1</span>&gt;&gt;', self.Content)
 
-        ################################### Step 6: Process "See Also: " Links
-        see_also_match = regex_see_also().search(content)
-        if see_also_match:
-            content = content.replace(see_also_match.group(0), see_also_match.group('Suffix'))
+        def step_5_create_cloze_fields():
+            ################################### Step 5: Create Cloze fields from shorthand. Syntax is {Text}. Optionally {#Text} will prevent the Cloze # from incrementing.
+            self.Content = re.sub(r'([^{]){(.+?)}([^}])', self.evernote_cloze_regex, self.Content)
+
+        def step_6_process_see_also_links():
+            ################################### Step 6: Process "See Also: " Links
+            see_also_match = regex_see_also().search(self.Content)
+            if not see_also_match: return
+            self.Content = self.Content.replace(see_also_match.group(0), see_also_match.group('Suffix'))
             see_also = see_also_match.group('SeeAlso')
             see_also_header = see_also_match.group('SeeAlsoHeader')
             see_also_header_stripme = see_also_match.group('SeeAlsoHeaderStripMe')
             if see_also_header_stripme:
                 see_also = see_also.replace(see_also_header, see_also_header.replace(see_also_header_stripme, ''))
             if self.Fields[FIELDS.SEE_ALSO]:
-                self.Fields[FIELDS.SEE_ALSO] += "<BR><BR>\r\n"
+                self.Fields[FIELDS.SEE_ALSO] += "<br><br>\r\n"
             self.Fields[FIELDS.SEE_ALSO] += see_also
+            if self.light_processing:
+                self.Content = self.Content.replace(see_also_match.group('Suffix'), self.Fields[FIELDS.SEE_ALSO] + see_also_match.group('Suffix'))
+                return
             self.process_note_see_also()
+        if not FIELDS.CONTENT in self.Fields:
+            return
+        self._unprocessed_content_ = self.Content
+        self._unprocessed_see_also_ = self.Fields[FIELDS.SEE_ALSO]
+        steps = [0, 1, 6] if self.light_processing else range(0,7)
+        if self.light_processing and not ANKNOTES.NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING:
+            steps.remove(0)
+        if 0 in steps: step_0_remove_evernote_css_attributes()
+        step_1_modify_evernote_links()
+        if 2 in steps:
+            step_2_modify_image_links()
+            step_3_occlude_text()
+            step_5_create_cloze_fields()
+            step_6_process_see_also_links()
 
-        # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents        
-        ################################### Note Processing complete. 
-        self.Fields[FIELDS.CONTENT] = content
+        # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents
+            ################################### Note Processing complete.
 
     def detect_note_model(self):
         log('\nTitle, self.model_name, tags, self.model_name', 'detectnotemodel')
@@ -241,7 +276,8 @@ class AnkiNotePrototype:
 
     def process_note(self):
         self.process_note_content()
-        self.detect_note_model()
+        if not self.light_processing:
+            self.detect_note_model()
 
     def update_note_model(self):
         modelNameNew = self.ModelName
@@ -365,8 +401,8 @@ class AnkiNotePrototype:
                         raise
         if len(field_updates) == 2:
             if FIELDS.SEE_ALSO in fields_updated and FIELDS.CONTENT in fields_updated:
-                fc_test1 = (self.unprocessed_content == fields_updated[FIELDS.CONTENT])
-                fc_test2 = (self.unprocessed_see_also == fields_updated[FIELDS.SEE_ALSO])
+                fc_test1 = (self._unprocessed_content_ == fields_updated[FIELDS.CONTENT])
+                fc_test2 = (self._unprocessed_see_also_ == fields_updated[FIELDS.SEE_ALSO])
                 fc_test = fc_test1 and fc_test2
                 if fc_test:
                     field_updates = []
@@ -374,7 +410,7 @@ class AnkiNotePrototype:
                 elif fc_test1:
                     del field_updates[0]
                 else:
-                    log_dump([fc_test1, fc_test2, self.unprocessed_content, '-' + fields_updated[FIELDS.CONTENT]],
+                    log_dump([fc_test1, fc_test2, self._unprocessed_content_, '-' + fields_updated[FIELDS.CONTENT]],
                              'AddUpdateNoteTest')
         for update in field_updates:
             self.log_update(update)
@@ -420,11 +456,15 @@ class AnkiNotePrototype:
         self.Counts.Updated += 1
         return True
 
+    @property
     def Title(self):
+        """:rtype : EvernoteNoteTitle.EvernoteNoteTitle """
+        title = ""
         if FIELDS.TITLE in self.Fields:
-            return self.Fields[FIELDS.TITLE]
+            title = self.Fields[FIELDS.TITLE]
         if self.BaseNote:
-            return self.originalFields[FIELDS.TITLE]
+            title = self.originalFields[FIELDS.TITLE]
+        return EvernoteNoteTitle(title)
 
     def add_note(self):
         self.create_note()

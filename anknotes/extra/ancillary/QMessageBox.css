@@ -1,9 +1,15 @@
-table tr.tr0, table tr.tr0 td.t1, table tr.tr0 td.t2, table tr.tr0 td.t3 { background-color: green; background: rgb(105, 170, 53); height: 42px; font-size: 32px; cell-spacing: 0px; padding-top: 10px; padding-bottom: 10px; }
-
-tr.tr0 td { background-color: green; background: rgb(105, 170, 53); height: 42px; font-size: 32px; cell-spacing: 0px;  }
+table tr.tr0, table tr.tr0 td.td1, table tr.tr0 td.td2, table tr.tr0 td.td3 {  background: rgb(78, 124, 39);  height: 42px; font-size: 32px; cell-spacing: 0px; padding-top: 1px; padding-bottom: 1px; }
+table { border: 1px solid black; border-bottom: 10px solid black; }
+table tr td { border: 1px solid black; }
+tr.std { background: rgb(105, 170, 53); cell-spacing: 0px;  }
+tr.alt { background: rgb(135, 187, 93); cell-spacing: 0px;  }
+tr.tr0 { background: rgb(78, 124, 39); height: 42px; font-size: 32px; cell-spacing: 0px;  }
+tr.tr0 td.td2 { color: rgb(173, 0, 0); }
+tr.tr0 td.td3 { color: #444; }
 a {   color: rgb(105, 170, 53); font-weight:bold; }
 a:hover {   color: rgb(135, 187, 93); font-weight:bold; text-decoration: none; }
 a:active {   color: rgb(135, 187, 93); font-weight:bold; text-decoration: none; }
-td.t1 { font-weight: bold; color: #bf0060; text-align: center;  padding-left: 10px;  padding-right: 10px; }  
-td.t2 { text-transform: uppercase; font-weight: bold;  color: #0060bf;  padding-left:20px; padding-right:20px; font-size: 18px; }  
-td.t3 { color: #666; font-size: 10px; }  
+table a { color: rgb(106, 0, 129);}
+td.td1 { font-weight: bold; color: #bf0060; text-align: center;  padding-left: 10px;  padding-right: 10px; }  
+td.td2 { text-transform: uppercase; font-weight: bold;  color: #0060bf;  padding-left:20px; padding-right:20px; font-size: 18px; }  
+td.td3 { color: #666; font-size: 10px; }  

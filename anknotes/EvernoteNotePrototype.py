@@ -1,6 +1,6 @@
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
-from anknotes.structs import upperFirst
+from anknotes.structs import upperFirst, EvernoteAPIStatus
 from anknotes.logging import log
 
 class EvernoteNotePrototype:
@@ -14,7 +14,8 @@ class EvernoteNotePrototype:
     TagNames = []
     TagGuids = []
     NotebookGuid = ""
-    Status = -1
+    Status = EvernoteAPIStatus.Uninitialized
+    """:type : EvernoteAPIStatus """
     Children = []
 
     @property
@@ -38,7 +39,7 @@ class EvernoteNotePrototype:
         :type db_note: sqlite3.dbapi2.Row
         """
 
-        self.Status = -1
+        self.Status = EvernoteAPIStatus.Uninitialized
         self.TagNames = tags
         if whole_note is not None:
             self.Title = EvernoteNoteTitle(whole_note)
@@ -46,6 +47,7 @@ class EvernoteNotePrototype:
             self.Guid = whole_note.guid
             self.NotebookGuid = whole_note.notebookGuid
             self.UpdateSequenceNum = whole_note.updateSequenceNum
+            self.Status = EvernoteAPIStatus.Success
             return
         if db_note is not None:
             self.Title = EvernoteNoteTitle(db_note)
@@ -61,12 +63,14 @@ class EvernoteNotePrototype:
             if isinstance(self.Content, str):
                 self.Content = unicode(self.Content, 'utf-8')
             self.process_tags()
+            self.Status = EvernoteAPIStatus.Success
             return
         self.Title = EvernoteNoteTitle(title)
         self.Content = content
         self.Guid = guid
         self.NotebookGuid = notebookGuid
         self.UpdateSequenceNum = updateSequenceNum
+        self.Status = EvernoteAPIStatus.Manual
 
     def generateURL(self):
         return generate_evernote_url(self.Guid)

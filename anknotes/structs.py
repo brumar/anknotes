@@ -1,13 +1,23 @@
+import re
+import anknotes
 from anknotes.db import *
 from anknotes.enum import Enum
 from anknotes.logging import log, str_safe, pad_center
+from anknotes.html import strip_tags
+from anknotes.enums import *
 
 # from evernote.edam.notestore.ttypes import NoteMetadata, NotesMetadataList
 
 def upperFirst(name):
     return name[0].upper() + name[1:]
 
-from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
+def getattrcallable(obj, attr):
+    val = getattr(obj, attr)
+    if callable(val): return val()
+    return val
+
+# from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
+# from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 class EvernoteStruct(object):
     success = False
@@ -17,61 +27,117 @@ class EvernoteStruct(object):
     __sql_table__ = TABLES.EVERNOTE.TAGS
     __sql_where__ = "guid"
     __attr_order__ = []
+    __title_is_note_title = False
+
+    def __attr_from_key__(self, key):
+        return upperFirst(key)
 
     def keys(self):
-        if len(self.__attr_order__) == 0:
-            self.__attr_order__ = self.__sql_columns__
-            self.__attr_order__.append(self.__sql_where__)
-        return self.__attr_order__
+        return self._valid_attributes_()
+        # if len(self.__attr_order__) == 0:
+        #     self.__attr_order__ = self.__sql_columns__ + self.__sql_where__
+        #     self.__attr_order__.append(self.__sql_where__)
+        # return self.__attr_order__
 
     def items(self):
-        lst = []
-        for key in self.__attr_order__:
-            lst.append(getattr(self, upperFirst(key)))
-        return lst
+        return [self.getAttribute(key) for key in self.__attr_order__]
 
-    def getFromDB(self):
+    def getFromDB(self, allColumns=True):
         query = "SELECT %s FROM %s WHERE %s = '%s'" % (
-        ', '.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__,
-        getattr(self, upperFirst(self.__sql_where__)))
+        '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
+        ankDB().setrowfactory()
         result = ankDB().first(query)
         if result:
             self.success = True
-            i = 0
-            for c in self.__sql_columns__:
-                setattr(self, upperFirst(c), result[i])
-                i += 1
+            self.setFromKeyedObject(result)
         else:
             self.success = False
         return self.success
+
+    @property
+    def Where(self):
+        return self.getAttribute(self.__sql_where__)
+
+    @Where.setter
+    def Where(self, value):
+        self.setAttribute(self.__sql_where__, value)
+
+    def getAttribute(self, key, default=None, raiseIfInvalidKey=False):
+        if not self.hasAttribute(key):
+            if raiseIfInvalidKey: raise KeyError
+            return default
+        return getattr(self, self.__attr_from_key__(key))
+
+    def hasAttribute(self, key):
+        return hasattr(self, self.__attr_from_key__(key))
+
+    def setAttribute(self, key, value):
+        if key == "fetch_" + self.__sql_where__:
+            self.setAttribute(self.__sql_where__, value)
+            self.getFromDB()
+        elif self._is_valid_attribute_(key):
+            setattr(self, self.__attr_from_key__(key), value)
+
+    def setAttributeByObject(self, key, keyed_object):
+        self.setAttribute(key, keyed_object[key])
+
+    def setFromKeyedObject(self, keyed_object, keys=None):
+        """
+
+        :param keyed_object:
+        :type: sqlite.Row | dict[str, object] | re.MatchObject | _sre.SRE_Match
+        :return:
+        """
+        lst = self._valid_attributes_()
+        # keys_detected=True
+        if keys or isinstance(keyed_object, dict):
+            pass
+        elif isinstance(keyed_object, type(re.search('', ''))):
+            keyed_object = keyed_object.groupdict()
+        elif hasattr(keyed_object, 'keys'):
+            keys = getattrcallable(keyed_object, 'keys')
+        else:
+            # keys_detected=False
+            return False
+
+        if keys is None: keys = keyed_object
+        for key in keys:
+            if key == "fetch_" + self.__sql_where__:
+                self.Where = keyed_object[key]
+                self.getFromDB()
+            elif key in lst: self.setAttributeByObject(key, keyed_object)
+        return True
+
+    def setFromListByDefaultOrder(self, args):
+        i = 0
+        max = len(self.__attr_order__)
+        for value in args:
+            if i > max:
+                log("Unable to set attr #%d for %s to %s (Exceeds # of default attributes)" % (i, self.__class__.__name__, str_safe(value)), 'error')
+                return
+            self.setAttribute(self.__attr_order__[i], value)
+            i += 1
+            # I have no idea what I was trying to do when I coded the commented out conditional statement...
+            # if key in self.__attr_order__:
+
+            # else:
+            #     log("Unable to set attr #%d for %s to %s" % (i, self.__class__.__name__, str_safe(value)), 'error')
+
+
+    def _valid_attributes_(self):
+        return set().union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
+
+    def _is_valid_attribute_(self, attribute):
+        return attribute.lower() in self._valid_attributes_()
 
     def __init__(self, *args, **kwargs):
         if isinstance(self.__sql_columns__, str): self.__sql_columns__ = [self.__sql_columns__]
         if isinstance(self.__attr_order__, str) or isinstance(self.__attr_order__, unicode):
             self.__attr_order__ = self.__attr_order__.replace('|', ' ').split(' ')
         args = list(args)
-        if len(args) > 0:
-            val = args[0]
-            if isinstance(val, sqlite.Row):
-                del args[0]
-                for key in val.keys():
-                    value = val[key]
-                    kwargs[key] = value
-        i = 0
-        for value in args:
-            key = self.__attr_order__[i]
-            if key in self.__attr_order__:
-                setattr(self, upperFirst(key), value)
-            else:
-                log("Unable to set attr #%d for %s to %s" % (i, self.__class__.__name__, str_safe(value)), 'error')
-            i += 1
-        lst = set().union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
-        for key in kwargs:
-            if key == "fetch_" + self.__sql_where__:
-                setattr(self, upperFirst(self.__sql_where__), kwargs[key])
-                self.getFromDB()
-            elif key in lst: setattr(self, upperFirst(key), kwargs[key])
-
+        if args and self.setFromKeyedObject(args[0]): del args[0]
+        self.setFromListByDefaultOrder(args)
+        self.setFromKeyedObject(kwargs)
 
 class EvernoteNotebook(EvernoteStruct):
     Stack = ""
@@ -84,6 +150,47 @@ class EvernoteTag(EvernoteStruct):
     __sql_columns__ = ["name", "parentGuid"]
     __sql_table__ = TABLES.EVERNOTE.TAGS
 
+
+
+
+class EvernoteLink(EvernoteStruct):
+    __uid__ = -1
+    Shard = -1
+    Guid = ""
+    __title__ = None
+    """:type: EvernoteNoteTitle.EvernoteNoteTitle """
+    __attr_order__ = 'uid|shard|guid|title'
+
+    @property
+    def HTML(self):
+        return self.Title.HTML
+
+    @property
+    def Title(self):
+        """:rtype : EvernoteNoteTitle.EvernoteNoteTitle"""
+        return self.__title__
+
+    @property
+    def FullTitle(self):
+        return self.Title.FullTitle
+
+    @Title.setter
+    def Title(self, value):
+        """
+        :param value:
+        :type value : EvernoteNoteTitle.EvernoteNoteTitle | str | unicode
+        :return:
+        """
+        self.__title__ = anknotes.EvernoteNoteTitle.EvernoteNoteTitle(value)
+        """:type : EvernoteNoteTitle.EvernoteNoteTitle"""
+
+    @property
+    def Uid(self):
+        return int(self.__uid__)
+
+    @Uid.setter
+    def Uid(self, value):
+        self.__uid__ = int(value)
 
 class EvernoteTOCEntry(EvernoteStruct):
     RealTitle = ""
@@ -121,31 +228,92 @@ class EvernoteValidationEntry(EvernoteStruct):
         super(self.__class__, self).__init__(*args, **kwargs)
 
 
-class EvernoteAPIStatus(Enum):
-    Uninitialized, EmptyRequest, RequestQueued, Success, RateLimitError, SocketError, UserError, NotFoundError, UnhandledError, Unknown = range(
-        -3, 7)
-    # Uninitialized = -100
-    # NoParameters = -1
-    # Success = 0
-    # RateLimitError = 1
-    # SocketError = 2
-    # UserError = 3
-    # NotFoundError = 4
-    # UnhandledError = 5
-    # Unknown = 100
+class EvernoteAPIStatusOld(AutoNumber):
+    Uninitialized = -100
+    """:type : EvernoteAPIStatus"""
+    EmptyRequest = -3
+    """:type : EvernoteAPIStatus"""
+    Manual = -2
+    """:type : EvernoteAPIStatus"""
+    RequestQueued = -1
+    """:type : EvernoteAPIStatus"""
+    Success = 0
+    """:type : EvernoteAPIStatus"""
+    RateLimitError = ()
+    """:type : EvernoteAPIStatus"""
+    SocketError = ()
+    """:type : EvernoteAPIStatus"""
+    UserError = ()
+    """:type : EvernoteAPIStatus"""
+    NotFoundError = ()
+    """:type : EvernoteAPIStatus"""
+    UnhandledError = ()
+    """:type : EvernoteAPIStatus"""
+    Unknown = 100
+    """:type : EvernoteAPIStatus"""
+
+    def __getitem__(self, item):
+        """:rtype : EvernoteAPIStatus"""
+        
+        return super(self.__class__, self).__getitem__(item)
+
+    # def __new__(cls, *args, **kwargs):
+    #     """:rtype : EvernoteAPIStatus"""
+    #     return type(cls).__new__(*args, **kwargs)
 
     @property
     def IsError(self):
-        return (self != EvernoteAPIStatus.Unknown and self.value > EvernoteAPIStatus.Success.value)
+        return EvernoteAPIStatus.Unknown.value > self.value > EvernoteAPIStatus.Success.value
 
     @property
     def IsSuccessful(self):
-        return (
-        self == EvernoteAPIStatus.Success or self == EvernoteAPIStatus.EmptyRequest or self == EvernoteAPIStatus.RequestQueued)
+        return EvernoteAPIStatus.Success.value >= self.value > EvernoteAPIStatus.Uninitialized.value
 
     @property
     def IsSuccess(self):
-        return (self == EvernoteAPIStatus.Success)
+        return self == EvernoteAPIStatus.Success
+
+
+
+class EvernoteAPIStatus(AutoNumberedEnum):
+    Uninitialized = -100
+    """:type : EvernoteAPIStatus"""
+    EmptyRequest = -3
+    """:type : EvernoteAPIStatus"""
+    Manual = -2
+    """:type : EvernoteAPIStatus"""
+    RequestQueued = -1
+    """:type : EvernoteAPIStatus"""
+    Success = 0
+    """:type : EvernoteAPIStatus"""
+    RateLimitError = ()
+    """:type : EvernoteAPIStatus"""
+    SocketError = ()
+    """:type : EvernoteAPIStatus"""
+    UserError = ()
+    """:type : EvernoteAPIStatus"""
+    NotFoundError = ()
+    """:type : EvernoteAPIStatus"""
+    UnhandledError = ()
+    """:type : EvernoteAPIStatus"""
+    Unknown = 100
+    """:type : EvernoteAPIStatus"""
+
+    # def __new__(cls, *args, **kwargs):
+    #     """:rtype : EvernoteAPIStatus"""
+    #     return type(cls).__new__(*args, **kwargs)
+
+    @property
+    def IsError(self):
+        return EvernoteAPIStatus.Unknown.value > self.value > EvernoteAPIStatus.Success.value
+
+    @property
+    def IsSuccessful(self):
+        return EvernoteAPIStatus.Success.value >= self.value > EvernoteAPIStatus.Uninitialized.value
+
+    @property
+    def IsSuccess(self):
+        return self == EvernoteAPIStatus.Success
 
 
 class EvernoteImportType:
@@ -156,7 +324,7 @@ class EvernoteNoteFetcherResult(object):
     def __init__(self, note=None, status=None, source=-1):
         """
 
-        :type note: EvernoteNotePrototype
+        :type note: EvernoteNotePrototype.EvernoteNotePrototype
         :type status: EvernoteAPIStatus
         """
         if not status: status = EvernoteAPIStatus.Uninitialized
@@ -271,7 +439,7 @@ class EvernoteNoteFetcherResults(object):
         self.Imported = 0
         self.Notes = []
         """
-        :type : list[EvernoteNotePrototype]
+        :type : list[EvernoteNotePrototype.EvernoteNotePrototype]
         """
 
     def reportResult(self, result):

@@ -17,12 +17,14 @@ class MLStripper(HTMLParser):
 
 
 def strip_tags(html):
+    if html is None: return None
     s = MLStripper()
     s.feed(html)
     return s.get_data()
 
 
 def strip_tags_and_new_lines(html):
+    if html is None: return None
     return strip_tags(html).replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ')
 
 
@@ -206,9 +208,9 @@ def tableify_column(column):
 def tableify_lines(rows, columns=None, tr_index_offset=0, return_html=True):
     if columns is None: columns = []
     elif not isinstance(columns, list): columns = [columns]
-    trs = ['<tr class="tr%d">%s\n</tr>\n' % (i_row, ''.join(['\n <td class="td%d">%s</td>' % (i_col+1, tableify_column(column)) for i_col, column in enumerate(row if isinstance(row, list) else row.split('|'))])) for i_row, row in enumerate(columns + rows)]
+    trs = ['<tr class="tr%d%s">%s\n</tr>\n' % (i_row, ' alt' if i_row % 2 is 0 else ' std', ''.join(['\n <td class="td%d%s">%s</td>' % (i_col+1, ' alt' if i_col % 2 is 0 else ' std', tableify_column(column)) for i_col, column in enumerate(row if isinstance(row, list) else row.split('|'))])) for i_row, row in enumerate(columns + rows)]
     if return_html:
-        return '<table>%s</table>' % ''.join(trs)
+        return "<table cellspacing='0' style='border: 1px solid black;border-collapse: collapse;'>\n%s</table>" % ''.join(trs)
     return trs
 
 class EvernoteAccountIDs:

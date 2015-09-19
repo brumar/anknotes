@@ -1,7 +1,7 @@
 ### Anknotes Shared Imports
 from anknotes.shared import *
 from sys import stderr
-log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
+# log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def generateTOCTitle(title):
     title = EvernoteNoteTitle.titleObjectToString(title).upper()
     for chr in u'?????':
@@ -194,9 +194,14 @@ class EvernoteNoteTitle:
         """:rtype: str"""
         return self.__title__
 
+    @property
+    def HTML(self):
+        return self.__html__
+
     def __init__(self, titleObj=None):
         """:type titleObj: str | unicode | sqlite.Row | EvernoteNoteTitle | evernote.edam.type.ttypes.Note | EvernoteNotePrototype.EvernoteNotePrototype  """
-        self.__title__ = self.titleObjectToString(titleObj)
+        self.__html__ = self.titleObjectToString(titleObj)
+        self.__title__ = strip_tags_and_new_lines(self.__html__)
 
 
 def generateTitleParts(title):

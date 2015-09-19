@@ -3,7 +3,9 @@ Converting this file to Python:
 	2) (?<
 
 Finding Evernote Links
-	<a href="(?<URL>evernote:///?view/(?<uid>[\d]+?)/(?<shard>s\d+)/(?<guid>[\w\-]+?)/(?P=guid)/?)"(?: shape="rect")?(?: style="[^\"].+?")?(?: shape="rect")?>(?<Title>.+?)</a>	
+	<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<Title>.+?)</a>
+	https://www.evernote.com/shard/(?P<shard>s\d+)/[\w\d]+/(?P<uid>\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})
+	
 	
 Step 6: Process "See Also: " Links
 	(?<PrefixStrip><div><b><span[^>]*><br/></span></b></div>)?(?:
@@ -30,5 +32,5 @@ Step 6: Process "See Also: " Links
 	)?)(?<SeeAlsoContents>.+))(?<Suffix></en-note>)
 
 Replace Python Parameters with Reference to Self
-	([\w_]+)=[.+?](,|\)
-	$1=$1$2
+	([\w_]+)(?: ?= ?(.+?))?(,|\))
+	$1=$1$3

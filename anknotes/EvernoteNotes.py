@@ -109,6 +109,12 @@ class EvernoteNotes:
 
     @staticmethod
     def getNoteFromDB(query):
+        """
+
+        :param query:
+        :return:
+        :rtype : sqlite.Row
+        """
         sql_query = "SELECT *  FROM %s WHERE %s " % (TABLES.EVERNOTE.NOTES, query)
         dbNote = ankDB().first(sql_query)
         if not dbNote: return None
@@ -117,6 +123,10 @@ class EvernoteNotes:
     def getNoteFromDBByGuid(self, guid):
         sql_query = "guid = '%s' " % guid
         return self.getNoteFromDB(sql_query)
+
+    def getEnNoteFromDBByGuid(self, guid):
+        return EvernoteNotePrototype(db_note=self.getNoteFromDBByGuid(guid))
+
 
     # def addChildNoteHierarchically(self, enChildNotes, enChildNote):
     #     parts = enChildNote.Title.TitleParts
@@ -286,7 +296,7 @@ class EvernoteNotes:
         count_isolated = 0
         # log (" CREATING TOC's "        , 'tocList', clear=True, timestamp=False)
         # log ("------------------------------------------------"        , 'tocList', timestamp=False)
-        # if DEBUG_HTML: log('<h1>CREATING TOCs</h1>', 'extra\\logs\\anknotes-toc-ols\\toc-index.htm', timestamp=False, clear=True, extension='htm')
+        # if DEBUG_HTML: log('<h1>CREATING TOCs</h1>', 'extra\\logs\\toc-ols\\toc-index.htm', timestamp=False, clear=True, extension='htm')
         ols = []
         dbRows = []
         returns = []
@@ -301,6 +311,8 @@ class EvernoteNotes:
             tags = []
             outline = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
                 escape_text_sql(rootTitleStr.upper()), EVERNOTE.TAG.OUTLINE))
+            currentAutoNote = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
+                escape_text_sql(rootTitleStr.upper()), EVERNOTE.TAG.AUTO_TOC))
             notebookGuids = {}
             childGuid = None
             if total_child is 1 and not outline:
@@ -376,7 +388,7 @@ class EvernoteNotes:
                     # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
         if DEBUG_HTML:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
-            fn = 'anknotes-toc-ols\\toc-index.htm'
+            fn = 'toc-ols\\toc-index.htm'
             file_object = open(os.path.join(ANKNOTES.FOLDER_LOGS, fn), 'w')
             try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
             except:

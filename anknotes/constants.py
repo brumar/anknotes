@@ -11,7 +11,11 @@ class ANKNOTES:
     FOLDER_GRAPHICS = os.path.join(FOLDER_EXTRA, 'graphics')
     FOLDER_LOGS = os.path.join(FOLDER_EXTRA, 'logs')
     FOLDER_TESTING = os.path.join(FOLDER_EXTRA, 'testing')
-    LOG_BASE_NAME = 'anknotes'
+    LOG_BASE_NAME = ''
+    LOG_DEFAULT_NAME = 'anknotes'
+    LOG_MAIN = LOG_DEFAULT_NAME
+    LOG_ACTIVE = LOG_DEFAULT_NAME
+    LOG_USE_CALLER_NAME = False
     TEMPLATE_FRONT = os.path.join(FOLDER_ANCILLARY, 'FrontTemplate.htm')
     CSS = u'_AviAnkiCSS.css'
     QT_CSS_QMESSAGEBOX = os.path.join(FOLDER_ANCILLARY, 'QMessageBox.css')
@@ -40,7 +44,7 @@ class ANKNOTES:
     ENABLE_VALIDATION = True
     AUTOMATE_VALIDATION = True
     ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
-
+    NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING = False
 
 class MODELS:
     EVERNOTE_DEFAULT = 'evernote_note'
@@ -56,7 +60,7 @@ class TEMPLATES:
     EVERNOTE_CLOZE = 'EvernoteReviewCloze'
 
 
-class FIELDS:
+class FIELDS:    
     TITLE = 'Title'
     CONTENT = 'Content'
     SEE_ALSO = 'See_Also'
@@ -66,10 +70,12 @@ class FIELDS:
     EVERNOTE_GUID = 'Evernote GUID'
     UPDATE_SEQUENCE_NUM = 'updateSequenceNum'
     EVERNOTE_GUID_PREFIX = 'evernote_guid='
+    LIST = [TITLE, CONTENT, SEE_ALSO, EXTRA, TOC, OUTLINE,
+               UPDATE_SEQUENCE_NUM]
+    SEE_ALSO_FIELDS_ORD = LIST.index(SEE_ALSO) + 1
 
 
-FIELDS_LIST = [FIELDS.TITLE, FIELDS.CONTENT, FIELDS.SEE_ALSO, FIELDS.EXTRA, FIELDS.TOC, FIELDS.OUTLINE,
-               FIELDS.UPDATE_SEQUENCE_NUM]
+
 
 
 class DECKS:

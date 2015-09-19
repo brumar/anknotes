@@ -3,10 +3,13 @@ from datetime import datetime, timedelta
 import difflib
 import pprint
 import re
-
+import inspect
+import shutil
+import time 
 # Anknotes Shared Imports
 from anknotes.constants import *
 from anknotes.graphics import *
+from anknotes.stopwatch import clockit
 
 # Anki Imports
 try:
@@ -69,7 +72,7 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0
 
     if richText:
         textFormat = 1
-        message = message.replace('\n', '<BR>\n')
+        # message = message.replace('\n', '<BR>\n')
         message = '<style>\n%s</style>\n\n%s' % (styleSheet, message)
     global messageBox
     messageBox = QMessageBox()
@@ -81,7 +84,7 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0
     messageBox.setTextFormat(textFormat)
 
     # message = ' %s %s' % (styleSheet, message)
-    # log(message, replace_newline=False)
+    log_plain(message, 'showInfo',  clear=True)
     messageBox.setWindowIcon(icoEvernoteWeb)
     messageBox.setWindowIconText("Anknotes")
     messageBox.setText(message)
@@ -150,33 +153,133 @@ def obj2log_simple(content):
 def convert_filename_to_local_link(filename):
     return 'file:///' + filename.replace("\\", "//")
 
-def log_blank(filename='', clear=False, extension='log'):
-    log(timestamp=False, filename=filename, clear=clear, extension=extension)
+class Logger(object):
+    base_path = None 
+    caller_info=None
+    default_filename=None 
+    def wrap_filename(self, filename=None):
+        if filename is None: filename = self.default_filename
+        if self.base_path is not None:
+            filename = os.path.join(self.base_path, filename if filename else '')
+        return filename
+    
+    def blank(self, filename=None, *args, **kwargs):
+        filename = self.wrap_filename(filename)
+        log_blank(filename=filename, *args, **kwargs)
+    
+    # def banner(self, title, filename=None, length=80, append_newline=True, do_print=False):    
+    def banner(self, title, filename=None, *args, **kwargs):
+        filename = self.wrap_filename(filename)
+        log_banner(title=title, filename=filename, *args, **kwargs)
+        
+    def go(self, content=None, filename=None, wrap_filename=True, *args, **kwargs):
+        if wrap_filename: filename = self.wrap_filename(filename)
+        log(content=content, filename=filename, *args, **kwargs)
+
+        # content=None, filename='', prefix='', clear=False, extension='log', replace_newline=None, do_print=False):
+    def plain(self, content=None, filename=None, *args, **kwargs):
+        filename=self.wrap_filename(filename)  
+        log_plain(content=content, filename=filename, *args, **kwargs)
+        
+    log = do = add = go
+
+    def default(self, *args, **kwargs):
+        self.log(wrap_filename=False, *args, **kwargs)
+        
+    def __init__(self, base_path=None, default_filename=None, rm_path=False):
+        self.default_filename = default_filename
+        if base_path:
+            self.base_path = base_path
+        else:
+            self.caller_info = caller_name()
+            if self.caller_info:
+                self.base_path = self.caller_info.Base.replace('.', '\\')     
+        if rm_path:
+            rm_log_path(self.base_path)
+                    
+        
+    
+def log_blank(filename=None, *args, **kwargs):
+    log(timestamp=False, content=None, filename=filename, *args, **kwargs)
 
 
-def log_plain(content=None, filename='', prefix='', clear=False, extension='log',
-              replace_newline=None, do_print=False):
-    log(timestamp=False, content=content, filename=filename, prefix=prefix, clear=clear, extension=extension,
-        replace_newline=replace_newline, do_print=do_print)
+def log_plain(*args, **kwargs):
+    log(timestamp=False, *args, **kwargs)
+        
+def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
+    path = os.path.dirname(os.path.abspath(get_log_full_path(filename)))
+    if path is ANKNOTES.FOLDER_LOGS or path in ANKNOTES.FOLDER_LOGS: return 
+    rm_log_path.errors = []
+    def del_subfolder(arg=None,dirname=None,filenames=None, is_subfolder=True):
+        def rmtree_error(f, p, e):
+            rm_log_path.errors += [p]
+        if is_subfolder and dirname is path: return 
+        shutil.rmtree(dirname, onerror=rmtree_error)
+    if not subfolders_only: del_subfolder(dirname=path, is_subfolder=False)
+    else: os.path.walk(path, del_subfolder, None)
+    if rm_log_path.errors:                
+        if retry_errors > 5: 
+            print "Unable to delete log path"
+            log("Unable to delete log path as requested", filename)
+            return 
+        time.sleep(1)
+        rm_log_path(filename, subfolders_only, retry_errors + 1)
 
-def log_banner(title, filename, length=80, append_newline=True):
-    log("-" * length, filename, clear=True, timestamp=False)
-    log(pad_center(title, length),filename, timestamp=False)
-    log("-" * length, filename, timestamp=False)
-    if append_newline: log_blank(filename)
+def log_banner(title, filename, length=80, append_newline=True, *args, **kwargs):
+    log("-" * length, filename, clear=True, timestamp=False, *args, **kwargs)
+    log(pad_center(title, length),filename, timestamp=False, *args, **kwargs)
+    log("-" * length, filename, timestamp=False, *args, **kwargs)
+    if append_newline: log_blank(filename, *args, **kwargs)
+
+_log_filename_history = []
+def set_current_log(fn):
+    global _log_filename_history
+    _log_filename_history.append(fn)
+
+def end_current_log(fn=None):
+    global _log_filename_history
+    if fn:
+        _log_filename_history.remove(fn)
+    else:
+        _log_filename_history = _log_filename_history[:-1]
 
 def get_log_full_path(filename='', extension='log', as_url_link=False):
+    global _log_filename_history
+    log_base_name = ANKNOTES.LOG_BASE_NAME
+    filename_suffix = ''
+    if filename and filename[0] == '*':
+        filename_suffix = '\\' + filename[1:]
+        log_base_name = ''
+        filename = None
+    if filename is None:
+        if ANKNOTES.LOG_USE_CALLER_NAME:
+            caller = caller_name()
+            if caller:
+                filename = caller.Base.replace('.', '\\')
+        if filename is None:
+            filename = _log_filename_history[-1] if _log_filename_history else ANKNOTES.LOG_ACTIVE
     if not filename:
-        filename = ANKNOTES.LOG_BASE_NAME + '.' + extension
+        filename = ANKNOTES.LOG_BASE_NAME
+        if not filename: filename = ANKNOTES.LOG_DEFAULT_NAME
     else:
         if filename[0] is '+':
             filename = filename[1:]
-        filename = ANKNOTES.LOG_BASE_NAME + '-%s.%s' % (filename, extension)
+        filename = (log_base_name + '-' if log_base_name and log_base_name[-1] != '\\' else '') + filename
+    filename += filename_suffix + '.' + extension
+    filename = re.sub(r'[^\w\-_\.\\]', '_',  filename)
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
     if as_url_link: return convert_filename_to_local_link(full_path)
     return full_path
 
-def log(content=None, filename='', prefix='', clear=False, timestamp=True, extension='log',
+def log_main2(**kwargs):
+    log(filename=ANKNOTES.LOG_DEFAULT_NAME, **kwargs)
+
+def log_test(**kwargs):
+    print '\n'.join(caller_names())
+    #log(filename=None, **kwargs)
+
+# @clockit    
+def log(content=None, filename=None, prefix='', clear=False, timestamp=True, extension='log',
         replace_newline=None, do_print=False):
     if content is None: content = ''
     else:
@@ -202,17 +305,19 @@ def log(content=None, filename='', prefix='', clear=False, timestamp=True, exten
     else:
         st = ''
     if not os.path.exists(os.path.dirname(full_path)):
-        os.mkdir(os.path.dirname(full_path))
+        os.makedirs(os.path.dirname(full_path))
+
+    # print "printing to %s: %s" % (full_path, content[:1000])
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         print>> fileLog, prefix + ' ' + st + content
     if do_print:
         print prefix + ' ' + st + content
 
-def log_sql(value):
-    log(value, 'sql')
+def log_sql(content, **kwargs):
+    log(content, 'sql', **kwargs)
 
-def log_error(value, crossPost=True):
-    log(value, '+' if crossPost else '' + 'error')
+def log_error(content, crossPost=True, **kwargs):
+    log(content, '+' if crossPost else '' + 'error', **kwargs)
 
 
 def print_dump(obj):
@@ -258,7 +363,7 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
         pass
 
     if not os.path.exists(os.path.dirname(full_path)):
-        os.mkdir(os.path.dirname(full_path))
+        os.makedirs(os.path.dirname(full_path))
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         try:
             print>> fileLog, (u'\n %s%s' % (st, content))
@@ -292,13 +397,13 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
         print>> fileLog, (u'\n %s%s' % (st, "Error printing content: " + content[:10]))
 
 
-def log_api(method, content=''):
+def log_api(method, content='', **kwargs):
     if content: content = ': ' + content
-    log(" API_CALL [%3d]: %10s%s" % (get_api_call_count(), method, content), 'api')
+    log(" API_CALL [%3d]: %10s%s" % (get_api_call_count(), method, content), 'api', **kwargs)
 
 
 def get_api_call_count():
-    api_log = file(os.path.join(ANKNOTES.FOLDER_LOGS, ANKNOTES.LOG_BASE_NAME + '-api.log'), 'r').read().splitlines()
+    api_log = file(get_log_full_path('api'), 'r').read().splitlines()
     count = 1
     for i in range(len(api_log), 0, -1):
         call = api_log[i - 1]
@@ -312,4 +417,80 @@ def get_api_call_count():
             return count
     return count
 
-log('completed %s' % __name__, 'import')
+def caller_names(return_string=True,  simplify=True):
+    return [c.Base if return_string else c for c in [__caller_name__(i,simplify) for i in range(0,20)] if c and c.Base]
+
+class CallerInfo:
+    Class=[]
+    Module=[]
+    Outer=[]
+    Name=""
+    simplify=True
+    __keywords_exclude__=['pydevd', 'logging', 'stopwatch']
+    __keywords_strip__=['__maxin__', 'anknotes', '<module>']
+    __outer__ = []
+    filtered=True
+    @property
+    def __trace__(self):
+        return self.Module + self.Outer + self.Class + [self.Name]
+
+    @property
+    def Trace(self):
+        t= self._strip_(self.__trace__)
+        return t if not self.filtered or not [e for e in self.__keywords_exclude__ if e in t] else []
+
+    @property
+    def Base(self):
+        return '.'.join(self._strip_(self.Module + self.Class + [self.Name])) if self.Trace else ''
+
+    @property
+    def Full(self):
+        return '.'.join(self.Trace)
+
+    def _strip_(self, lst):
+        return [t for t in lst if t and t not in self.__keywords_strip__]
+
+    def __init__(self, parentframe=None):
+        """
+
+        :rtype : CallerInfo
+        """
+        if not parentframe: return
+        self.Class = parentframe.f_locals['self'].__class__.__name__.split('.') if 'self' in parentframe.f_locals else []
+        module = inspect.getmodule(parentframe)
+        self.Module = module.__name__.split('.') if module else []
+        self.Name = parentframe.f_code.co_name if parentframe.f_code.co_name is not '<module>' else ''
+        self.__outer__ = [[f[1], f[3]] for f in inspect.getouterframes(parentframe) if f]
+        self.__outer__.reverse()
+        self.Outer = [f[1] for f in self.__outer__ if f and f[1] and not [exclude for exclude in self.__keywords_exclude__ + [self.Name] if exclude in f[0] or exclude in f[1]]]
+        del parentframe
+
+@clockit        
+def caller_name(skip=None, simplify=True, return_string=False):
+    if skip is None:
+        for c in [__caller_name__(i,simplify) for i in range(0,20)]:
+            if c and c.Base:
+                return c.Base if return_string else c
+        return None
+    c = __caller_name__(skip, simplify=simplify)
+    return c.Base if return_string else c
+
+def __caller_name__(skip=0, simplify=True):
+    """Get a name of a caller in the format module.class.method
+
+       `skip` specifies how many levels of stack to skip while getting caller
+       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+
+       An empty string is returned if skipped levels exceed stack height
+    :rtype : CallerInfo
+    """
+    stack = inspect.stack()
+    start = 0 + skip
+    if len(stack) < start + 1:
+      return None
+    parentframe = stack[start][0]
+    c_info = CallerInfo(parentframe)
+    del parentframe
+    return c_info
+
+# log('completed %s' % __name__, 'import')

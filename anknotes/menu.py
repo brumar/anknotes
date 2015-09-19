@@ -21,7 +21,7 @@ from aqt.utils import getText
 # from anki.storage import Collection
 
 DEBUG_RAISE_API_ERRORS = False
-log('Checking for log at %s:\n%s' % (__name__, dir(log)), 'import')
+# log('Checking for log at %s:\n%s' % (__name__, dir(log)), 'import')
 
 
 # noinspection PyTypeChecker
@@ -45,14 +45,16 @@ def anknotes_setup_menu():
                   ["SEPARATOR", None],
                   ["Step &1: Process Anki Notes Without See Also Field", lambda: see_also(1)],
                   ["Step &2: Extract Links from TOC", lambda: see_also(2)],
+                  ["SEPARATOR", None],
                   ["Step &3: Create Auto TOC Evernote Notes", lambda: see_also(3)],
                   ["Step &4: Validate and Upload Auto TOC Notes", lambda: see_also(4)],
+                  ["Step &5: Rebuild TOC/Outline Link Database", lambda: see_also(6)],
                   ["SEPARATOR", None],
-                  ["Step &5: Insert TOC/Outline Links Into Anki Notes", lambda: see_also(5)],
-                  ["Step &6: Update See Also Footer In Evernote Notes", lambda: see_also(6)],
-                  ["Step &7: Validate and Upload Modified Evernote Notes", lambda: see_also(7)],
+                  ["Step &6: Insert TOC/Outline Links Into Anki Notes", lambda: see_also(7)],
+                  ["Step &7: Update See Also Footer In Evernote Notes", lambda: see_also(8)],
+                  ["Step &8: Validate and Upload Modified Evernote Notes", lambda: see_also(9)],
                   ["SEPARATOR", None],
-                  ["Step &8: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(8)]
+                  ["Step &9: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(10)]
               ]
               ],
              ["&Maintenance Tasks",
@@ -170,7 +172,7 @@ Once the command line tool is done running, you will get a summary of the result
     anki_dels = returnedData['AnkiOrphans']
     anki_dels_count = len(anki_dels)
     missing_evernote_notes = returnedData['MissingEvernoteNotes']
-    missing_evernote_notes_count = len(missing_evernote_notes)
+    missing_evernote_notes_count = len(missing_evernote_notes)   
     showInfo(info, richText=True, minWidth=600)
     db_changed = False
     if anknotes_dels_count > 0:
@@ -206,30 +208,34 @@ def validate_pending_notes(showAlerts=True, uploadAfterValidation=True, callback
     if showAlerts:
         showInfo("""Press Okay to save and close your Anki collection, open the command-line note validation tool, and then re-open your Anki collection.%s
 
-Anki will be unresponsive until the validation tool completes. This will take at least 45 seconds.
-
-The tool's output will be shown. If it is truncated, you may view the full log in the anknotes addon folder at extra\\logs\\anknotes-MakeNoteQueue-*.log"""
+Anki will be unresponsive until the validation tool completes. This will take at least 45 seconds.  The tool's output will be displayed upon completion. """
                  % (
-                 ' Any validated notes will be automatically uploaded once your Anki collection is reopened.' if uploadAfterValidation else ''))
+                 ' You will be given the option of uploading successfully validated notes once your Anki collection is reopened.' if uploadAfterValidation else ''))
     handle = Popen(['python', ANKNOTES.VALIDATION_SCRIPT], stdin=PIPE, stderr=PIPE, stdout=PIPE, shell=True)
     stdoutdata, stderrdata = handle.communicate()
     stdoutdata = re.sub(' +', ' ', stdoutdata)
     info = ("ERROR: {%s}<HR>" % stderrdata) if stderrdata else ''
-    proceed = True
-    if showAlerts:
+    allowUpload = True
+    if showAlerts:        
         tds = [[str(count), '<a href="%s">VIEW %s VALIDATIONS LOG</a>' % (fn, key.upper())] for key, fn, count in [
-            [key, get_log_full_path(key, as_url_link=True), int(re.search(r'CHECKING +(\d{1,3}) ' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
-            for key in ['Pending', 'Successful', 'Failed']] if count > 0]
-        info += tableify_lines(tds, '#|Result')
-        proceed = showInfo("Completed: %s<BR>%s" % (
-        'Press Okay to begin uploading successfully validated notes to the Evernote Servers' if uploadAfterValidation else '',
-        info), cancelButton=True)
+            [key, get_log_full_path(key, as_url_link=True), int(re.search(r'CHECKING +(\d{1,3}) +' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
+            for key in ['Pending', 'Successful', 'Failed']] if count > 0]        
+        if not tds:
+            show_tooltip("No notes found in the validation queue.")
+            allowUpload = False 
+        else:
+            info += tableify_lines(tds, '#|Result')
+            successful = int(re.search(r'CHECKING +(\d{1,3}) +' + 'Successful'.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))
+            allowUpload = (uploadAfterValidation and successful > 0) 
+            allowUpload = allowUpload & showInfo("Completed: %s<BR>%s" % (
+            'Press Okay to begin uploading %d successfully validated note(s) to the Evernote Servers' % successful if (uploadAfterValidation and successful > 0) else '',
+            info), cancelButton=(successful > 0), richText=True)
 
 
     # mw.col.reopen()
     # mw.col.load()
 
-    if callback is None and (uploadAfterValidation and proceed):
+    if callback is None and allowUpload:
         callback = upload_validated_notes
     external_tool_callback_timer(callback)
 
@@ -269,7 +275,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
         else:
             steps = [-4]
     if 5 in steps:
-        log(" > See Also: Step 5: Inserting TOC/Outline Links Into Anki Notes")
+        log(" > See Also: Step 5: Inserting TOC/Outline Links Into Anki Notes' See Also Field")
         controller.anki.insert_toc_into_see_also()
     if 6 in steps:
         log(" > See Also: Step 6: Update See Also Footer In Evernote Notes")

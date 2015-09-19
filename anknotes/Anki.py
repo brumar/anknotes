@@ -335,6 +335,10 @@ class Anki:
         self.insert_toc_into_see_also()
         self.insert_toc_and_outline_contents_into_notes()
 
+    def update_evernote_note_contents(self):
+        see_also_notes = ankDB().all("SELECT DISTINCT target_evernote_guid FROM %s WHERE 1" % TABLES.SEE_ALSO)
+
+
     def insert_toc_into_see_also(self):
         db = ankDB()
         db._db.row_factory = None
@@ -432,17 +436,15 @@ class Anki:
         delimiter = ""
         # link_exists = 0
         for toc_evernote_guid, fields in toc_evernote_guids.items():
-            for match in find_evernote_links(fields[FIELDS.CONTENT]):
-                target_evernote_guid = match.group('guid')
-                uid = int(match.group('uid'))
-                shard = match.group('shard')
+            for enLink in find_evernote_links(fields[FIELDS.CONTENT]):
+                target_evernote_guid = enLink.Guid
                 # link_title = strip_tags(match.group('Title'))
                 link_number = 1 + ankDB().scalar("select COUNT(*) from %s WHERE source_evernote_guid = '%s' " % (
                     TABLES.SEE_ALSO, target_evernote_guid))
                 toc_link_title = fields[FIELDS.TITLE]
-                toc_link_html = '<span style="color: rgb(173, 0, 0);"><b>%s</b></span>' % toc_link_title
+                toc_link_html = generate_evernote_span(toc_link_title, 'Links', 'TOC')
                 query = """INSERT INTO `%s`(`source_evernote_guid`, `number`, `uid`, `shard`, `target_evernote_guid`, `html`, `title`, `from_toc`, `is_toc`) SELECT '%s', %d, %d, '%s', '%s', '%s', '%s', 1, 1 FROM `%s`  WHERE NOT EXISTS (SELECT * FROM `%s` WHERE `source_evernote_guid`='%s' AND `target_evernote_guid`='%s') LIMIT 1 """ % (
-                    TABLES.SEE_ALSO, target_evernote_guid, link_number, uid, shard, toc_evernote_guid,
+                    TABLES.SEE_ALSO, target_evernote_guid, link_number, enLink.Uid, enLink.Shard, toc_evernote_guid,
                     toc_link_html.replace(u'\'', u'\'\''), toc_link_title.replace(u'\'', u'\'\''), TABLES.SEE_ALSO,
                     TABLES.SEE_ALSO, target_evernote_guid, toc_evernote_guid)
                 log_sql('UPDATE_ANKI_DB: Add See Also Link: SQL Query: ' + query)

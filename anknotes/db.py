@@ -23,7 +23,6 @@ def ankDBIsLocal():
     global dbLocal
     return dbLocal
 
-
 def ankDB(reset=False):
     global ankNotesDBInstance, dbLocal
     if not ankNotesDBInstance or reset:
@@ -72,6 +71,9 @@ class ank_DB(object):
             self._db.row_factory = sqlite.Row
         self.echo = os.environ.get("DBECHO")
         self.mod = False
+
+    def setrowfactory(self):
+        self._db.row_factory = sqlite.Row
 
     def execute(self, sql, *a, **ka):
         s = sql.strip().lower()

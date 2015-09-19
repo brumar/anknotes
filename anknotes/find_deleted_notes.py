@@ -16,7 +16,7 @@ def do_find_deleted_notes(all_anki_notes=None):
 
     Error = sqlite.Error
 
-    ENNotes = file(ANKNOTES.TABLE_OF_CONTENTS_ENEX, 'r').read()
+    enTableOfContents = file(ANKNOTES.TABLE_OF_CONTENTS_ENEX, 'r').read()
     # find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
     # replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
 
@@ -24,7 +24,7 @@ def do_find_deleted_notes(all_anki_notes=None):
     find_guids = {}
     log_banner(' FIND DELETED EVERNOTE NOTES: UNIMPORTED EVERNOTE NOTES ', ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES)
     log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKI NOTES ', ANKNOTES.LOG_FDN_ANKI_ORPHANS)
-    log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKNOTES DB ENTRIES ', ANKNOTES.LOG_FDN_ANKI_ORPHANS)
+    log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKNOTES DB ENTRIES ', ANKNOTES.LOG_FDN_ANKNOTES_ORPHANS)
     log_banner(' FIND DELETED EVERNOTE NOTES: ANKNOTES TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKNOTES_TITLE_MISMATCHES)
     log_banner(' FIND DELETED EVERNOTE NOTES: ANKI TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES)
     anki_mismatch = 0
@@ -45,10 +45,9 @@ def do_find_deleted_notes(all_anki_notes=None):
                     anki_mismatch += 1
     mismatch = 0
     missing_evernote_notes = []
-    for match in find_evernote_links(ENNotes):
-        guid = match.group('guid')
-        title = match.group('Title')
-        title = clean_title(title)
+    for enLink in find_evernote_links(enTableOfContents):
+        guid = enLink.Guid
+        title = clean_title(enLink.FullTitle)
         title_safe = str_safe(title)
         if guid in find_guids:
             find_title = find_guids[guid]
@@ -115,7 +114,7 @@ def do_find_deleted_notes(all_anki_notes=None):
     results = [
         [
             log[1],
-            log[0] if log[1] == 0 else '<a href="%s">%s</a>' % (get_log_full_path(log[2], True), log[0]),
+            log[0] if log[1] == 0 else '<a href="%s">%s</a>' % (get_log_full_path(log[2], as_url_link=True), log[0]),
             log[3] if len(log) > 3 else ''
         ]
         for log in logs]
