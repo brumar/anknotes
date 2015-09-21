@@ -1,0 +1,356 @@
+/* @import url("_AviAnkiCSS.css") */
+
+/******************************************************************************************************* 
+  Default Card Rules
+*******************************************************************************************************/
+
+.card {
+ font-family: Tahoma;
+ font-size: 20px;
+ text-align: left;
+ color: black;
+ background-color: white;
+} 
+
+/******************************************************************************************************* 
+  Header rectangles, which sit at the top of every single card
+*******************************************************************************************************/
+
+header {
+background: #000;
+width:100%;
+text-align: center;
+/* border:3px #990000 solid; */
+}
+
+header h2 {
+color: #fff;
+text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/******************************************************************************************************* 
+  TITLE Fields
+*******************************************************************************************************/
+
+.card  #Field-Title, .card  #Field-Title-Prompt { 
+  text-align: center;
+  font-weight: bold;
+  font-size: 72px;
+  font-variant: small-caps; 
+  padding:10px;
+  /* color: #A40F2D; */
+}
+
+
+.card  #Header a {
+	text-decoration: none;
+}
+
+.card  #Header:hover #Field-Title span.link, .card  #Header:hover #Field-Title-Prompt span.link {
+	border-bottom: none;
+}
+
+.card  #Field-Title-Prompt {
+  width: 100%	;
+	position: fixed;
+  font-size: 48px;
+  color: #a90030;
+}
+
+.card  #Header #Field-Title span.link, .card  #Header #Field-Title-Prompt span.link {
+	border-bottom: 5px black solid;
+}
+
+.card  #Header #Field-Title-Prompt span.link {
+	border-bottom-color: #a90030;
+}
+
+ .card a:hover #Field-Title-Prompt  {
+	 color: rgb(210, 13, 13);
+ }
+
+/******************************************************************************************************* 
+  Header bars with custom gradient backgrounds
+*******************************************************************************************************/
+ 
+
+#Header-BlueWhiteRed, #Header-Avi h2,
+#Header-Avi-BlueRed h2,
+#Header-RedOrange h2 
+{
+text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+text-shadow: black 0 1px;
+}
+
+#Header-RedOrange h2, #Header-RedOrange h2 {
+color:#990000;
+}
+
+a:hover #Header-RedOrange h2 {
+ color: rgb(106, 6, 6);
+}
+
+.card  #Header-RedOrange #Field-Title span.link {
+	border-bottom-color:#990000;
+}
+
+#Header-RedOrange {
+/* Background gradient code */
+background: -moz-linear-gradient(left, #ff1a00 0%, #fff200 36%, #fff200 58%, #ff1a00 100%); /* FF3.6+ */
+background: -webkit-gradient(linear, left top, right top, color-stop(0%,#ff1a00), color-stop(36%,#fff200), color-stop(58%,#fff200), color-stop(100%,#ff1a00)); /* Chrome,Safari4+ */
+background: -webkit-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Chrome10+,Safari5.1+ */
+background: -o-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Opera 11.10+ */
+background: -ms-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* IE10+ */
+background: linear-gradient(to right, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* W3C */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff1a00', endColorstr='#ff1a00',GradientType=1 ); /* IE6-9 */
+/* z-index: 100; /* the stack order: foreground */
+/* border-bottom:1px #990000 solid; */
+border:3px #990000 solid;
+}
+
+
+#Header-BlueWhiteRed h2, #Header-Avi h2 {
+color:#004C99;
+}
+
+a:hover #Header-BlueWhiteRed h2, a:hover  #Header-Avi h2 {
+color: rgb(10, 121, 243);
+}
+
+.card  #Header-BlueWhiteRed #Field-Title span.link, .card  #Header-Avi #Field-Title span.link  {
+	border-bottom-color:#004C99;
+}
+
+#Header-BlueWhiteRed, #Header-Avi {
+	/* Background gradient code */
+background: #3b679e; /* Old browsers */
+background: -moz-linear-gradient(left, #3b679e 0%, #ffffff 38%, #ffffff 59%, #ff1111 100%); /* FF3.6+ */
+background: -webkit-gradient(linear, left top, right top, color-stop(0%,#3b679e), color-stop(38%,#ffffff), color-stop(59%,#ffffff), color-stop(100%,#ff1111)); /* Chrome,Safari4+ */
+background: -webkit-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Chrome10+,Safari5.1+ */
+background: -o-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Opera 11.10+ */
+background: -ms-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* IE10+ */
+background: linear-gradient(to right, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* W3C */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#ff1111',GradientType=1 ); /* IE6-9 */
+/* z-index: 100; /* the stack order: foreground */
+/* border-bottom:1px #004C99 solid; */
+border:3px #990000 solid;
+}
+
+#Header-Avi-BlueRed h2, #Header-Avi-BlueRed h2 {
+color:#80A6CC;
+}
+
+a:hover #Header-Avi-BlueRed h2 {
+color: rgb(241, 135, 154);
+}
+
+
+.card  #Header-BlueRed #Field-Title span.link {
+	border-bottom-color:#80A6CC;
+}
+
+#Header-Avi-BlueRed {
+	/* Background gradient code */
+background: -moz-linear-gradient(left, #bf0060 0%, #0060bf 36%, #0060bf 58%, #bf0060 100%); /* FF3.6+ */
+background: -webkit-gradient(linear, left top, right top, color-stop(0%,#bf0060), color-stop(36%,#0060bf), color-stop(58%,#0060bf), color-stop(100%,#bf0060)); /* Chrome,Safari4+ */
+background: -webkit-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Chrome10+,Safari5.1+ */
+background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
+background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
+background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */ 
+/* z-index: 100; /* the stack order: foreground */
+/* border-bottom:1px #004C99 solid; */
+border:3px #004C99 solid;
+}
+
+/******************************************************************************************************* 
+  Headers with Links for See Also, TOC, Outline  
+*******************************************************************************************************/
+.card #Header-Links {
+	font-size: 14px;
+	margin-top: -20px;
+	margin-bottom: 10px;
+	font-weight: bold;
+}
+
+.card #Field-Header-Links #Field-See_Also-Link {
+ color: rgb(45, 79, 201);
+}
+
+/******************************************************************************************************* 
+  HTML Link Elements 
+*******************************************************************************************************/
+
+a {
+ color: rgb(105, 170, 53);
+ text-decoration: underline;
+}
+
+a:hover {
+ color: rgb(135, 187, 93);
+ text-decoration: none;
+}
+
+.card .See_Also a, .card .Field-See_Also a, .card #Field-Header-Links #Field-See_Also-Link a .Note_Link {
+	color: rgb(45, 79, 201);
+}
+
+.card .See_Also a:hover, .card .Field-See_Also a:hover, .card #Field-Header-Links #Field-See_Also-Link a:hover .Note_Link  {
+	color: rgb(108, 132, 217);
+}
+
+.card .Field-TOC a , .card #Field-Header-Links #Field-TOC-Link  a  .Note_Link{
+	color: rgb(173, 0, 0);
+}
+
+.card .Field-TOC a:hover, .card #Field-Header-Links #Field-TOC-Link  a:hover  .Note_Link {
+	color: rgb(196, 71, 71);
+}
+
+.card .Field-Outline a, .card #Field-Header-Links #Field-Outline-Link  a .Note_Link,  {
+	color: rgb(105, 170, 53);
+}		
+
+.card .Field-Outline a:hover , .card #Field-Header-Links #Field-Outline-Link  a:hover .Note_Link{
+	color: rgb(135, 187, 93);
+}			
+
+.card #Link-EN-Self a {
+  color: rgb(30, 155, 67)
+}
+
+.card #Link-EN-Self a:hover {
+  color: rgb(107, 226, 143)
+}
+
+/******************************************************************************************************* 
+  TOC/Outline Headers (Automatically generated and placed in TOC/Outline fields when > 1 source note)   
+*******************************************************************************************************/
+
+.card .TOC, .card .Outline {
+ font-weight: bold;
+}
+
+.card .TOC {
+ color: rgb(173, 0, 0);
+}
+
+.card .Outline {
+ color: rgb(105, 170, 53);
+}
+
+.card .TOC .header, .card .Outline .header {
+ text-decoration: underline; 
+ color: #bf0060;
+}
+
+.card .TOC .header:nth-of-type(1){
+ color: rgb(173, 0, 0);
+}
+
+.card .Outline .header:nth-of-type(1) {
+ color: rgb(105, 170, 53);
+}
+
+
+
+/******************************************************************************************************* 
+  Per-Field Rules
+*******************************************************************************************************/
+
+.card #Field-Extra ,  #Field-Extra-Front,
+.card #Field-See_Also , .card #Field-TOC , .card #Field-Outline {
+ font-size: 14px;
+}
+
+.card #Footer-Line {
+ font-size: 10px;
+}
+
+.card #Field-See_Also ol {
+	padding-top: 0px;
+	margin-top: 0px;
+}
+
+.card #Field-See_Also hr {
+	padding-top: 0px;
+	padding-bottom: 0px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+/******************************************************************************************************* 
+  Extra Field/Tags Rules
+*******************************************************************************************************/
+
+.card #Field-Extra ,  #Field-Extra-Front,
+.card #Tags {
+ color: #aaa;
+}
+ 
+.card #Field-Extra .header,  #Field-Extra-Front .header {
+ color: #666;
+} 
+
+.card #Field-Extra .header,  #Field-Extra-Front .header , #Tags .header {
+ font-weight: bold;
+}
+
+.card #Field-Extra-Front {
+	color: #444;
+}
+
+/******************************************************************************************************* 
+  Special Span Classes
+*******************************************************************************************************/
+
+.card .occluded {
+	color: #444;
+}
+
+.card .See_Also, .card .Field-See_Also, .card .separator {
+	color: rgb(45, 79, 201);
+	font-weight: bold;
+}
+
+/******************************************************************************************************* 
+  Default Visibility Rules
+*******************************************************************************************************/
+
+
+.card 												#Field-Cloze-Content, 
+.card 												#Field-Title-Prompt, 
+.card 								#Side-Front 		#Footer-Line, 
+.card 								#Side-Front 								.occluded, 
+.card								#Side-Front 		#Field-See_Also,
+.card										 		#Field-TOC,
+.card												#Field-Outline,
+.card 								#Side-Front 		#Field-Extra, 
+.card 								#Side-Back 	 	#Field-Extra-Front,
+.card #Card-EvernoteReviewCloze  						#Field-Content
+{
+	display: none;
+}
+
+.card 					                	 #Side-Front  	#Header-Links,
+.card #Card-EvernoteReview                 	 #Side-Front  	#Field-Content,
+.card #Card-EvernoteReviewReversed  	 #Side-Front 	#Field-Title 
+{
+    visibility: hidden;
+}
+ 
+.card #Card-EvernoteReviewCloze  						#Field-Cloze-Content, 
+.card #Card-EvernoteReviewReversed	#Side-Front		#Field-Title-Prompt,
+.card								#Side-Back	 	#Field-See_Also
+{
+	display: block;
+}
+
+/******************************************************************************************************* 
+  Rules for Anki-Generated Classes
+*******************************************************************************************************/
+
+.cloze {
+ font-weight: bold;
+ color: blue;
+}

@@ -1,3 +1,10 @@
+anknotes/extra/logs/
+anknotes/extra/powergrep/
+anknotes/extra/local/
+anknotes/extra/testing/
+anknotes/extra/anki_master
+*.bk
+
 #################
 ## Eclipse
 #################

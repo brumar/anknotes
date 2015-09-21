@@ -1,0 +1,30 @@
+Converting this file to Python:
+	1) \(\?:(\r\n|\r|\n){1,2}\)\?
+	2) (?<
+
+Finding Evernote Links
+	<a href="(?<URL>evernote:///?view/(?<uid>[\d]+?)/(?<shard>s\d+)/(?<guid>[\w\-]+?)/(?P=guid)/?)"(?: shape="rect")?(?: style="[^\"].+?")?(?: shape="rect")?>(?<Title>.+?)</a>	
+	
+Step 6: Process "See Also: " Links
+	(?<PrefixStrip><div><b><span[^>]*><br/></span></b></div>)?(?:
+	)?(?<SeeAlso>(?<SeeAlsoPrefix><div[^>]*>)(?<SeeAlsoHeader>(?:
+
+		)?(?:<b[^>]*>)?(?:
+		)?(?:<(?:span|font)[^>]*>){0,2}(?:
+		)?(?:<span[^>]*>)(?:
+		)?(?:<b(?: style=[^>]+?)?>)?(?:
+		)?(?<SeeAlsoHeaderStripMe><br />(?:\r|\n|\r\n)?)?(?:
+
+			)?(?:See Also:?(?:
+
+			)?(?:<span[^>]*>&nbsp;</span>)?(?:
+			)?(?:&nbsp;)?)(?:
+
+		)?(?:</b>)?(?:
+		)?(?:</span>)(?:
+		)?(?:</(?:span|font)>)?(?:
+		)?(?:</b>)?(?:
+
+	)?(?:
+
+	)?)(?<SeeAlsoContents>.+))(?<Suffix></en-note>)
