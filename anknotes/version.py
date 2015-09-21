@@ -26,10 +26,8 @@ Every version number class implements the following interface:
     of the same class, thus must follow the same rules)
 """
 
-import string
-import re
+import string, re
 from types import StringType
-
 
 class Version:
     """Abstract base class for version numbering classes.  Just provides
