@@ -5,6 +5,7 @@ from anknotes.enum import Enum
 from anknotes.logging import log, str_safe, pad_center
 from anknotes.html import strip_tags
 from anknotes.enums import *
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 # from evernote.edam.notestore.ttypes import NoteMetadata, NotesMetadataList
 
@@ -41,12 +42,19 @@ class EvernoteStruct(object):
 
     def items(self):
         return [self.getAttribute(key) for key in self.__attr_order__]
-
+       
+    def sqlUpdateQuery(self):
+        return "INSERT OR REPLACE INTO `%s`(%s) VALUES (%s)" % (self.__sql_table__, '`' + '`,`'.join(self.__sql_columns__) + '`', ', '.join(['?']*len(self.__sql_columns__)))
+    
+    def sqlSelectQuery(self, allColumns=True):
+        return "SELECT %s FROM %s WHERE %s = '%s'" % (
+        '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
+        
     def getFromDB(self, allColumns=True):
         query = "SELECT %s FROM %s WHERE %s = '%s'" % (
         '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
         ankDB().setrowfactory()
-        result = ankDB().first(query)
+        result = ankDB().first(self.sqlSelectQuery(allColumns))
         if result:
             self.success = True
             self.setFromKeyedObject(result)
@@ -96,8 +104,11 @@ class EvernoteStruct(object):
             keyed_object = keyed_object.groupdict()
         elif hasattr(keyed_object, 'keys'):
             keys = getattrcallable(keyed_object, 'keys')
+        elif hasattr(keyed_object, self.__sql_where__):            
+            for key in self.keys():
+                if hasattr(keyed_object, key): self.setAttribute(key, keyed_object)
+            return True 
         else:
-            # keys_detected=False
             return False
 
         if keys is None: keys = keyed_object
@@ -149,8 +160,7 @@ class EvernoteTag(EvernoteStruct):
     ParentGuid = ""
     __sql_columns__ = ["name", "parentGuid"]
     __sql_table__ = TABLES.EVERNOTE.TAGS
-
-
+    __attr__order__ = 'guid|name|parentGuid|updateSequenceNum'
 
 
 class EvernoteLink(EvernoteStruct):
@@ -180,7 +190,7 @@ class EvernoteLink(EvernoteStruct):
         :param value:
         :type value : EvernoteNoteTitle.EvernoteNoteTitle | str | unicode
         :return:
-        """
+        """        
         self.__title__ = anknotes.EvernoteNoteTitle.EvernoteNoteTitle(value)
         """:type : EvernoteNoteTitle.EvernoteNoteTitle"""
 

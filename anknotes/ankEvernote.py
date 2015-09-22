@@ -64,7 +64,6 @@ class Evernote(object):
         self.hasValidator = eTreeImported
         if ankDBIsLocal():
             return
-        self.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
         auth_token = mw.col.conf.get(SETTINGS.EVERNOTE_AUTH_TOKEN, False)
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
@@ -309,6 +308,7 @@ class Evernote(object):
         return EvernoteAPIStatus.Success, note
 
     def create_evernote_notes(self, evernote_guids=None, use_local_db_only=False):
+        global inAnki
         """
         Create EvernoteNote objects from Evernote GUIDs using EvernoteNoteFetcher.getNote().
         Will prematurely return if fetcher.getNote fails
@@ -325,7 +325,11 @@ class Evernote(object):
         if len(evernote_guids) == 0:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
             return fetcher.results
-        fetcher.keepEvernoteTags = self.keepEvernoteTags
+        if inAnki:
+            fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_TAGS, SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE).split()
+            fetcher.keepEvernoteTags = mw.col.conf.get(SETTINGS.KEEP_EVERNOTE_TAGS, SETTINGS.KEEP_EVERNOTE_TAGS_DEFAULT_VALUE)
+            fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.DELETE_EVERNOTE_TAGS_TO_IMPORT, True)
+            fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.EVERNOTE_TAGS_TO_DELETE, "").split()
         for evernote_guid in self.evernote_guids:
             self.evernote_guid = evernote_guid
             if not fetcher.getNote(evernote_guid):
@@ -424,6 +428,7 @@ class Evernote(object):
         log_api("listTags")
         try:
             tags = self.noteStore.listTags(self.token)
+            """: type : list[evernote.edam.type.ttypes.Tag] """
         except EDAMSystemException as e:
             if HandleEDAMRateLimitError(e, api_action_str):
                 if DEBUG_RAISE_API_ERRORS: raise
@@ -435,30 +440,40 @@ class Evernote(object):
                 return None
             raise
         data = []
-        if not hasattr(self, 'tag_data'): self.tag_data = {}
+        if not hasattr(self, 'tag_data'): self.tag_data = {}        
         for tag in tags:
-            self.tag_data[tag.guid] = tag.name
-            data.append([tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum])
+            enTag = EvernoteTag(tag)
+            self.tag_data[tag.guid] = enTag
+            data.append(enTag.items())        
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
         ankDB().InitTags(True)
-        ankDB().executemany(
-            "INSERT OR REPLACE INTO `%s`(`guid`,`name`,`parentGuid`,`updateSequenceNum`) VALUES (?, ?, ?, ?)" % TABLES.EVERNOTE.TAGS,
-            data)
+        ankDB().executemany(enTag.sqlUpdateQuery(), data)
 
-    def get_tag_names_from_evernote_guids(self, tag_guids_original):
+    def set_tag_data(self):
+        if not hasattr(self, 'tag_data'):
+            self.tag_data = {x.guid: EvernoteTag(x) for x in ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}        
+            
+    def get_missing_tags(self, current_tags, from_guids=True):
+        if instance(current_tags, list): current_tags = set(current_tags)
+        return current_tags - set(self.tag_data.keys() if from_guids else [v.Name for k, v in self.tag_data.items()])
+        
+    def get_matching_tag_data(self, tag_guids=None, tag_names=None):
         tagGuids = []
         tagNames = []
-        if not hasattr(self, 'tag_data'):
-            self.tag_data = {x.guid: x.name for x in ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}
-        missing_tags = [x for x in tag_guids_original if x not in self.tag_data]
-        if len(missing_tags) > 0:
+        self.set_tag_data()
+        current_tags = set(tags_original)
+        from_guids = True if tag_guids else False 
+        tags_original = tag_guids or tag_names
+        if self.get_missing_tags(tags_original, from_guids):
             self.update_tags_db()
-            missing_tags = [x for x in tag_guids_original if x not in self.tag_data]
-            if len(missing_tags) > 0:
-                log_error("FATAL ERROR: Tag Guid(s) %s were not found on the Evernote Servers" % str(missing_tags))
+            missing_tags = self.get_missing_tags(tags_original, from_guids)
+            if missing_tags:
+                log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % ('Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags))))
                 raise EDAMNotFoundException()
 
-        tagNamesToImport = get_tag_names_to_import({x: self.tag_data[x] for x in tag_guids_original})
+        if from_guids: tags_dict = {x: self.tag_data[x] for x in tags_original}
+        else: tags_dict = {[k for k, v in tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in tags_original}        
+        tagNamesToImport = get_tag_names_to_import(tags_dict)
         """:type : dict[string, EvernoteTag]"""
         if tagNamesToImport:
             is_struct = None

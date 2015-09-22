@@ -20,6 +20,9 @@ class EvernoteNoteFetcher(object):
         self.result = EvernoteNoteFetcherResult()
         self.api_calls = 0
         self.keepEvernoteTags = True
+        self.deleteQueryTags = True
+        self.evernoteQueryTags = []
+        self.tagsToDelete = []
         self.tagNames = []
         self.tagGuids = []
         self.use_local_db_only = use_local_db_only
@@ -66,9 +69,18 @@ class EvernoteNoteFetcher(object):
             log("                    > getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
         assert db_note['guid'] == self.evernote_guid
         self.reportSuccess(EvernoteNotePrototype(db_note=db_note), 1)
-        self.tagNames = self.result.Note.TagNames if self.keepEvernoteTags else []
+        self.setNoteTags(tag_names=self.result.Note.TagNames)
         return True
 
+    def setNoteTags(self, tag_names=None, tag_guids=None):
+        if not self.keepEvernoteTags: 
+            self.tagNames = []
+            self.tagGuids = []
+            return 
+        if not tag_names: tag_names = self.tagNames 
+        if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else self.whole_note.tagGuids
+        self.tagNames, self.tagGuids = self.evernote.get_matching_tag_data(tag_guids, tag_names)
+        
     def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
         """
         Adds note to Anknote DB from an Evernote Note object provided by the Evernote API
@@ -135,7 +147,8 @@ class EvernoteNoteFetcher(object):
         # return None
         if not self.getNoteRemoteAPICall(): return False
         self.api_calls += 1
-        self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)
+        # self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)
+        self.setNoteTags(tag_guids=self.whole_note.tagGuids)
         self.addNoteFromServerToDB()
         if not self.keepEvernoteTags: self.tagNames = []
         self.reportSuccess(EvernoteNotePrototype(whole_note=self.whole_note, tags=self.tagNames))

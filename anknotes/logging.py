@@ -110,11 +110,11 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0
         return False
     return True
 
-def diffify(content):
-    for tag in ['div', 'ol', 'ul', 'li']:
-        content = content.replace("<" + tag, "\n<" + tag).replace("</%s>" % tag, "</%s>\n" % tag)
-    content = re.sub(r'[\r\n]+', '\n', content)
-    return content.splitlines()
+def diffify(content, split=True):
+    for tag in [u'div', u'ol', u'ul', u'li', u'span']:
+        content = content.replace(u"<" + tag, u"\n<" + tag).replace(u"</%s>" % tag, u"</%s>\n" % tag)
+    content = re.sub(r'[\r\n]+', u'\n', content)
+    return content.splitlines() if split else content 
 
 def pad_center(val, length=20, favor_right=True):
     val = str(val)
@@ -268,19 +268,21 @@ def get_log_full_path(filename='', extension='log', as_url_link=False):
     filename += filename_suffix + '.' + extension
     filename = re.sub(r'[^\w\-_\.\\]', '_',  filename)
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
+    if not os.path.exists(os.path.dirname(full_path)):
+        os.makedirs(os.path.dirname(full_path))    
     if as_url_link: return convert_filename_to_local_link(full_path)
     return full_path
 
-def log_main2(**kwargs):
-    log(filename=ANKNOTES.LOG_DEFAULT_NAME, **kwargs)
-
-def log_test(**kwargs):
-    print '\n'.join(caller_names())
-    #log(filename=None, **kwargs)
-
+def encode_log_text(content):
+    if not isinstance(content, str) and not isinstance(content, unicode): return content
+    try:
+        return content.encode('utf-8')
+    except Exception:
+        return content  
+    
 # @clockit    
 def log(content=None, filename=None, prefix='', clear=False, timestamp=True, extension='log',
-        replace_newline=None, do_print=False):
+        replace_newline=None, do_print=False, encode_text=True):
     if content is None: content = ''
     else:
         content = obj2log_simple(content)
@@ -289,29 +291,15 @@ def log(content=None, filename=None, prefix='', clear=False, timestamp=True, ext
             content = content[1:]
             prefix = '\n'
     if filename and filename[0] is '+':
-        # filename = filename[1:]
         summary = " ** CROSS-POST TO %s: " % filename[1:] + content
         log(summary[:200])
     full_path = get_log_full_path(filename, extension)
-    try:
-        content = content.encode('utf-8')
-    except Exception:
-        pass
-    if timestamp or replace_newline is True:
-        spacer = '\t'*6
-        content = content.replace('\r\n', '\n').replace('\r', '\r'+spacer).replace('\n', '\n'+spacer)
-    if timestamp:
-        st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT)
-    else:
-        st = ''
-    if not os.path.exists(os.path.dirname(full_path)):
-        os.makedirs(os.path.dirname(full_path))
-
-    # print "printing to %s: %s" % (full_path, content[:1000])
-    with open(full_path, 'w+' if clear else 'a+') as fileLog:
-        print>> fileLog, prefix + ' ' + st + content
-    if do_print:
-        print prefix + ' ' + st + content
+    if encode_text: content = encode_log_text(content)
+    st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''        
+    if timestamp or replace_newline is True: content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content)
+    contents = prefix + ' ' + st + content
+    with open(full_path, 'w+' if clear else 'a+') as fileLog: print>> fileLog, contents
+    if do_print: print contents
 
 def log_sql(content, **kwargs):
     log(content, 'sql', **kwargs)
@@ -325,19 +313,18 @@ def print_dump(obj):
     content = content.replace(', ', ', \n ')
     content = content.replace('\r', '\r                              ').replace('\n',
                                                                                 '\n                              ')
-    if isinstance(content, str):
-        content = unicode(content, 'utf-8')
+    content = encode_log_text(content)
     print content
 
 
-def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, extension='.log'):
+def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, extension='log'):
     content = pprint.pformat(obj, indent=4, width=80)
     try: content = content.decode('utf-8', 'ignore')
     except Exception: pass
     if filename and filename[0] is '+':
         summary = " ** CROSS-POST TO %s: " % filename[1:] + content
         log(summary[:200])
-    filename = 'dump' + ('-%s' % filename) if filename else ''
+    filename = 'dump' + ('-%s' % filename if filename else '')
     full_path = get_log_full_path(filename, extension)
     st = ''
     if timestamp:
@@ -350,8 +337,7 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
         prefix = " **** Dumping %s" % title
         log(prefix)
 
-    if isinstance(content, str):
-        content = unicode(content, 'utf-8')
+    content = encode_log_text(content)
 
     try:
         prefix += '\r\n'
@@ -377,6 +363,7 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
             pass
         try:
             print>> fileLog, (u'\n <2> %s%s' % (st, content.encode('utf-8')))
+            return
         except:
             pass
         try:

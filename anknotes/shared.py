@@ -5,24 +5,28 @@ try:
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
 
+### Check if in Anki 
+try:
+    from aqt import mw    
+    inAnki = True     
+except: inAnki = False     
+    
 ### Anknotes Imports
 from anknotes.constants import *
 from anknotes.logging import *
+from anknotes.html import *
 from anknotes.structs import *
 from anknotes.db import *
 
-log('strting %s' % __name__, 'import')
-from anknotes.html import *
-
 ### Anki and Evernote Imports
 try:
-    from aqt import mw
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from aqt.utils import tooltip
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
         EDAMNotFoundException
 except:
     pass
+    
 # log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def get_friendly_interval_string(lastImport):
     if not lastImport: return ""
@@ -52,15 +56,15 @@ class EvernoteQueryLocationType:
     RelativeDay, RelativeWeek, RelativeMonth, RelativeYear, AbsoluteDate, AbsoluteDateTime = range(6)
 
 
-def get_tag_names_to_import(tagNames, evernoteTags=None, evernoteTagsToDelete=None):
-    if not evernoteTags:
-        evernoteTags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_TAGS, SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE).split(
-            ",") if mw.col.conf.get(SETTINGS.DELETE_EVERNOTE_TAGS_TO_IMPORT, True) else []
-    if not evernoteTagsToDelete:
-        evernoteTagsToDelete = mw.col.conf.get(SETTINGS.EVERNOTE_TAGS_TO_DELETE, "").split(",")
-    if isinstance(tagNames, dict):
-        return {k: v for k, v in tagNames.items() if v not in evernoteTags and v not in evernoteTagsToDelete}
-    return sorted([v for v in tagNames if v not in evernoteTags and v not in evernoteTagsToDelete],
+def get_tag_names_to_import(tagNames, evernoteTags=None, evernoteTagsToDelete=None, keepEvernoteQueryTags=True):
+    if keepEvernoteQueryTags is None: keepEvernoteQueryTags =  mw.col.conf.get(SETTINGS.DELETE_EVERNOTE_TAGS_TO_IMPORT, True)    
+    if not keepEvernoteQueryTags: return {} if isinstance(tagNames, dict) else []
+    if evernoteTags is None: evernoteTags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_TAGS, SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE).split(",") 
+    if evernoteTagsToDelete is None: evernoteTagsToDelete = mw.col.conf.get(SETTINGS.EVERNOTE_TAGS_TO_DELETE, "").split(",")
+    tags_to_delete = evernoteTags + evernoteTagsToDelete
+    if isinstance(tagNames, dict):        
+        return {k: v for k, v in tagNames.items() if v not in tags_to_delete and (not hasattr(v, 'Name') or getattr(v, 'Name') not in tags_to_delete)}
+    return sorted([v for v in tagNames if v not in tags_to_delete and (not hasattr(v, 'Name') or getattr(v, 'Name') not in tags_to_delete)],
                   key=lambda s: s.lower())
 
 def find_evernote_guids(content):
@@ -82,7 +86,7 @@ def find_evernote_links(content):
     """
     # .NET regex saved to regex.txt as 'Finding Evernote Links'
     content = replace_evernote_web_links(content)
-    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<Title>.+?)</a>'
+    regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<title>.+?)</a>'
     ids = get_evernote_account_ids()
     if not ids.valid:
         match = re.search(regex_str, content)

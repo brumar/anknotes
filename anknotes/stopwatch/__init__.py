@@ -130,7 +130,7 @@ class Timer(object):
 
     @property
     def progress(self):
-        return '%4s (%3s): @ %3s/%d. %4s of %4s remaining' % (self.__timetostr__(), self.percentCompleteStr, self.rateStr, self.__interval,  self.remainingTimeStr, self.projectedTimeStr)
+        return '%4s (%3s): @ %3s/%d. %3s of %3s remain' % (self.__timetostr__(short=False), self.percentCompleteStr, self.rateStr, self.__interval,  self.remainingTimeStr, self.projectedTimeStr)
         
     @property 
     def active(self):
@@ -243,12 +243,12 @@ class Timer(object):
         if total_seconds is None: total_seconds=self.elapsed
         total_seconds = int(round(total_seconds))
         if total_seconds < 60:
-            return str(total_seconds) + [' sec', 's'][short]
+            return ['%ds','%2ds'][pad] % total_seconds
         m, s = divmod(total_seconds, 60)        
         if short: 
-            if total_seconds < 120: return '%d:%02d' % (m, s)
-            return ['%2dm'%m,'%-4s' % '%dm' % m][pad]
-        return '%dm %02d' % (m, s) + [' sec', 's'][short]
+            # if total_seconds < 120: return '%dm' % (m, s)
+            return ['%dm','%2dm'][pad] % m
+        return '%d:%02d' % (m, s)
 
     def __str__(self):
         """Nicely format the elapsed time

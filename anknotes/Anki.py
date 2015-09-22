@@ -363,10 +363,11 @@ class Anki:
         count = 0
         count_update = 0
         max_count = len(grouped_results)
+        log = Logger()
         for source_guid, toc_guids in grouped_results.items():
             ankiNote = self.get_anki_note_from_evernote_guid(source_guid)
             if not ankiNote:
-                log_dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False)
+                log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False)
             else:
                 fields = get_dict_from_list(ankiNote.items())
                 see_also_html = fields[FIELDS.SEE_ALSO]
@@ -389,36 +390,37 @@ class Anki:
                         see_also_new += (toc_delimiter + toc_link) if flat_links else (u'\n<li>%s</li>' % toc_link)
                         toc_delimiter = toc_separator
                     if flat_links:
-                        find_div_end = see_also_html.rfind('</div>') - 1
-                        if find_div_end > 0:
+                        find_div_end = see_also_html.rfind('</div>') 
+                        if find_div_end > -1:
+                            log.blank()
+                            log.plain('Inserting Flat Links at position %d:' % find_div_end)
+                            log.plain(see_also_html[:find_div_end])
+                            log.plain(see_also_html[find_div_end:])
                             see_also_html = see_also_html[:find_div_end] + see_also_new + '\n' + see_also_html[
                                                                                                  find_div_end:]
                             see_also_new = ''
                     else:
-                        see_also_toc_header = u'<br><div style="margin-top:5px;">\n%s</div><ol style="margin-top:3px;">' % generate_evernote_span(
-                            '<u>TABLE OF CONTENTS</u>:', 'Levels', 'Auto TOC', escape=False)
-                        see_also_toc_header_ul = see_also_toc_header.replace('<ol ', '<ul ')
+                        see_also_toc_headers = {'ol': u'<br><div style="margin-top:5px;">\n%s</div><ol style="margin-top:3px;">' % generate_evernote_span(
+                            '<u>TABLE OF CONTENTS</u>:', 'Levels', 'Auto TOC', escape=False)}
+                        see_also_toc_headers['ul'] = see_also_toc_headers['ol'].replace('<ol ', '<ul ')
 
-                        if see_also_toc_header_ul in see_also_html:
-                            find_ul_end = see_also_html.rfind('</ul>') - 1
+                        if see_also_toc_headers['ul'] in see_also_html:
+                            find_ul_end = see_also_html.rfind('</ul>') 
                             see_also_html = see_also_html[:find_ul_end] + '</ol>' + see_also_html[find_ul_end + 5:]
-                            see_also_html = see_also_html.replace(see_also_toc_header_ul, see_also_toc_header)
-                        if see_also_toc_header in see_also_html:
-                            find_ol_end = see_also_html.rfind('</ol>') - 1
-                            see_also_html = see_also_html[:find_ol_end] + see_also_new + '\n' + see_also_html[
-                                                                                                find_ol_end:]
+                            see_also_html = see_also_html.replace(see_also_toc_headers['ul'], see_also_toc_headers['ol'])
+                        if see_also_toc_headers['ol'] in see_also_html:
+                            find_ol_end = see_also_html.rfind('</ol>') 
+                            see_also_html = see_also_html[:find_ol_end] + see_also_new + '\n' + see_also_html[find_ol_end:]
                             see_also_new = ''
                         else:
-                            if new_toc_count is 1:
-                                see_also_new = see_also_toc_header_ul + u'%s\n</ul>' % see_also_new
-                            else:
-                                see_also_new = see_also_toc_header + u'%s\n</ol>' % see_also_new
+                            header_type = 'ul' if new_toc_count is 1 else 'ul'
+                            see_also_new = see_also_toc_headers[header_type] + u'%s\n</%s>' % (see_also_new, header_type)
                     if see_also_count == 0:
                         see_also_html = generate_evernote_span(u'See Also:', 'Links', 'See Also')
                     see_also_html += see_also_new
                 see_also_html = see_also_html.replace('<ol>', '<ol style="margin-top:3px;">')
-                log('<h3>%s</h3><br>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
-                                                               'TOC') + see_also_html + u'<HR>', 'see_also',
+                log.add('<h3>%s</h3><br>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
+                                                               'TOC') + see_also_html + u'<HR>', '_see_also',
                     timestamp=False, extension='htm')
                 fields[FIELDS.SEE_ALSO] = see_also_html.replace('evernote:///', 'evernote://')
                 anki_note_prototype = AnkiNotePrototype(self, fields, ankiNote.tags, ankiNote, count=count,
@@ -434,11 +436,9 @@ class Anki:
         toc_evernote_guids = self.get_evernote_guids_and_anki_fields_from_anki_note_ids(toc_anki_ids)
         query_update_toc_links = "UPDATE %s SET is_toc = 1 WHERE " % TABLES.SEE_ALSO
         delimiter = ""
-        # link_exists = 0
         for toc_evernote_guid, fields in toc_evernote_guids.items():
             for enLink in find_evernote_links(fields[FIELDS.CONTENT]):
                 target_evernote_guid = enLink.Guid
-                # link_title = strip_tags(match.group('Title'))
                 link_number = 1 + ankDB().scalar("select COUNT(*) from %s WHERE source_evernote_guid = '%s' " % (
                     TABLES.SEE_ALSO, target_evernote_guid))
                 toc_link_title = fields[FIELDS.TITLE]
@@ -503,7 +503,7 @@ class Anki:
                         else:
                             toc_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
                                 toc_count, linked_note_title)
-                            note_toc += "<BR><HR>"
+                            note_toc += "<br><hr>"
 
                         note_toc += linked_note_contents
                         log("   > Appending TOC #%d contents" % toc_count, 'See Also')

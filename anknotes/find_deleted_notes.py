@@ -19,18 +19,24 @@ def do_find_deleted_notes(all_anki_notes=None):
     enTableOfContents = file(ANKNOTES.TABLE_OF_CONTENTS_ENEX, 'r').read()
     # find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
     # replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
-
-    all_anknotes_notes = ankDB().all("SELECT guid, title FROM %s " % TABLES.EVERNOTE.NOTES)
+    
+    all_anknotes_notes = ankDB().all("SELECT guid, title, tagNames FROM %s " % TABLES.EVERNOTE.NOTES)
     find_guids = {}
     log_banner(' FIND DELETED EVERNOTE NOTES: UNIMPORTED EVERNOTE NOTES ', ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES)
     log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKI NOTES ', ANKNOTES.LOG_FDN_ANKI_ORPHANS)
     log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKNOTES DB ENTRIES ', ANKNOTES.LOG_FDN_ANKNOTES_ORPHANS)
     log_banner(' FIND DELETED EVERNOTE NOTES: ANKNOTES TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKNOTES_TITLE_MISMATCHES)
     log_banner(' FIND DELETED EVERNOTE NOTES: ANKI TITLE MISMATCHES ', ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES)
+    log_banner(' FIND DELETED EVERNOTE NOTES: POSSIBLE TOC NOTES MISSING TAG ', ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES + '_possibletoc')
     anki_mismatch = 0
+    is_toc_or_outline=[]
     for line in all_anknotes_notes:
         guid = line['guid']
         title = line['title']
+        if  not (',' + EVERNOTE.TAG.TOC + ',' in line['tagNames']):
+            if title.upper() == title:
+                log_plain(guid + '::: %-50s: ' % line['tagNames'][1:-1] + title, ANKNOTES.LOG_FDN_ANKI_TITLE_MISMATCHES + '_possibletoc', do_print=True)
+            
         title = clean_title(title)
         title_safe = str_safe(title)
         find_guids[guid] = title
@@ -49,7 +55,8 @@ def do_find_deleted_notes(all_anki_notes=None):
         guid = enLink.Guid
         title = clean_title(enLink.FullTitle)
         title_safe = str_safe(title)
-        if guid in find_guids:
+        
+        if guid in find_guids:            
             find_title = find_guids[guid]
             find_title_safe = str_safe(find_title)
             if find_title_safe == title_safe:
