@@ -131,93 +131,112 @@ class Anki:
         col.remCards(card_ids)
         return len(card_ids)
 
-    def add_evernote_model(self, mm, modelName, cloze=False):
-        model = mm.byName(modelName)
-        if not model:
-            model = mm.new(modelName)
-            templates = self.get_templates()
+    def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False):        
+        model = mm.byName(modelName)        
+        if model and modelName is MODELS.EVERNOTE_DEFAULT:
+            front = model['tmpls'][0]['qfmt']
+            evernote_account_info = get_evernote_account_ids()
+            if not evernote_account_info.Valid:
+                info = ankDB().first("SELECT uid, shard, COUNT(uid) as c1, COUNT(shard) as c2 from %s GROUP BY uid, shard ORDER BY c1 DESC, c2 DESC LIMIT 1" % TABLES.SEE_ALSO)
+                if info and evernote_account_info.update(info[0], info[1]): forceRebuild = True 
+            if evernote_account_info.Valid:
+                if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front: forceRebuild = True 
+        if not model or forceRebuild:
+            templates = self.get_templates(modelName==MODELS.EVERNOTE_DEFAULT)
+            if model:
+                for t in model['tmpls']:
+                    # model['tmpls'][t]['qfmt'] = templates['Front']
+                    # model['tmpls'][t]['afmt'] = templates['Back']
+                    t['qfmt'] = templates['Front']
+                    t['afmt'] = templates['Back']
+                mm.update(model)
+            else:
+                model = mm.new(modelName)        
 
-            # Add Field for Evernote GUID:
-            #  Note that this field is first because Anki requires the first field to be unique
-            evernote_guid_field = mm.newField(FIELDS.EVERNOTE_GUID)
-            evernote_guid_field['sticky'] = True
-            evernote_guid_field['font'] = 'Consolas'
-            evernote_guid_field['size'] = 10
-            mm.addField(model, evernote_guid_field)
+                # Add Field for Evernote GUID:
+                #  Note that this field is first because Anki requires the first field to be unique
+                evernote_guid_field = mm.newField(FIELDS.EVERNOTE_GUID)
+                evernote_guid_field['sticky'] = True
+                evernote_guid_field['font'] = 'Consolas'
+                evernote_guid_field['size'] = 10
+                mm.addField(model, evernote_guid_field)
 
-            # Add Standard Fields:
-            mm.addField(model, mm.newField(FIELDS.TITLE))
+                # Add Standard Fields:
+                mm.addField(model, mm.newField(FIELDS.TITLE))
 
-            evernote_content_field = mm.newField(FIELDS.CONTENT)
-            evernote_content_field['size'] = 14
-            mm.addField(model, evernote_content_field)
+                evernote_content_field = mm.newField(FIELDS.CONTENT)
+                evernote_content_field['size'] = 14
+                mm.addField(model, evernote_content_field)
 
-            evernote_see_also_field = mm.newField(FIELDS.SEE_ALSO)
-            evernote_see_also_field['size'] = 14
-            mm.addField(model, evernote_see_also_field)
+                evernote_see_also_field = mm.newField(FIELDS.SEE_ALSO)
+                evernote_see_also_field['size'] = 14
+                mm.addField(model, evernote_see_also_field)
 
-            evernote_extra_field = mm.newField(FIELDS.EXTRA)
-            evernote_extra_field['size'] = 12
-            mm.addField(model, evernote_extra_field)
+                evernote_extra_field = mm.newField(FIELDS.EXTRA)
+                evernote_extra_field['size'] = 12
+                mm.addField(model, evernote_extra_field)
 
-            evernote_toc_field = mm.newField(FIELDS.TOC)
-            evernote_toc_field['size'] = 10
-            mm.addField(model, evernote_toc_field)
+                evernote_toc_field = mm.newField(FIELDS.TOC)
+                evernote_toc_field['size'] = 10
+                mm.addField(model, evernote_toc_field)
 
-            evernote_outline_field = mm.newField(FIELDS.OUTLINE)
-            evernote_outline_field['size'] = 10
-            mm.addField(model, evernote_outline_field)
+                evernote_outline_field = mm.newField(FIELDS.OUTLINE)
+                evernote_outline_field['size'] = 10
+                mm.addField(model, evernote_outline_field)
 
-            # Add USN to keep track of changes vs Evernote's servers 
-            evernote_usn_field = mm.newField(FIELDS.UPDATE_SEQUENCE_NUM)
-            evernote_usn_field['font'] = 'Consolas'
-            evernote_usn_field['size'] = 10
-            mm.addField(model, evernote_usn_field)
+                # Add USN to keep track of changes vs Evernote's servers
+                evernote_usn_field = mm.newField(FIELDS.UPDATE_SEQUENCE_NUM)
+                evernote_usn_field['font'] = 'Consolas'
+                evernote_usn_field['size'] = 10
+                mm.addField(model, evernote_usn_field)
 
-            # Add Templates
+                # Add Templates
 
-            if modelName is MODELS.EVERNOTE_DEFAULT or modelName is MODELS.EVERNOTE_REVERSIBLE:
-                # Add Default Template
-                default_template = mm.newTemplate(TEMPLATES.EVERNOTE_DEFAULT)
-                default_template['qfmt'] = templates['Front']
-                default_template['afmt'] = templates['Back']
-                mm.addTemplate(model, default_template)
-            if modelName is MODELS.EVERNOTE_REVERSE_ONLY or modelName is MODELS.EVERNOTE_REVERSIBLE:
-                # Add Reversed Template
-                reversed_template = mm.newTemplate(TEMPLATES.EVERNOTE_REVERSED)
-                reversed_template['qfmt'] = templates['Front']
-                reversed_template['afmt'] = templates['Back']
-                mm.addTemplate(model, reversed_template)
-            if modelName is MODELS.EVERNOTE_CLOZE:
-                # Add Cloze Template        
-                cloze_template = mm.newTemplate(TEMPLATES.EVERNOTE_CLOZE)
-                cloze_template['qfmt'] = templates['Front']
-                cloze_template['afmt'] = templates['Back']
-                mm.addTemplate(model, cloze_template)
+                if modelName is MODELS.EVERNOTE_DEFAULT or modelName is MODELS.EVERNOTE_REVERSIBLE:
+                    # Add Default Template
+                    default_template = mm.newTemplate(TEMPLATES.EVERNOTE_DEFAULT)
+                    default_template['qfmt'] = templates['Front']
+                    default_template['afmt'] = templates['Back']
+                    mm.addTemplate(model, default_template)
+                if modelName is MODELS.EVERNOTE_REVERSE_ONLY or modelName is MODELS.EVERNOTE_REVERSIBLE:
+                    # Add Reversed Template
+                    reversed_template = mm.newTemplate(TEMPLATES.EVERNOTE_REVERSED)
+                    reversed_template['qfmt'] = templates['Front']
+                    reversed_template['afmt'] = templates['Back']
+                    mm.addTemplate(model, reversed_template)
+                if modelName is MODELS.EVERNOTE_CLOZE:
+                    # Add Cloze Template
+                    cloze_template = mm.newTemplate(TEMPLATES.EVERNOTE_CLOZE)
+                    cloze_template['qfmt'] = templates['Front']
+                    cloze_template['afmt'] = templates['Back']
+                    mm.addTemplate(model, cloze_template)
 
-            # Update Sort field to Title (By default set to GUID since it is the first field)
-            model['sortf'] = 1
+                # Update Sort field to Title (By default set to GUID since it is the first field)
+                model['sortf'] = 1
 
-            # Update Model CSS
-            model['css'] = '@import url("_AviAnkiCSS.css");'
+                # Update Model CSS
+                model['css'] = '@import url("_AviAnkiCSS.css");'
 
-            # Set Type to Cloze 
-            if cloze:
-                model['type'] = MODELS.TYPE_CLOZE
+                # Set Type to Cloze
+                if cloze:
+                    model['type'] = MODELS.TYPE_CLOZE
 
-            # Add Model to Collection
-            mm.add(model)
+                # Add Model to Collection
+                mm.add(model)
 
             # Add Model id to list
         self.evernoteModels[modelName] = model['id']
+        return forceRebuild
 
-    def get_templates(self):
-        field_names = {
+    def get_templates(self, forceRebuild=False):        
+        if not self.templates or forceRebuild:
+            evernote_account_info = get_evernote_account_ids()
+            field_names = {
             "Title":                FIELDS.TITLE, "Content": FIELDS.CONTENT, "Extra": FIELDS.EXTRA,
             "See Also":             FIELDS.SEE_ALSO, "TOC": FIELDS.TOC, "Outline": FIELDS.OUTLINE,
-            "Evernote GUID Prefix": FIELDS.EVERNOTE_GUID_PREFIX, "Evernote GUID": FIELDS.EVERNOTE_GUID
+            "Evernote GUID Prefix": FIELDS.EVERNOTE_GUID_PREFIX, "Evernote GUID": FIELDS.EVERNOTE_GUID,
+            "Evernote UID": evernote_account_info.uid, "Evernote shard": evernote_account_info.shard
             }
-        if not self.templates:
             # Generate Front and Back Templates from HTML Template in anknotes' addon directory
             self.templates = {"Front": file(ANKNOTES.TEMPLATE_FRONT, 'r').read() % field_names}
             self.templates["Back"] = self.templates["Front"].replace("<div id='Side-Front'>", "<div id='Side-Back'>")
@@ -227,10 +246,11 @@ class Anki:
         col = self.collection()
         mm = col.models
         self.evernoteModels = {}
-        self.add_evernote_model(mm, MODELS.EVERNOTE_DEFAULT)
-        self.add_evernote_model(mm, MODELS.EVERNOTE_REVERSE_ONLY)
-        self.add_evernote_model(mm, MODELS.EVERNOTE_REVERSIBLE)
-        self.add_evernote_model(mm, MODELS.EVERNOTE_CLOZE, True)
+        
+        forceRebuild = self.add_evernote_model(mm, MODELS.EVERNOTE_DEFAULT)
+        self.add_evernote_model(mm, MODELS.EVERNOTE_REVERSE_ONLY, forceRebuild)
+        self.add_evernote_model(mm, MODELS.EVERNOTE_REVERSIBLE, forceRebuild)
+        self.add_evernote_model(mm, MODELS.EVERNOTE_CLOZE, forceRebuild, True)
 
     def setup_ancillary_files(self):
         # Copy CSS file from anknotes addon directory to media directory 

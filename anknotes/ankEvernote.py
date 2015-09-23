@@ -7,15 +7,15 @@ from StringIO import StringIO
 try:
     from lxml import etree
     eTreeImported = True
-except:
+except ImportError:
     eTreeImported = False
 
 try:
     from aqt.utils import openLink, getText, showInfo
     inAnki = True
-except:
+except ImportError:
     inAnki = False
-
+    
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -34,8 +34,6 @@ if inAnki:
     from anknotes.evernote.edam.type.ttypes import Note as EvernoteNote
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
     from anknotes.evernote.api.client import EvernoteClient
-
-
 
 ### Anki Imports
 # import anki

@@ -201,7 +201,7 @@ enAccountIDs = None
 
 def get_evernote_account_ids():
     global enAccountIDs
-    if not enAccountIDs:
+    if not enAccountIDs or not enAccountIDs.Valid:
         enAccountIDs = EvernoteAccountIDs()
     return enAccountIDs
 
@@ -217,25 +217,35 @@ def tableify_lines(rows, columns=None, tr_index_offset=0, return_html=True):
     return trs
 
 class EvernoteAccountIDs:
-    uid = '0'
-    shard = 's100'
-    valid = False
+    uid = SETTINGS.EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE
+    shard = SETTINGS.EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE
+    
+    @property 
+    def Valid(self):
+        return self.is_valid()
 
-    def __init__(self, uid=None, shard=None):
-        self.valid = False
+    def is_valid(self, uid=None, shard=None):
+        if uid is None: uid = self.uid 
+        if shard is None: shard = self.shard 
+        if not uid or not shard: return False 
+        if uid == '0' or uid == SETTINGS.EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE or not unicode(uid).isnumeric(): return False 
+        if shard == 's999' or uid == SETTINGS.EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE or shard[0] != 's' or not unicode(shard[1:]).isnumeric(): return False 
+        return True 
+    
+    def __init__(self, uid=None, shard=None):        
         if uid and shard:
-            if self.update(uid, shard): return
+            if self.update(uid, shard): return 
         try:
             self.uid = mw.col.conf.get(SETTINGS.EVERNOTE_ACCOUNT_UID, SETTINGS.EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE)
             self.shard = mw.col.conf.get(SETTINGS.EVERNOTE_ACCOUNT_SHARD, SETTINGS.EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE)
+            if self.Valid: return 
         except:
-            self.uid = SETTINGS.EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE
-            self.shard = SETTINGS.EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE
-            return
-
+            pass
+        self.uid = SETTINGS.EVERNOTE_ACCOUNT_UID_DEFAULT_VALUE
+        self.shard = SETTINGS.EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE
+            
     def update(self, uid, shard):
-        if not uid or not shard: return False
-        if uid == '0' or shard == 's100': return False
+        if not self.is_valid(uid, shard): return False
         try:
             mw.col.conf[SETTINGS.EVERNOTE_ACCOUNT_UID] = uid
             mw.col.conf[SETTINGS.EVERNOTE_ACCOUNT_SHARD] = shard
@@ -243,4 +253,4 @@ class EvernoteAccountIDs:
             return False
         self.uid = uid
         self.shard = shard
-        self.valid = True
+        return self.Valid 

@@ -1,7 +1,6 @@
 anknotes/extra/logs/
 anknotes/extra/dev/Restart Anki.lnk
-anknotes/extra/dev/anknotes.developer
-anknotes/extra/dev/anknotes.developer.automate
+anknotes/extra/dev/anknotes.developer*
 anknotes/extra/user/
 *.bk
 

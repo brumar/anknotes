@@ -163,7 +163,7 @@ class EvernoteTag(EvernoteStruct):
 
 class EvernoteLink(EvernoteStruct):
     __uid__ = -1
-    Shard = -1
+    Shard = 'x999'
     Guid = ""
     __title__ = None
     """:type: EvernoteNoteTitle.EvernoteNoteTitle """
