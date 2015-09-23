@@ -88,21 +88,21 @@ An Anki plug-in for downloading Evernote notes to Anki directly from Anki. In ad
 	- Enable Auto Import and Pagination as per above, and then modify `constants.py`, setting `PAGING_RESTART_WHEN_COMPLETE` to `True`		
 
 #### Note Processing Features
-1. Fix [Evernote Note Links] (https://dev.evernote.com/doc/articles/note_links.php) so that they can be opened in Anki
+1. Fix [Evernote Note Links] (https://dev.evernote.com/doc/articles/note_links.php) so that they can be opened in Anki <a id='post-process-links' />
 	- Convert "New Style" Evernote web links to "Classic" Evernote in-app links so that any note links open directly in Evernote 
 	- Convert all Evernote links to use two forward slashes instead of three to get around an Anki bug	
-1. Automatically embed images
+1. Automatically embed images <a id='post-process-images' />
 	- This is a workaround since Anki cannot import Evernote resources such as embedded images, PDF files, sounds, etc
 	- Anknotes will convert any of the following to embedded, linkable images:
 		- Any HTML Dropbox sharing link to an image `(https://www.dropbox.com/s/...)`
 		- Any Dropbox plain-text to an image (same as above, but plain-text links must end with `?dl=0` or `?dl=1`)
 		- Any HTML link with Link Text beginning with "Image Link", e.g.: `<a href='http://www.foo.com/bar'>Image Link #1</a>`	
-1. Occlude (hide) certain text on fronts of Anki cards
+1. Occlude (hide) certain text on fronts of Anki cards <a id='post-process-occlude' />
 	- Useful for displaying additional information but ensuring it only shows on backs of cards
 	- Anknotes converts any of the following to special text that will display in grey color, and only on the backs of cards:
 		- Any text with white foreground
 		- Any text within two brackets, such as `<<Hide Me>>`	
-1. Automatically generate [Cloze fields] (http://ankisrs.net/docs/manual.html#cloze)
+1. Automatically generate [Cloze fields] (http://ankisrs.net/docs/manual.html#cloze) <a id='post-process-cloze' />
 	- Any text with a single curly bracket will be converted into a cloze field
 		- E.g., two cloze fields are generated from: The central nervous system is made up of the `{brain}` and `{spinal cord}`
 	- If you want to generate a single cloze field (not increment the field #), insert a pound character `('#')` after the first curly bracket:
