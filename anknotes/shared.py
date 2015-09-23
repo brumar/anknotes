@@ -88,7 +88,7 @@ def find_evernote_links(content):
     content = replace_evernote_web_links(content)
     regex_str = r'<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<title>.+?)</a>'
     ids = get_evernote_account_ids()
-    if not ids.valid:
+    if not ids.Valid:
         match = re.search(regex_str, content)
         if match:
             ids.update(match.group('uid'), match.group('shard'))

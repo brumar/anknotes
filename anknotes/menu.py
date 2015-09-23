@@ -48,13 +48,13 @@ def anknotes_setup_menu():
                   ["SEPARATOR", None],
                   ["Step &3: Create Auto TOC Evernote Notes", lambda: see_also(3)],
                   ["Step &4: Validate and Upload Auto TOC Notes", lambda: see_also(4)],
-                  ["Step &5: Rebuild TOC/Outline Link Database", lambda: see_also(6)],
+                  ["Step &5: Rebuild TOC/Outline Link Database", lambda: see_also(5)],
                   ["SEPARATOR", None],
-                  ["Step &6: Insert TOC/Outline Links Into Anki Notes", lambda: see_also(7)],
-                  ["Step &7: Update See Also Footer In Evernote Notes", lambda: see_also(8)],
-                  ["Step &8: Validate and Upload Modified Evernote Notes", lambda: see_also(9)],
+                  ["Step &6: Insert TOC/Outline Links Into Anki Notes", lambda: see_also(6)],
+                  ["Step &7: Update See Also Footer In Evernote Notes", lambda: see_also(7)],
+                  ["Step &8: Validate and Upload Modified Evernote Notes", lambda: see_also(8)],
                   ["SEPARATOR", None],
-                  ["Step &9: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(10)]
+                  ["Step &9: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(9)] 
               ]
               ],
              ["&Maintenance Tasks",
@@ -275,23 +275,26 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
         else:
             steps = [-4]
     if 5 in steps:
-        log(" > See Also: Step 5: Inserting TOC/Outline Links Into Anki Notes' See Also Field")
-        controller.anki.insert_toc_into_see_also()
+        log(" > See Also: Step 5: Rebuild TOC/Outline Link Database")
+        controller.anki.extract_links_from_toc()
     if 6 in steps:
-        log(" > See Also: Step 6: Update See Also Footer In Evernote Notes")
+        log(" > See Also: Step 6: Inserting TOC/Outline Links Into Anki Notes' See Also Field")
+        controller.anki.insert_toc_into_see_also()    
     if 7 in steps:
+        log(" > See Also: Step 7: Update See Also Footer In Evernote Notes")
+    if 8 in steps:
         if validationComplete:
-            log(" > See Also: Step 7: Validate and Upload Modified Notes: Upload Validating Notes")
+            log(" > See Also: Step 8: Validate and Upload Modified Notes: Upload Validating Notes")
             upload_validated_notes(multipleSteps)
         else:
-            steps = [-7]
-    if 8 in steps:
-        log(" > See Also: Step 8: Inserting TOC/Outline Contents Into Anki Notes")
+            steps = [-8]
+    if 9 in steps:
+        log(" > See Also: Step 10: Inserting TOC/Outline Contents Into Anki Notes")
         controller.anki.insert_toc_and_outline_contents_into_notes()
 
     do_validation = steps[0]*-1
     if do_validation>0:
-        log(" > See Also: Step %d: Validate and Upload %s Notes: Validating Notes" % (do_validation, {4: 'Auto TOC', 7: 'Modified Evernote'}[do_validation]))
+        log(" > See Also: Step %d: Validate and Upload %s Notes: Validating Notes" % (do_validation, {4: 'Auto TOC', 8: 'Modified Evernote'}[do_validation]))
         remaining_steps = remaining_steps[remaining_steps.index(do_validation)+validationComplete and 1 or 0:]
         validate_pending_notes(showAlerts, callback=lambda: see_also(remaining_steps, False, True))
 

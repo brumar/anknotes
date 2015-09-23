@@ -121,23 +121,23 @@ class ank_DB(object):
     def rollback(self):
         self._db.rollback()
 
-    def scalar(self, *a, **kw):
-        res = self.execute(*a, **kw).fetchone()
+    def scalar(self, sql, *a, **kw):
+        res = self.execute(sql, *a, **kw).fetchone()
         if res:
             return res[0]
         return None
 
-    def all(self, *a, **kw):
-        return self.execute(*a, **kw).fetchall()
+    def all(self, sql, *a, **kw):
+        return self.execute(sql, *a, **kw).fetchall()
 
-    def first(self, *a, **kw):
-        c = self.execute(*a, **kw)
+    def first(self, sql, *a, **kw):
+        c = self.execute(sql, *a, **kw)
         res = c.fetchone()
         c.close()
         return res
 
-    def list(self, *a, **kw):
-        return [x[0] for x in self.execute(*a, **kw)]
+    def list(self, sql, *a, **kw):
+        return [x[0] for x in self.execute(sql, *a, **kw)]
 
     def close(self):
         self._db.close()
