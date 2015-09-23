@@ -1,7 +1,7 @@
 anknotes/extra/logs/
 anknotes/extra/powergrep/
 anknotes/extra/local/
-anknotes/extra/testing/
+anknotes/extra/user/
 anknotes/extra/anki_master
 autopep8
 noteTest.py

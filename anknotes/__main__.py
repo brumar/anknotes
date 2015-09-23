@@ -31,7 +31,7 @@ def import_timer_toggle():
         importDelay = 0
         if lastImport:
             td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
-            minimum = timedelta(seconds=EVERNOTE.IMPORT_TIMER_INTERVAL / 1000)
+            minimum = timedelta(seconds=max(EVERNOTE.IMPORT_TIMER_INTERVAL, 20*60))
             if td < minimum:
                 importDelay = (minimum - td).total_seconds() * 1000
         if importDelay is 0:
@@ -82,10 +82,12 @@ def anknotes_profile_loaded():
     if ANKNOTES.ENABLE_VALIDATION and ANKNOTES.AUTOMATE_VALIDATION:
         menu.upload_validated_notes(True)
     import_timer_toggle()
-    '''
-     For testing purposes only:
-    '''
     if ANKNOTES.DEVELOPER_MODE_AUTOMATE:
+        '''
+         For testing purposes only!
+         Add a function here and it will automatically run on profile load
+         You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder 
+        '''    
         # resync_with_local_db()
         # menu.see_also()
         # menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))

@@ -264,7 +264,7 @@ class EvernoteImporter:
                     self.auto_page_callback()
                 return True
             elif col.conf.get(EVERNOTE.PAGING_RESTART_WHEN_COMPLETE, True):
-                restart = EVERNOTE.PAGING_RESTART_INTERVAL
+                restart = max(EVERNOTE.PAGING_RESTART_INTERVAL, 60*15)
                 restart_title = "   > Restarting Auto Paging"
                 restart_msg = "All %d notes have been processed and EVERNOTE.PAGING_RESTART_WHEN_COMPLETE is TRUE<BR>" % \
                               self.MetadataProgress.Total
@@ -287,7 +287,7 @@ class EvernoteImporter:
                 suffix = "<BR>Not delaying as the API Call Count of %d is less than the minimum of %d set by EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS" % (
                 self.ImportProgress.APICallCount, EVERNOTE.PAGING_RESTART_DELAY_MINIMUM_API_CALLS)
             else:
-                restart = EVERNOTE.PAGING_TIMER_INTERVAL
+                restart = max(EVERNOTE.PAGING_TIMER_INTERVAL, 60*10)
                 suffix = "<BR>Delaying Auto Paging: Per EVERNOTE.PAGING_TIMER_INTERVAL, "
 
         if not self.forceAutoPage:

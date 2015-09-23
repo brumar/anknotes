@@ -10,7 +10,8 @@ class ANKNOTES:
     FOLDER_ANCILLARY = os.path.join(FOLDER_EXTRA, 'ancillary')
     FOLDER_GRAPHICS = os.path.join(FOLDER_EXTRA, 'graphics')
     FOLDER_LOGS = os.path.join(FOLDER_EXTRA, 'logs')
-    FOLDER_TESTING = os.path.join(FOLDER_EXTRA, 'testing')
+    FOLDER_DEVELOPER = os.path.join(FOLDER_EXTRA, 'dev')
+    FOLDER_USER = os.path.join(FOLDER_EXTRA, 'user')
     LOG_BASE_NAME = ''
     LOG_DEFAULT_NAME = 'anknotes'
     LOG_MAIN = LOG_DEFAULT_NAME
@@ -20,7 +21,7 @@ class ANKNOTES:
     CSS = u'_AviAnkiCSS.css'
     QT_CSS_QMESSAGEBOX = os.path.join(FOLDER_ANCILLARY, 'QMessageBox.css')
     ENML_DTD = os.path.join(FOLDER_ANCILLARY, 'enml2.dtd')
-    TABLE_OF_CONTENTS_ENEX = os.path.join(FOLDER_TESTING, "Table of Contents.enex")
+    TABLE_OF_CONTENTS_ENEX = os.path.join(FOLDER_USER, "Table of Contents.enex")
     VALIDATION_SCRIPT = os.path.join(FOLDER_ADDONS_ROOT, 'anknotes_start_note_validation.py')  # anknotes-standAlone.py')
     FIND_DELETED_NOTES_SCRIPT = os.path.join(FOLDER_ADDONS_ROOT, 'anknotes_start_find_deleted_notes.py')  # anknotes-standAlone.py')
     LOG_FDN_ANKI_ORPHANS = 'Find Deleted Notes\\'
@@ -37,8 +38,8 @@ class ANKNOTES:
     EVERNOTE_CONSUMER_KEY = "holycrepe"
     EVERNOTE_IS_SANDBOXED = False
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-    DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer')))
-    DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDER_TESTING, 'anknotes.developer.automate')))
+    DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDER_DEVELOPER, 'anknotes.developer')))
+    DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDER_DEVELOPER, 'anknotes.developer.automate')))
     UPLOAD_AUTO_TOC_NOTES = True  # Set False if debugging note creation
     AUTO_TOC_NOTES_MAX = -1  # Set to -1 for unlimited
     ENABLE_VALIDATION = True
@@ -74,10 +75,6 @@ class FIELDS:
                UPDATE_SEQUENCE_NUM]
     SEE_ALSO_FIELDS_ORD = LIST.index(SEE_ALSO) + 1
 
-
-
-
-
 class DECKS:
     DEFAULT = "Evernote"
     TOC_SUFFIX = "::See Also::TOC"
@@ -95,7 +92,7 @@ class EVERNOTE:
 
     # Note that Evernote's API documentation says not to run API calls to findNoteMetadata with any less than a 15 minute interval
     PAGING_RESTART_INTERVAL = 60 * 15
-    # Auto Paging is probably only useful in the first 24 hours, when API usage is unlimited,  or when executing a search that is likely to have most of the notes up-to-date locally
+    # Auto Paging is probably only useful in the first 24 hours, when API usage is unlimited, or when executing a search that is likely to have most of the notes up-to-date locally
     # To keep from overloading Evernote's servers, and flagging our API key, I recommend pausing 5-15 minutes in between searches, the higher the better.
     PAGING_TIMER_INTERVAL = 60 * 15
     PAGING_RESTART_DELAY_MINIMUM_API_CALLS = 10
