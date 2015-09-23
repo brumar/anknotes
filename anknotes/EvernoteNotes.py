@@ -302,6 +302,7 @@ class EvernoteNotes:
         returns = []
         """:type : list[EvernoteTOCEntry]"""
         ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.EVERNOTE.AUTO_TOC)
+        ankDB().commit()
         # olsz = None
         for rootTitleStr in self.RootNotesMissing.TitlesList:
             count_child = 0
@@ -357,14 +358,11 @@ class EvernoteNotes:
                 realTitle = realTitle[0:realTitle.index(':')]
                 # realTitleUTF8 = realTitle.encode('utf8')
                 notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]
-                # if rootTitleStr.find('Antitrypsin') > -1:
-                # realTitleUTF8 = realTitle.encode('utf8')
-                # file_object = open('pytho2!nx_intro.txt', 'w')
-                # file_object.write(realTitleUTF8)
-                # file_object.close()
-
+                
+                real_root_title = generateTOCTitle(realTitle)
+                
                 ol = tocHierarchy.GetOrderedList()
-                tocEntry = EvernoteTOCEntry(realTitle, ol, ',' + ','.join(tags) + ',', notebookGuid)
+                tocEntry = EvernoteTOCEntry(real_root_title, ol, ',' + ','.join(tags) + ',', notebookGuid)
                 returns.append(tocEntry)
                 dbRows.append(tocEntry.items())
                 # ol = realTitleUTF8
@@ -397,7 +395,6 @@ class EvernoteNotes:
 
             file_object.close()
 
-        # print dbRows
         ankDB().executemany(
             "INSERT INTO %s (root_title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?)" % TABLES.EVERNOTE.AUTO_TOC,
             dbRows)

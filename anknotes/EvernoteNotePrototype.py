@@ -49,7 +49,7 @@ class EvernoteNotePrototype:
             self.UpdateSequenceNum = whole_note.updateSequenceNum
             self.Status = EvernoteAPIStatus.Success
             return
-        if db_note is not None:
+        if db_note is not None:            
             self.Title = EvernoteNoteTitle(db_note)
             db_note_keys = db_note.keys()
             for key in ['content', 'guid', 'notebookGuid', 'updateSequenceNum', 'tagNames', 'tagGuids']:

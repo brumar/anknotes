@@ -83,6 +83,9 @@ class EvernoteStruct(object):
             self.getFromDB()
         elif self._is_valid_attribute_(key):
             setattr(self, self.__attr_from_key__(key), value)
+        else: 
+            log("Not valid attribute: %s" % key)
+            raise KeyError
 
     def setAttributeByObject(self, key, keyed_object):
         self.setAttribute(key, keyed_object[key])
@@ -117,28 +120,21 @@ class EvernoteStruct(object):
         return True
 
     def setFromListByDefaultOrder(self, args):
-        i = 0
         max = len(self.__attr_order__)
-        for value in args:
+        for i, value in enumerate(args):
             if i > max:
                 log("Unable to set attr #%d for %s to %s (Exceeds # of default attributes)" % (i, self.__class__.__name__, str_safe(value)), 'error')
                 return
             self.setAttribute(self.__attr_order__[i], value)
-            i += 1
-            # I have no idea what I was trying to do when I coded the commented out conditional statement...
-            # if key in self.__attr_order__:
-
-            # else:
-            #     log("Unable to set attr #%d for %s to %s" % (i, self.__class__.__name__, str_safe(value)), 'error')
 
 
     def _valid_attributes_(self):
         return set().union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
 
     def _is_valid_attribute_(self, attribute):
-        return attribute.lower() in self._valid_attributes_()
+        return (attribute[0].lower() + attribute[1:]) in self._valid_attributes_()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):        
         if isinstance(self.__sql_columns__, str): self.__sql_columns__ = [self.__sql_columns__]
         if isinstance(self.__attr_order__, str) or isinstance(self.__attr_order__, unicode):
             self.__attr_order__ = self.__attr_order__.replace('|', ' ').split(' ')
@@ -211,7 +207,6 @@ class EvernoteTOCEntry(EvernoteStruct):
     TagNames = ""
     """:type : str"""
     NotebookGuid = ""
-
     def __init__(self, *args, **kwargs):
         self.__attr_order__ = 'realTitle|orderedList|tagNames|notebookGuid'
         super(self.__class__, self).__init__(*args, **kwargs)

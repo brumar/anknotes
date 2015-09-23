@@ -126,6 +126,8 @@ class SETTINGS:
     EVERNOTE_ACCOUNT_SHARD_DEFAULT_VALUE = 'x999'
     EVERNOTE_QUERY_TAGS = 'anknotesEvernoteQueryTags'
     EVERNOTE_QUERY_USE_TAGS = 'anknotesEvernoteQueryUseTags'
+    EVERNOTE_QUERY_EXCLUDED_TAGS = 'anknotesEvernoteQueryExcludedTags'
+    EVERNOTE_QUERY_USE_EXCLUDED_TAGS = 'anknotesEvernoteQueryUseExcludedTags'
     EVERNOTE_QUERY_LAST_UPDATED_VALUE_RELATIVE = 'anknotesEvernoteQueryLastUpdatedValueRelative'
     EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_DATE = 'anknotesEvernoteQueryLastUpdatedValueAbsoluteDate'
     EVERNOTE_QUERY_LAST_UPDATED_VALUE_ABSOLUTE_TIME = 'anknotesEvernoteQueryLastUpdatedValueAbsoluteDateTime'

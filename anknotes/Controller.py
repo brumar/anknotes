@@ -69,13 +69,9 @@ class Controller:
     def upload_validated_notes(self, automated=False):
         self.anki.evernoteTags = []
         dbRows = ankDB().all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.MAKE_NOTE_QUEUE)
-        number_updated = 0
-        number_created = 0
-        count = 0
-        count_create = 0
-        count_update = 0
-        exist = 0
-        error = 0
+        number_updated = number_created = 0
+        count = count_create = count_update = 0
+        exist = error = 0
         status = EvernoteAPIStatus.Uninitialized
         notes_created = []
         """
@@ -142,14 +138,14 @@ class Controller:
         if number_updated: str_tips.append("-%-3d of these were successfully updated in Anki " % number_updated)
         if error > 0: str_tips.append("%d Error(s) occurred " % error)
         show_report("   > Upload of Validated Notes Complete", str_tip_header, str_tips)
-
-        if len(queries1) > 0:
-            ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.MAKE_NOTE_QUEUE, queries1)
-        if len(queries2) > 0:
-            ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.MAKE_NOTE_QUEUE, queries2)
-        # log(queries1)
-
-        ankDB().commit()
+        
+        if len(queries1) + len(queries2) > 0:
+            if len(queries1) > 0:
+                ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.MAKE_NOTE_QUEUE, queries1)
+            if len(queries2) > 0:
+                ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.MAKE_NOTE_QUEUE, queries2)            
+            ankDB().commit()
+            
         return status, count, exist
 
     def create_auto_toc(self):
@@ -159,17 +155,10 @@ class Controller:
         NotesDB.baseQuery = ANKNOTES.ROOT_TITLES_BASE_QUERY
         dbRows = NotesDB.populateAllNonCustomRootNotes()
         # dbRows = NoteDB.populateAllPotentialRootNotes()
-        number_updated = 0
-        number_created = 0
-        count = 0
-        count_create = 0
-        count_update = 0
-        count_update_skipped = 0
-        count_queued = 0
-        count_queued_create = 0
-        count_queued_update = 0
-        exist = 0
-        error = 0
+        number_updated = number_created = 0
+        count = count_create = count_update = count_update_skipped = 0
+        count_queued = count_queued_create = count_queued_update = 0
+        exist = error = 0
         status = EvernoteAPIStatus.Uninitialized
         notes_created = []
         """
@@ -213,7 +202,8 @@ class Controller:
                     count_update_skipped += 1
                     continue
                 contents = contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
-                log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create-Diffs\\'+rootTitle)
+                log(noteBodyUnencoded, 'AutoTOC-Create-New\\'+rootTitle, clear=True)
+                log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create-Diffs\\'+rootTitle, clear=True)
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
                             -1 < ANKNOTES.AUTO_TOC_NOTES_MAX <= count_update + count_create):
                 continue

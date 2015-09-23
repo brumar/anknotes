@@ -46,6 +46,8 @@ def setup_evernote(self):
     global evernote_query_any
     global evernote_query_use_tags
     global evernote_query_tags
+    global evernote_query_use_excluded_tags
+    global evernote_query_excluded_tags
     global evernote_query_use_notebook
     global evernote_query_notebook
     global evernote_query_use_note_title
@@ -114,6 +116,25 @@ def setup_evernote(self):
     hbox.addWidget(evernote_query_use_tags)
     hbox.addWidget(evernote_query_tags)
     form.addRow("Tags:", hbox)
+
+    # Evernote Query: Excluded Tags
+    evernote_query_excluded_tags = QLineEdit()
+    evernote_query_excluded_tags.setText(
+        mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_EXCLUDED_TAGS, ''))
+    evernote_query_excluded_tags.connect(evernote_query_excluded_tags,
+                                SIGNAL("textEdited(QString)"),
+                                update_evernote_query_excluded_tags)
+
+    # Evernote Query: Use Excluded Tags
+    evernote_query_use_excluded_tags = QCheckBox(" ", self)
+    evernote_query_use_excluded_tags.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_EXCLUDED_TAGS, True))
+    evernote_query_use_excluded_tags.stateChanged.connect(update_evernote_query_use_excluded_tags)
+
+    # Add Form Row for Excluded Tags
+    hbox = QHBoxLayout()
+    hbox.addWidget(evernote_query_use_excluded_tags)
+    hbox.addWidget(evernote_query_excluded_tags)
+    form.addRow("Excluded Tags:", hbox)
 
     # Evernote Query: Search Terms
     evernote_query_search_terms = QLineEdit()
@@ -445,6 +466,17 @@ def update_evernote_query_use_tags():
     update_evernote_query_visibilities()
 
 
+def update_evernote_query_excluded_tags(text):
+    mw.col.conf[SETTINGS.EVERNOTE_QUERY_EXCLUDED_TAGS] = text
+    if text: evernote_query_use_excluded_tags.setChecked(True)
+    evernote_query_text_changed()
+
+
+def update_evernote_query_use_excluded_tags():
+    mw.col.conf[SETTINGS.EVERNOTE_QUERY_USE_EXCLUDED_TAGS] = evernote_query_use_excluded_tags.isChecked()
+    update_evernote_query_visibilities()
+
+
 def update_evernote_query_notebook(text):
     mw.col.conf[SETTINGS.EVERNOTE_QUERY_NOTEBOOK] = text
     if text: evernote_query_use_notebook.setChecked(True)
@@ -515,6 +547,7 @@ def update_update_existing_notes(index):
 
 def evernote_query_text_changed():
     tags = evernote_query_tags.text()
+    excluded_tags = evernote_query_excluded_tags.text()
     search_terms = evernote_query_search_terms.text()
     note_title = evernote_query_note_title.text()
     notebook = evernote_query_notebook.text()
@@ -522,8 +555,9 @@ def evernote_query_text_changed():
     search_terms_active = search_terms and evernote_query_use_search_terms.isChecked()
     note_title_active = note_title and evernote_query_use_note_title.isChecked()
     notebook_active = notebook and evernote_query_use_notebook.isChecked()
+    excluded_tags_active = excluded_tags and evernote_query_use_excluded_tags.isChecked()
     all_inactive = not (
-        search_terms_active or note_title_active or notebook_active or evernote_query_use_last_updated.isChecked())
+        search_terms_active or note_title_active or notebook_active or excluded_tags_active or evernote_query_use_last_updated.isChecked())
 
     if not search_terms:
         evernote_query_use_search_terms.setEnabled(False)
@@ -546,6 +580,13 @@ def evernote_query_text_changed():
         evernote_query_use_notebook.setEnabled(True)
         evernote_query_use_notebook.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_NOTEBOOK, True))
 
+    if not excluded_tags:
+        evernote_query_use_excluded_tags.setEnabled(False)
+        evernote_query_use_excluded_tags.setChecked(False)
+    else:
+        evernote_query_use_excluded_tags.setEnabled(True)
+        evernote_query_use_excluded_tags.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_EXCLUDED_TAGS, True))        
+        
     if not tags and not all_inactive:
         evernote_query_use_tags.setEnabled(False)
         evernote_query_use_tags.setChecked(False)
@@ -559,6 +600,7 @@ def evernote_query_text_changed():
 def update_evernote_query_visibilities():
     # is_any =  evernote_query_any.isChecked()
     is_tags = evernote_query_use_tags.isChecked()
+    is_excluded_tags = evernote_query_use_excluded_tags.isChecked()
     is_terms = evernote_query_use_search_terms.isChecked()
     is_title = evernote_query_use_note_title.isChecked()
     is_notebook = evernote_query_use_notebook.isChecked()
@@ -566,16 +608,18 @@ def update_evernote_query_visibilities():
 
     # is_disabled_any = not evernote_query_any.isEnabled()
     is_disabled_tags = not evernote_query_use_tags.isEnabled()
+    is_disabled_excluded_tags = not evernote_query_use_excluded_tags.isEnabled()
     is_disabled_terms = not evernote_query_use_search_terms.isEnabled()
     is_disabled_title = not evernote_query_use_note_title.isEnabled()
     is_disabled_notebook = not evernote_query_use_notebook.isEnabled()
     # is_disabled_updated = not evernote_query_use_last_updated.isEnabled()
 
-    override = (not is_tags and not is_terms and not is_title and not is_notebook and not is_updated)
+    override = (not is_tags and not is_excluded_tags and not is_terms and not is_title and not is_notebook and not is_updated)
     if override:
         is_tags = True
         evernote_query_use_tags.setChecked(True)
     evernote_query_tags.setEnabled(is_tags or is_disabled_tags)
+    evernote_query_excluded_tags.setEnabled(is_excluded_tags or is_disabled_excluded_tags)
     evernote_query_search_terms.setEnabled(is_terms or is_disabled_terms)
     evernote_query_note_title.setEnabled(is_title or is_disabled_title)
     evernote_query_notebook.setEnabled(is_notebook or is_disabled_notebook)
@@ -667,8 +711,7 @@ def update_evernote_query_last_updated_value_absolute_time(time_value):
 
 
 def generate_evernote_query():
-    query = ""
-    tags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_TAGS, SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE).split(",")
+    query = ""    
     if mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_NOTEBOOK, False):
         query += 'notebook:"%s" ' % mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_NOTEBOOK,
                                                     SETTINGS.EVERNOTE_QUERY_NOTEBOOK_DEFAULT_VALUE).strip()
@@ -680,8 +723,17 @@ def generate_evernote_query():
             query_note_title = '"%s"' % query_note_title
         query += 'intitle:%s ' % query_note_title
     if mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_TAGS, True):
+        tags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_TAGS, SETTINGS.EVERNOTE_QUERY_TAGS_DEFAULT_VALUE).split(",")
         for tag in tags:
-            query += "tag:%s " % tag.strip()
+            tag = tag.strip()
+            if ' ' in tag: tag = '"%s"' % tag 
+            query += 'tag:%s ' % tag
+    if mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_EXCLUDED_TAGS, True):
+        tags = mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_EXCLUDED_TAGS, '').split(",")
+        for tag in tags:
+            tag = tag.strip()
+            if ' ' in tag: tag = '"%s"' % tag 
+            query += '-tag:%s ' % tag
     if mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_LAST_UPDATED, False):
         query += " updated:%s " % evernote_query_last_updated_value_get_current_value()
     if mw.col.conf.get(SETTINGS.EVERNOTE_QUERY_USE_SEARCH_TERMS, False):

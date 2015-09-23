@@ -167,7 +167,7 @@ class EvernoteNoteTitle:
                         # log('keys[empty dict?]', 'tOTS', timestamp=False)
                         raise
                     else:
-                        # log('keys[Unknown Attr]: %s' % str(keys), 'tOTS', timestamp=False)
+                        log('keys[Unknown Attr]: %s' % str(keys), 'tOTS', timestamp=False)
                         return ""
                 elif 'title' in title:
                     # log('[title]', 'tOTS', timestamp=False)
@@ -204,7 +204,6 @@ class EvernoteNoteTitle:
         """:type titleObj: str | unicode | sqlite.Row | EvernoteNoteTitle | evernote.edam.type.ttypes.Note | EvernoteNotePrototype.EvernoteNotePrototype  """
         self.__html__ = self.titleObjectToString(titleObj)
         self.__title__ = strip_tags_and_new_lines(self.__html__)
-
 
 def generateTitleParts(title):
     title = EvernoteNoteTitle.titleObjectToString(title)

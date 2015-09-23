@@ -1,3 +1,4 @@
+import re
 from HTMLParser import HTMLParser
 from anknotes.constants import SETTINGS
 from anknotes.db import get_evernote_title_from_guid
@@ -21,14 +22,20 @@ class MLStripper(HTMLParser):
 
 def strip_tags(html):
     if html is None: return None
+    html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
     s = MLStripper()
     s.feed(html)
-    return s.get_data()
+    html = s.get_data()
+    html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
+    return html 
+    # s = MLStripper()
+    # s.feed(html)
+    # return s.get_data()
 
 
 def strip_tags_and_new_lines(html):
     if html is None: return None
-    return strip_tags(html).replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ')
+    return re.sub(r'[\r\n]+', ' ', strip_tags(html)) 
 
 
 __text_escape_phrases__ = u'&|&amp;|\'|&apos;|"|&quot;|>|&gt;|<|&lt;'.split('|')
