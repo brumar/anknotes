@@ -6,10 +6,16 @@ from StringIO import StringIO
 
 try:
     from lxml import etree
-
     eTreeImported = True
 except:
     eTreeImported = False
+
+try:
+    from aqt.utils import openLink, getText, showInfo
+    inAnki = True
+except:
+    inAnki = False
+
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -19,7 +25,7 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.error import *
 
-if not eTreeImported:
+if inAnki:
     ### Anknotes Class Imports
     from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
     from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
@@ -28,12 +34,6 @@ if not eTreeImported:
     from anknotes.evernote.edam.type.ttypes import Note as EvernoteNote
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
     from anknotes.evernote.api.client import EvernoteClient
-
-
-try:
-    from aqt.utils import openLink, getText, showInfo
-except:
-    pass
 
 
 
