@@ -1,0 +1,1 @@
+Create a link that points to invisible.vbs with restart_anki.bat as its argument. Use that link to quickly restart anki while debugging 

@@ -1,10 +1,8 @@
 anknotes/extra/logs/
-anknotes/extra/powergrep/
-anknotes/extra/local/
+anknotes/extra/dev/Restart Anki.lnk
+anknotes/extra/dev/anknotes.developer
+anknotes/extra/dev/anknotes.developer.automate
 anknotes/extra/user/
-anknotes/extra/anki_master
-autopep8
-noteTest.py
 *.bk
 
 #################

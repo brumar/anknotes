@@ -401,7 +401,9 @@ def log_api(method, content='', **kwargs):
 
 
 def get_api_call_count():
-    api_log = file(get_log_full_path('api'), 'r').read().splitlines()
+    path = get_log_full_path('api')
+    if not os.path.exists(path): return 0
+    api_log = file(path, 'r').read().splitlines()
     count = 1
     for i in range(len(api_log), 0, -1):
         call = api_log[i - 1]
