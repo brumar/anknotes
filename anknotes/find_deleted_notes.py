@@ -117,7 +117,6 @@ def do_find_deleted_notes(all_anki_notes=None):
 
          ]
     ]
-    # '<tr class=tr{:d}><td class=t1>{val[0]}</td><td class=t2><a href="{fn}">{title}</a></td><td class=t3>{val[1]}</td></tr>'.format(i, title=log[0], val=log[1], fn=convert_filename_to_local_link(log[1][1]))
     results = [
         [
             log[1],

@@ -2,13 +2,13 @@
 ### Anknotes Shared Imports
 from anknotes.shared import *
 from sys import stderr
-# log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
+
+
 def generateTOCTitle(title):
     title = EvernoteNoteTitle.titleObjectToString(title).upper()
     for chr in u'αβδφḃ':    
         title = title.replace(chr.upper(), chr)
     return title
-
 
 class EvernoteNoteTitle:
     level = 0

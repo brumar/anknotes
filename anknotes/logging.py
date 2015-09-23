@@ -243,7 +243,7 @@ def end_current_log(fn=None):
     else:
         _log_filename_history = _log_filename_history[:-1]
 
-def get_log_full_path(filename='', extension='log', as_url_link=False):
+def get_log_full_path(filename=None, extension='log', as_url_link=False):
     global _log_filename_history
     log_base_name = ANKNOTES.LOG_BASE_NAME
     filename_suffix = ''
@@ -259,13 +259,15 @@ def get_log_full_path(filename='', extension='log', as_url_link=False):
         if filename is None:
             filename = _log_filename_history[-1] if _log_filename_history else ANKNOTES.LOG_ACTIVE
     if not filename:
-        filename = ANKNOTES.LOG_BASE_NAME
+        filename = log_base_name
         if not filename: filename = ANKNOTES.LOG_DEFAULT_NAME
     else:
         if filename[0] is '+':
             filename = filename[1:]
         filename = (log_base_name + '-' if log_base_name and log_base_name[-1] != '\\' else '') + filename
-    filename += filename_suffix + '.' + extension
+    
+    filename += filename_suffix 
+    filename += ('.' if filename and filename[-1] is not '.' else '') + extension
     filename = re.sub(r'[^\w\-_\.\\]', '_',  filename)
     full_path = os.path.join(ANKNOTES.FOLDER_LOGS, filename)
     if not os.path.exists(os.path.dirname(full_path)):
@@ -293,19 +295,27 @@ def log(content=None, filename=None, prefix='', clear=False, timestamp=True, ext
     if filename and filename[0] is '+':
         summary = " ** CROSS-POST TO %s: " % filename[1:] + content
         log(summary[:200])
-    full_path = get_log_full_path(filename, extension)
-    if encode_text: content = encode_log_text(content)
+    full_path = get_log_full_path(filename, extension)    
     st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''        
-    if timestamp or replace_newline is True: content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content)
+    if timestamp or replace_newline is True: 
+        try: content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content)
+        except UnicodeDecodeError: 
+            content = content.decode('utf-8')
+            content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content)
     contents = prefix + ' ' + st + content
-    with open(full_path, 'w+' if clear else 'a+') as fileLog: print>> fileLog, contents
+    if encode_text: content = encode_log_text(content)
+    with open(full_path, 'w+' if clear else 'a+') as fileLog: 
+        try: print>> fileLog, contents
+        except UnicodeEncodeError:
+            contents = contents.encode('utf-8')
+            print>> fileLog, contents
     if do_print: print contents
 
 def log_sql(content, **kwargs):
     log(content, 'sql', **kwargs)
 
 def log_error(content, crossPost=True, **kwargs):
-    log(content, '+' if crossPost else '' + 'error', **kwargs)
+    log(content, ('+' if crossPost else '') + 'error', **kwargs)
 
 
 def print_dump(obj):
@@ -315,12 +325,13 @@ def print_dump(obj):
                                                                                 '\n                              ')
     content = encode_log_text(content)
     print content
-
+    return content
 
 def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, extension='log'):
     content = pprint.pformat(obj, indent=4, width=80)
     try: content = content.decode('utf-8', 'ignore')
     except Exception: pass
+    content = content.replace("\\n", '\n').replace('\\r', '\r')
     if filename and filename[0] is '+':
         summary = " ** CROSS-POST TO %s: " % filename[1:] + content
         log(summary[:200])
@@ -377,11 +388,11 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
         except:
             pass
         try:
-            print>> fileLog, (u'\n %s%s' % (st, "Error printing content: " + str_safe(content)))
+            print>> fileLog, (u'\n <5> %s%s' % (st, "Error printing content: " + str_safe(content)))
             return
         except:
             pass
-        print>> fileLog, (u'\n %s%s' % (st, "Error printing content: " + content[:10]))
+        print>> fileLog, (u'\n <6> %s%s' % (st, "Error printing content: " + content[:10]))
 
 
 def log_api(method, content='', **kwargs):

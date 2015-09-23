@@ -16,6 +16,7 @@ class EvernoteNoteFetcher(object):
 
         :type evernote: ankEvernote.Evernote
         """
+        self.__reset_data__()
         self.results = EvernoteNoteFetcherResults()
         self.result = EvernoteNoteFetcherResult()
         self.api_calls = 0
@@ -23,8 +24,6 @@ class EvernoteNoteFetcher(object):
         self.deleteQueryTags = True
         self.evernoteQueryTags = []
         self.tagsToDelete = []
-        self.tagNames = []
-        self.tagGuids = []
         self.use_local_db_only = use_local_db_only
         self.__update_sequence_number__ = -1
         if evernote: self.evernote = evernote
@@ -36,6 +35,11 @@ class EvernoteNoteFetcher(object):
             self.__update_sequence_number__ = self.evernote.metadata[self.evernote_guid].updateSequenceNum
         self.getNote()
 
+    def __reset_data__(self):
+        self.tagNames = []
+        self.tagGuids = []     
+        self.whole_note = None    
+        
     def UpdateSequenceNum(self):
         if self.result.Note:
             return self.result.Note.UpdateSequenceNum
@@ -77,9 +81,9 @@ class EvernoteNoteFetcher(object):
             self.tagNames = []
             self.tagGuids = []
             return 
-        if not tag_names: tag_names = self.tagNames 
-        if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else self.whole_note.tagGuids
-        self.tagNames, self.tagGuids = self.evernote.get_matching_tag_data(tag_guids, tag_names)
+        if not tag_names: tag_names = self.tagNames if self.tagNames else self.result.Note.TagNames
+        if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else self.result.Note.TagGuids if self.result.Note else self.whole_note.tagGuids if self.whole_note else None
+        self.tagGuids, self.tagNames = self.evernote.get_matching_tag_data(tag_guids, tag_names)
         
     def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
         """
@@ -159,7 +163,8 @@ class EvernoteNoteFetcher(object):
         self.addNoteFromServerToDB()
 
     def getNote(self, evernote_guid=None):
-        if evernote_guid:
+        self.__reset_data__()
+        if evernote_guid:        
             self.result.Note = None
             self.evernote_guid = evernote_guid
             self.__update_sequence_number__ = self.evernote.metadata[

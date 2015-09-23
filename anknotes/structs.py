@@ -35,16 +35,13 @@ class EvernoteStruct(object):
 
     def keys(self):
         return self._valid_attributes_()
-        # if len(self.__attr_order__) == 0:
-        #     self.__attr_order__ = self.__sql_columns__ + self.__sql_where__
-        #     self.__attr_order__.append(self.__sql_where__)
-        # return self.__attr_order__
-
-    def items(self):
+        
+    def items(self):        
         return [self.getAttribute(key) for key in self.__attr_order__]
        
     def sqlUpdateQuery(self):
-        return "INSERT OR REPLACE INTO `%s`(%s) VALUES (%s)" % (self.__sql_table__, '`' + '`,`'.join(self.__sql_columns__) + '`', ', '.join(['?']*len(self.__sql_columns__)))
+        columns = self.__attr_order__ if self.__attr_order__ else self.__sql_columns__
+        return "INSERT OR REPLACE INTO `%s`(%s) VALUES (%s)" % (self.__sql_table__, '`' + '`,`'.join(columns) + '`', ', '.join(['?']*len(columns)))
     
     def sqlSelectQuery(self, allColumns=True):
         return "SELECT %s FROM %s WHERE %s = '%s'" % (
@@ -73,7 +70,7 @@ class EvernoteStruct(object):
     def getAttribute(self, key, default=None, raiseIfInvalidKey=False):
         if not self.hasAttribute(key):
             if raiseIfInvalidKey: raise KeyError
-            return default
+            return default        
         return getattr(self, self.__attr_from_key__(key))
 
     def hasAttribute(self, key):
@@ -97,7 +94,6 @@ class EvernoteStruct(object):
         :return:
         """
         lst = self._valid_attributes_()
-        # keys_detected=True
         if keys or isinstance(keyed_object, dict):
             pass
         elif isinstance(keyed_object, type(re.search('', ''))):
@@ -105,8 +101,8 @@ class EvernoteStruct(object):
         elif hasattr(keyed_object, 'keys'):
             keys = getattrcallable(keyed_object, 'keys')
         elif hasattr(keyed_object, self.__sql_where__):            
-            for key in self.keys():
-                if hasattr(keyed_object, key): self.setAttribute(key, keyed_object)
+            for key in self.keys():                
+                if hasattr(keyed_object, key): self.setAttribute(key, getattr(keyed_object, key))
             return True 
         else:
             return False
@@ -158,9 +154,10 @@ class EvernoteNotebook(EvernoteStruct):
 
 class EvernoteTag(EvernoteStruct):
     ParentGuid = ""
+    UpdateSequenceNum = -1
     __sql_columns__ = ["name", "parentGuid"]
     __sql_table__ = TABLES.EVERNOTE.TAGS
-    __attr__order__ = 'guid|name|parentGuid|updateSequenceNum'
+    __attr_order__ = 'guid|name|parentGuid|updateSequenceNum'
 
 
 class EvernoteLink(EvernoteStruct):

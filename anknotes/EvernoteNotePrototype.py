@@ -1,7 +1,7 @@
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 from anknotes.structs import upperFirst, EvernoteAPIStatus
-from anknotes.logging import log
+from anknotes.logging import log, log_blank, log_error
 
 class EvernoteNotePrototype:
     ################## CLASS Note ################
@@ -56,7 +56,7 @@ class EvernoteNotePrototype:
                 db_note['tagNames'] = unicode(db_note['tagNames'], 'utf-8')
             for key in ['content', 'guid', 'notebookGuid', 'updateSequenceNum', 'tagNames', 'tagGuids']:
                 if not key in db_note_keys:
-                    log("Unable to find key %s in db note %s! \n%s" % (key, self.Title.FullTitle, db_note_keys))
+                    log_error("FATAL ERROR: Unable to find key %s in db note %s! \n%s" % (key, self.Title.FullTitle, db_note_keys))
                     log("Values: \n\n" + str({k: db_note[k] for k in db_note_keys  }), 'EvernoteNotePrototypeInit')
                 else:
                     setattr(self, upperFirst(key), db_note[key])

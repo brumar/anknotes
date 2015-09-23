@@ -115,8 +115,8 @@ class Anki:
             if update:
                 debug_fields = anki_note_prototype.Fields.copy()
                 del debug_fields[FIELDS.CONTENT]
-                log_dump(debug_fields,
-                         "-      > UPDATE_evernote_notes → ADD_evernote_notes: anki_note_prototype: FIELDS ")
+                # log_dump(debug_fields,
+                         # "-      > UPDATE_evernote_notes → ADD_evernote_notes: anki_note_prototype: FIELDS ")
                 if anki_note_prototype.update_note(): count_update += 1
             else:
                 if not -1 == anki_note_prototype.add_note(): count_update += 1

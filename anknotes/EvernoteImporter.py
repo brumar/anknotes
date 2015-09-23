@@ -13,7 +13,6 @@ from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
-from anknotes.EvernoteNoteTitle import generateTOCTitle
 
 ### Anknotes Main Imports
 from anknotes.Anki import Anki

@@ -278,11 +278,11 @@ class Controller:
         self.evernoteImporter.proceed(auto_paging)
 
     def resync_with_local_db(self):
-        evernote_guids = get_all_local_db_guids()
-        result = self.evernote.create_evernote_notes(evernote_guids, use_local_db_only=True)
-        """:type: (int, int, list[EvernoteNote])"""
-        status, local_count, notes = result
-        number = self.anki.update_evernote_notes(notes, log_update_if_unchanged=False)
+        self.evernote.initialize_note_store()
+        evernote_guids = get_all_local_db_guids()        
+        results = self.evernote.create_evernote_notes(evernote_guids, use_local_db_only=True)        
+        """:type: EvernoteNoteFetcherResults"""
+        number = self.anki.update_evernote_notes(results.Notes, log_update_if_unchanged=False)
         tooltip = '%d Entries in Local DB<BR>%d Evernote Notes Created<BR>%d Anki Notes Successfully Updated' % (
-            len(evernote_guids), local_count, number)
+            len(evernote_guids), results.Local, number)
         show_report('Resync with Local DB Complete', tooltip)

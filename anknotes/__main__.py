@@ -92,7 +92,8 @@ def anknotes_profile_loaded():
         # menu.see_also(3)
         # menu.see_also(4)
         # mw.progress.timer(20000, lambda : menu.find_deleted_notes(True), False)
-        menu.see_also([3,4])
+        # menu.see_also([3,4])
+        menu.resync_with_local_db()
         pass
 
 

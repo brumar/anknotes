@@ -88,7 +88,7 @@ class Evernote(object):
 
     def initialize_note_store(self):
         if self.noteStore:
-            return 0
+            return EvernoteAPIStatus.Success
         api_action_str = u'trying to initialize the Evernote Client.'
         log_api("get_note_store")
         try:
@@ -96,14 +96,14 @@ class Evernote(object):
         except EDAMSystemException as e:
             if HandleEDAMRateLimitError(e, api_action_str):
                 if DEBUG_RAISE_API_ERRORS: raise
-                return 1
+                return EvernoteAPIStatus.RateLimitError
             raise
         except socket.error, v:
             if HandleSocketError(v, api_action_str):
                 if DEBUG_RAISE_API_ERRORS: raise
-                return 2
+                return EvernoteAPIStatus.SocketError
             raise
-        return 0
+        return EvernoteAPIStatus.Success
 
     def validateNoteBody(self, noteBody, title="Note Body"):
         # timerFull = stopwatch.Timer()
@@ -426,6 +426,7 @@ class Evernote(object):
     def update_tags_db(self):
         api_action_str = u'trying to update Evernote tags.'
         log_api("listTags")
+        
         try:
             tags = self.noteStore.listTags(self.token)
             """: type : list[evernote.edam.type.ttypes.Tag] """
@@ -443,34 +444,35 @@ class Evernote(object):
         if not hasattr(self, 'tag_data'): self.tag_data = {}        
         for tag in tags:
             enTag = EvernoteTag(tag)
-            self.tag_data[tag.guid] = enTag
+            self.tag_data[enTag.Guid] = enTag
             data.append(enTag.items())        
+        
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
         ankDB().InitTags(True)
         ankDB().executemany(enTag.sqlUpdateQuery(), data)
+        ankDB().commit()
 
     def set_tag_data(self):
         if not hasattr(self, 'tag_data'):
             self.tag_data = {x.guid: EvernoteTag(x) for x in ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}        
             
     def get_missing_tags(self, current_tags, from_guids=True):
-        if instance(current_tags, list): current_tags = set(current_tags)
+        if isinstance(current_tags, list): current_tags = set(current_tags)
         return current_tags - set(self.tag_data.keys() if from_guids else [v.Name for k, v in self.tag_data.items()])
         
     def get_matching_tag_data(self, tag_guids=None, tag_names=None):
         tagGuids = []
         tagNames = []
         self.set_tag_data()
-        current_tags = set(tags_original)
-        from_guids = True if tag_guids else False 
-        tags_original = tag_guids or tag_names
+        assert tag_guids or tag_names 
+        from_guids = True if (tag_guids is not None) else False 
+        tags_original = tag_guids if from_guids else tag_names
         if self.get_missing_tags(tags_original, from_guids):
             self.update_tags_db()
             missing_tags = self.get_missing_tags(tags_original, from_guids)
             if missing_tags:
                 log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % ('Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags))))
                 raise EDAMNotFoundException()
-
         if from_guids: tags_dict = {x: self.tag_data[x] for x in tags_original}
         else: tags_dict = {[k for k, v in tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in tags_original}        
         tagNamesToImport = get_tag_names_to_import(tags_dict)
