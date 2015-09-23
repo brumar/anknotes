@@ -29,7 +29,6 @@ import random
 import urlparse
 import hmac
 import binascii
-
 import httplib2
 
 try:

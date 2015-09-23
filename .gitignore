@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 anknotes/extra/logs/
 anknotes/extra/powergrep/
 anknotes/extra/local/
@@ -7,6 +8,8 @@ autopep8
 noteTest.py
 *.bk
 
+=======
+>>>>>>> master
 #################
 ## Eclipse
 #################
