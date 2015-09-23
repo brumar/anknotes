@@ -145,6 +145,7 @@ class EvernoteNoteTitle:
             return title
         if hasattr(title, 'FullTitle'):
             # log('FullTitle', 'tOTS', timestamp=False)
+            # noinspection PyCallingNonCallable
             title = title.FullTitle() if callable(title.FullTitle) else title.FullTitle
         elif hasattr(title, 'Title'):
             # log('Title', 'tOTS', timestamp=False)

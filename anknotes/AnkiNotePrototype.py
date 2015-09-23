@@ -110,10 +110,11 @@ class AnkiNotePrototype:
         # self.Title = EvernoteNoteTitle(self.Fields)
 
     def deck(self):
+        deck = self._deck_parent_
         if EVERNOTE.TAG.TOC in self.Tags or EVERNOTE.TAG.AUTO_TOC in self.Tags:
-            deck = self._deck_parent_ + DECKS.TOC_SUFFIX
+            deck += DECKS.TOC_SUFFIX
         elif EVERNOTE.TAG.OUTLINE in self.Tags and EVERNOTE.TAG.OUTLINE_TESTABLE not in self.Tags:
-            deck = self._deck_parent_ + DECKS.OUTLINE_SUFFIX
+            deck += DECKS.OUTLINE_SUFFIX
         elif not self._deck_parent_ or mw.col.conf.get(SETTINGS.ANKI_DECK_EVERNOTE_NOTEBOOK_INTEGRATION, True):
             deck = self.Anki.get_deck_name_from_evernote_notebook(self.NotebookGuid, self._deck_parent_)
             if not deck: return None

@@ -3,6 +3,9 @@ from anknotes.constants import SETTINGS
 from anknotes.db import get_evernote_title_from_guid
 from anknotes.logging import log
 
+try: from aqt import mw
+except: pass
+
 class MLStripper(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)

@@ -340,6 +340,7 @@ class Anki:
 
 
     def insert_toc_into_see_also(self):
+        log = Logger()
         db = ankDB()
         db._db.row_factory = None
         # db._db.row_factory = lambda cursor, row: showInfo(str(row))
@@ -349,7 +350,7 @@ class Anki:
         grouped_results = {}
         # log('           INSERT TOCS INTO ANKI NOTES ', 'dump-insert_toc', timestamp=False, clear=True)
         # log('------------------------------------------------', 'dump-insert_toc', timestamp=False)        
-        log('           <h1>INSERT TOC LINKS INTO ANKI NOTES</h1> <HR><BR><BR>', 'see_also', timestamp=False, clear=True,
+        log.add('           <h1>INSERT TOC LINKS INTO ANKI NOTES</h1> <HR><BR><BR>', 'see_also', timestamp=False, clear=True,
             extension='htm')
         toc_titles = {}
         for row in results:
@@ -363,7 +364,7 @@ class Anki:
         count = 0
         count_update = 0
         max_count = len(grouped_results)
-        log = Logger()
+
         for source_guid, toc_guids in grouped_results.items():
             ankiNote = self.get_anki_note_from_evernote_guid(source_guid)
             if not ankiNote:
@@ -464,6 +465,9 @@ class Anki:
                 if FIELDS.TITLE in fld.get('name'):
                     note_title = note.fields[fld.get('ord')]
                     continue
+            if not note_title:
+                log_error("Could not find note title for %s for insert_toc_and_outline_contents_into_notes" % note.guid)
+                continue
             note_toc = ""
             note_outline = ""
             toc_header = ""

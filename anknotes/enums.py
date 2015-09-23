@@ -80,29 +80,20 @@ AutoNumberedEnum = auto_enum('AutoNumberedEnum', (OrderedEnum,), {})
 AutoIntEnum = auto_enum('AutoIntEnum', (IntEnum,), {})
 
 
-
-class AutoIntEnum(AutoIntEnum):
-    def testVal(self):
-        return self.value
-
-    def testName(self):
-        return self.name
-
-    def testAll(self):
-        return self.name + ' doubled - ' + str(self.value * 2)
-
-class APIStatus(AutoIntEnum):
-    Val1=()
-    """:type : AutoIntEnum"""
-    Val2=()
-    """:type : AutoIntEnum"""
-    Val3=()
-    """:type : AutoIntEnum"""
-    Val4=()
-    """:type : AutoIntEnum"""
-    Val5=()
-    """:type : AutoIntEnum"""
-    Val6=()
-    """:type : AutoIntEnum"""
-
-    Val1, Val2, Val3, Val4, Val5, Val6, Val7 = range(1, 8)
+#
+#
+# class APIStatus(AutoIntEnum):
+#     Val1=()
+#     """:type : AutoIntEnum"""
+#     Val2=()
+#     """:type : AutoIntEnum"""
+#     Val3=()
+#     """:type : AutoIntEnum"""
+#     Val4=()
+#     """:type : AutoIntEnum"""
+#     Val5=()
+#     """:type : AutoIntEnum"""
+#     Val6=()
+#     """:type : AutoIntEnum"""
+#
+#     Val1, Val2, Val3, Val4, Val5, Val6, Val7 = range(1, 8)

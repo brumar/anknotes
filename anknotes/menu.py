@@ -184,14 +184,14 @@ Once the command line tool is done running, you will get a summary of the result
             ankDB().executemany("DELETE FROM cards as c, notes as n WHERE c.nid = n.id AND n.flds LIKE '%' | ? | '%'",
                                 [[FIELDS.EVERNOTE_GUID_PREFIX + x] for x in anknotes_dels])
             db_changed = True
-            show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % count, 5000, 3000)
+            show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5000, 3000)
     if anki_dels_count > 0:
         code = getText("Please enter code 'ANKI_DEL_%d' to delete your orphan Anki note(s)" % anki_dels_count)[0]
         if code == 'ANKI_DEL_%d' % anki_dels_count:
             ankDB().executemany("DELETE FROM cards as c, notes as n WHERE c.nid = n.id AND n.flds LIKE '%' | ? | '%'",
                                 [[FIELDS.EVERNOTE_GUID_PREFIX + x] for x in anki_dels])
             db_changed = True
-            show_tooltip("Deleted all %d Orphan Anki Notes" % count, 5000, 3000)
+            show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5000, 3000)
     if db_changed:
         ankDB().commit()
     if missing_evernote_notes_count > 0:

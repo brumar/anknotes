@@ -45,7 +45,8 @@ def counts_as_str(count, max=None):
     if count == max: return "All  %s" % (pad_center(count, 3))
     return "Total %s of %s" % (pad_center(count, 3), pad_center(max, 3))
 
-def show_report(title, header, log_lines=[], delay=None, log_header_prefix = ' '*5):
+def show_report(title, header, log_lines=None, delay=None, log_header_prefix = ' '*5):
+    if log_lines is None: log_lines = []
     lines = []
     for line in ('<BR>'.join(header) if isinstance(header, list) else header).split('<BR>') + ('<BR>'.join(log_lines).split('<BR>') if log_lines else []):
         level = 0

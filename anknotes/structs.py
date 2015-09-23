@@ -30,7 +30,8 @@ class EvernoteStruct(object):
     __attr_order__ = []
     __title_is_note_title = False
 
-    def __attr_from_key__(self, key):
+    @staticmethod
+    def __attr_from_key__(key):
         return upperFirst(key)
 
     def keys(self):

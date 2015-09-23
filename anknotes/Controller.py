@@ -101,7 +101,7 @@ class Controller:
             evernote_guid, rootTitle, contents, tagNames, notebookGuid = entry.items()
             tagNames = tagNames.split(',')
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
-                            ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
+                            -1 < ANKNOTES.AUTO_TOC_NOTES_MAX <= count_update + count_create):
                 continue
             if SIMULATE:
                 status = EvernoteAPIStatus.Success
@@ -204,7 +204,7 @@ class Controller:
             if old_values:
                 evernote_guid, old_content = old_values
                 if type(old_content) != type(noteBodyUnencoded):
-                    log([rootTitle, type(old_content), type(noteBody)], 'AutoTOC-Create-Diffs\\_')
+                    log([rootTitle, type(old_content), type(noteBodyUnencoded)], 'AutoTOC-Create-Diffs\\_')
                     raise UnicodeWarning
                 old_content = old_content.replace('guid-pending', evernote_guid)
                 noteBodyUnencoded = noteBodyUnencoded.replace('guid-pending', evernote_guid)
@@ -215,7 +215,7 @@ class Controller:
                 contents = contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
                 log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create-Diffs\\'+rootTitle)
             if not ANKNOTES.UPLOAD_AUTO_TOC_NOTES or (
-                            ANKNOTES.AUTO_TOC_NOTES_MAX > -1 and count_update + count_create >= ANKNOTES.AUTO_TOC_NOTES_MAX):
+                            -1 < ANKNOTES.AUTO_TOC_NOTES_MAX <= count_update + count_create):
                 continue
             status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid)
             if status.IsError:

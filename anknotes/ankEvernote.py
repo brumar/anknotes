@@ -162,20 +162,21 @@ class Evernote(object):
         """
         return self.validateNoteBody(self.makeNoteBody(content), title)
 
-    def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=[]):
+    def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=None):
         """
         Update a Note instance with title and body
         Send Note object to user's account
         :rtype : (EvernoteAPIStatus, evernote.edam.type.ttypes.Note)
         :returns Status and Note
         """
+        if resources is None: resources = []
         return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
                              guid=guid)
 
     @staticmethod
-    def makeNoteBody(content, resources=[], encode=True):
+    def makeNoteBody(content, resources=None, encode=True):
         ## Build body of note
-
+        if resources is None: resources = []
         nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
         nBody += "<en-note>%s" % content
@@ -192,8 +193,10 @@ class Evernote(object):
             nBody = nBody.encode('utf-8')
         return nBody
 
-    def addNoteToMakeNoteQueue(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[],
+    @staticmethod
+    def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None,
                                guid=None):
+        if resources is None: resources = []
         sql = "FROM %s WHERE " % TABLES.MAKE_NOTE_QUEUE
         if guid:
             sql += "guid = '%s'" % guid
@@ -210,7 +213,7 @@ class Evernote(object):
             guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook)
         return EvernoteAPIStatus.RequestQueued
 
-    def makeNote(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=[], guid=None,
+    def makeNote(self, noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None, guid=None,
                  validated=None):
         """
         Create or Update a Note instance with title and body
@@ -220,8 +223,9 @@ class Evernote(object):
         :rtype : (EvernoteAPIStatus, EvernoteNote)
         :returns Status and Note
         """
+        if resources is None: resources = []
         callType = "create"
-
+        validation_status = EvernoteAPIStatus.Uninitialized
         if validated is None:
             if not ANKNOTES.ENABLE_VALIDATION:
                 validated = True
@@ -445,11 +449,12 @@ class Evernote(object):
             raise
         data = []
         if not hasattr(self, 'tag_data'): self.tag_data = {}        
+        enTag = None
         for tag in tags:
             enTag = EvernoteTag(tag)
             self.tag_data[enTag.Guid] = enTag
             data.append(enTag.items())        
-        
+        if not enTag: return None
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
         ankDB().InitTags(True)
         ankDB().executemany(enTag.sqlUpdateQuery(), data)
@@ -477,7 +482,7 @@ class Evernote(object):
                 log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % ('Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags))))
                 raise EDAMNotFoundException()
         if from_guids: tags_dict = {x: self.tag_data[x] for x in tags_original}
-        else: tags_dict = {[k for k, v in tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in tags_original}        
+        else: tags_dict = {[k for k, v in self.tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in tags_original}
         tagNamesToImport = get_tag_names_to_import(tags_dict)
         """:type : dict[string, EvernoteTag]"""
         if tagNamesToImport:

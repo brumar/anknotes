@@ -52,14 +52,14 @@ class EvernoteNotePrototype:
         if db_note is not None:
             self.Title = EvernoteNoteTitle(db_note)
             db_note_keys = db_note.keys()
-            if isinstance(db_note['tagNames'], str):
-                db_note['tagNames'] = unicode(db_note['tagNames'], 'utf-8')
             for key in ['content', 'guid', 'notebookGuid', 'updateSequenceNum', 'tagNames', 'tagGuids']:
                 if not key in db_note_keys:
                     log_error("FATAL ERROR: Unable to find key %s in db note %s! \n%s" % (key, self.Title.FullTitle, db_note_keys))
                     log("Values: \n\n" + str({k: db_note[k] for k in db_note_keys  }), 'EvernoteNotePrototypeInit')
                 else:
                     setattr(self, upperFirst(key), db_note[key])
+            if isinstance(self.TagNames, str):
+                self.TagNames = unicode(self.TagNames, 'utf-8')
             if isinstance(self.Content, str):
                 self.Content = unicode(self.Content, 'utf-8')
             self.process_tags()
@@ -122,15 +122,12 @@ class EvernoteNotePrototype:
     def IsRoot(self):
         return self.Title.IsRoot
 
-    @property
     def IsAboveLevel(self, level_check):
         return self.Title.IsAboveLevel(level_check)
 
-    @property
     def IsBelowLevel(self, level_check):
         return self.Title.IsBelowLevel(level_check)
 
-    @property
     def IsLevel(self, level_check):
         return self.Title.IsLevel(level_check)
 
