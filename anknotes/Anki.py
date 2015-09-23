@@ -470,9 +470,11 @@ class Anki:
                     TABLES.SEE_ALSO, target_evernote_guid, toc_evernote_guid)
                 log_sql('UPDATE_ANKI_DB: Add See Also Link: SQL Query: ' + query)
                 ankDB().execute(query)
+                ankDB().commit()
             query_update_toc_links += delimiter + "target_evernote_guid = '%s'" % toc_evernote_guid
             delimiter = " OR "
         ankDB().execute(query_update_toc_links)
+        ankDB().commit()
 
     def insert_toc_and_outline_contents_into_notes(self):
         linked_notes_fields = {}

@@ -45,8 +45,8 @@ class Controller:
         self.anki = Anki()
         self.anki.deck = mw.col.conf.get(SETTINGS.DEFAULT_ANKI_DECK, SETTINGS.DEFAULT_ANKI_DECK_DEFAULT_VALUE)
         self.anki.setup_ancillary_files()
-        self.anki.add_evernote_models()
         ankDB().Init()
+        self.anki.add_evernote_models()        
         self.evernote = Evernote()
 
     def test_anki(self, title, evernote_guid, filename=""):

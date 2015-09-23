@@ -159,20 +159,19 @@ class Logger(object):
     caller_info=None
     default_filename=None 
     def wrap_filename(self, filename=None):
-        if filename is None: filename = self.default_filename
+        if filename is None: filename = self.default_filename        
         if self.base_path is not None:
             filename = os.path.join(self.base_path, filename if filename else '')
         return filename
     
-    def dump(self, filename=None, *args, **kwargs):
+    def dump(self, obj, title='', filename=None, *args, **kwargs):
         filename = self.wrap_filename(filename)
-        log_dump(filename=filename, *args, **kwargs)
+        log_dump(obj=obj, title=title, filename=filename, *args, **kwargs)
 
     def blank(self, filename=None, *args, **kwargs):
         filename = self.wrap_filename(filename)
         log_blank(filename=filename, *args, **kwargs)
     
-    # def banner(self, title, filename=None, length=80, append_newline=True, do_print=False):    
     def banner(self, title, filename=None, *args, **kwargs):
         filename = self.wrap_filename(filename)
         log_banner(title=title, filename=filename, *args, **kwargs)
@@ -181,7 +180,6 @@ class Logger(object):
         if wrap_filename: filename = self.wrap_filename(filename)
         log(content=content, filename=filename, *args, **kwargs)
 
-        # content=None, filename='', prefix='', clear=False, extension='log', replace_newline=None, do_print=False):
     def plain(self, content=None, filename=None, *args, **kwargs):
         filename=self.wrap_filename(filename)  
         log_plain(content=content, filename=filename, *args, **kwargs)
