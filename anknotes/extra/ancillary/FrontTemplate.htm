@@ -86,8 +86,8 @@
 
 <script>
  evernote_guid_prefix = '%(Evernote GUID Prefix)s'
- evernote_uid = '%(Evernote GUID)s'
-
+ evernote_uid = '%(Evernote UID)s'
+ evernote_shard = '%(Evernote shard)s'
  function generateEvernoteLink(guid_field) {
   guid = guid_field.replace(evernote_guid_prefix, '')
   en_link = 'evernote://view/'+evernote_uid+'/'+evernote_shard+'/'+guid+'/'+guid+'/'

@@ -213,8 +213,8 @@ class AnkiNotePrototype:
             
             if not see_also_match: 
                 if self.Fields[FIELDS.CONTENT].find("See Also") > -1:
-                    raise ValueError
-                log("No See Also Content in " + self.Title.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
+                    log("No See Also Content Found, but phrase 'See Also' exists in " + self.Title.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
+                    raise ValueError                
                 return
             
             self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0), see_also_match.group('Suffix'))
@@ -229,9 +229,7 @@ class AnkiNotePrototype:
             self.Fields[FIELDS.SEE_ALSO] += see_also
             if self.light_processing:
                 self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group('Suffix'), self.Fields[FIELDS.SEE_ALSO] + see_also_match.group('Suffix'))
-                return            
-            log_blank();
-            log("Found see also match for %s\nContent: %s\n.\nSee Also: %s" % (self.Title.FullTitle, self.Fields[FIELDS.CONTENT], self.Fields[FIELDS.SEE_ALSO][:10]))
+                return  
             self.process_note_see_also()
         if not FIELDS.CONTENT in self.Fields:
             return
@@ -369,7 +367,6 @@ class AnkiNotePrototype:
         # log_dump({'self.note.fields': self.note.fields, 'self.note._model.flds': self.note._model['flds']}, "-      > UPDATE_NOTE → anki.notes.Note: _model: flds")        
         field_updates = []
         fields_updated = {}
-        log_blank();
         for fld in self.note._model['flds']:
             if FIELDS.EVERNOTE_GUID in fld.get('name'):
                 self.OriginalGuid = self.note.fields[fld.get('ord')].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')

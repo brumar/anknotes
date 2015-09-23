@@ -92,7 +92,6 @@ class Anki:
                 content = ankiNote.Content
                 if isinstance(content, str):
                     content = unicode(content, 'utf-8')
-                print(FIELDS.EVERNOTE_GUID_PREFIX + ankiNote.Guid)
                 anki_field_info = {
                     FIELDS.TITLE:               title,
                     FIELDS.CONTENT:             content,

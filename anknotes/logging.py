@@ -163,6 +163,10 @@ class Logger(object):
             filename = os.path.join(self.base_path, filename if filename else '')
         return filename
     
+    def dump(self, filename=None, *args, **kwargs):
+        filename = self.wrap_filename(filename)
+        log_dump(filename=filename, *args, **kwargs)
+
     def blank(self, filename=None, *args, **kwargs):
         filename = self.wrap_filename(filename)
         log_blank(filename=filename, *args, **kwargs)

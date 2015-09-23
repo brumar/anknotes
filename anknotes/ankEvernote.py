@@ -19,8 +19,6 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.error import *
 
-from anknotes.evernote.api.client import EvernoteClient
-
 if not eTreeImported:
     ### Anknotes Class Imports
     from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
@@ -29,6 +27,7 @@ if not eTreeImported:
     ### Evernote Imports
     from anknotes.evernote.edam.type.ttypes import Note as EvernoteNote
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
+    from anknotes.evernote.api.client import EvernoteClient
 
 
 try:
