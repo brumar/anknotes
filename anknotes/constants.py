@@ -30,6 +30,7 @@ class ANKNOTES:
     LOG_FDN_ANKNOTES_TITLE_MISMATCHES = LOG_FDN_ANKI_ORPHANS + 'AnknotesTitleMismatches'
     LOG_FDN_ANKNOTES_ORPHANS = LOG_FDN_ANKI_ORPHANS + 'AnknotesOrphans'
     LOG_FDN_ANKI_ORPHANS += 'AnkiOrphans'
+    LAST_PROFILE_LOCATION = os.path.join(FOLDER_USER, 'anki.profile')
     ICON_EVERNOTE_WEB = os.path.join(FOLDER_GRAPHICS, u'evernote_web.ico')
     IMAGE_EVERNOTE_WEB = ICON_EVERNOTE_WEB.replace('.ico', '.png')
     ICON_EVERNOTE_ARTCORE = os.path.join(FOLDER_GRAPHICS, u'evernote_artcore.ico')
@@ -46,6 +47,7 @@ class ANKNOTES:
     AUTOMATE_VALIDATION = True
     ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
     NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING = False
+    IMPORT_MODEL_STYLES_AS_URL = True
 
 class MODELS:
     EVERNOTE_DEFAULT = 'evernote_note'
@@ -115,7 +117,7 @@ class TABLES:
 
 
 class SETTINGS:
-    ANKI_PROFILE_NAME = 'Evernote'
+    ANKI_PROFILE_NAME = ''
     EVERNOTE_LAST_IMPORT = "ankNotesEvernoteLastAutoImport"
     ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX = "ankNotesCheckableMenuItems"
     KEEP_EVERNOTE_TAGS_DEFAULT_VALUE = True

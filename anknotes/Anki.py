@@ -131,8 +131,15 @@ class Anki:
         col.remCards(card_ids)
         return len(card_ids)
 
+    @staticmethod
+    def get_evernote_model_styles():
+        if ANKNOTES.IMPORT_MODEL_STYLES_AS_URL: return '@import url("%s");' % ANKNOTES.CSS
+        return file(os.path.join(ANKNOTES.FOLDER_ANCILLARY, ANKNOTES.CSS), 'r').read()
+        
     def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False):        
         model = mm.byName(modelName)        
+        model_css = self.get_evernote_model_styles()
+        templates = self.get_templates(modelName==MODELS.EVERNOTE_DEFAULT)
         if model and modelName is MODELS.EVERNOTE_DEFAULT:
             front = model['tmpls'][0]['qfmt']
             evernote_account_info = get_evernote_account_ids()
@@ -141,14 +148,14 @@ class Anki:
                 if info and evernote_account_info.update(info[0], info[1]): forceRebuild = True 
             if evernote_account_info.Valid:
                 if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front: forceRebuild = True 
-        if not model or forceRebuild:
-            templates = self.get_templates(modelName==MODELS.EVERNOTE_DEFAULT)
+            if model['css'] != model_css: forceRebuild = True 
+            if model['tmpls'][0]['qfmt'] != templates['Front']: forceRebuild = True 
+        if not model or forceRebuild:            
             if model:
                 for t in model['tmpls']:
-                    # model['tmpls'][t]['qfmt'] = templates['Front']
-                    # model['tmpls'][t]['afmt'] = templates['Back']
                     t['qfmt'] = templates['Front']
                     t['afmt'] = templates['Back']
+                model['css'] = model_css
                 mm.update(model)
             else:
                 model = mm.new(modelName)        
@@ -215,7 +222,7 @@ class Anki:
                 model['sortf'] = 1
 
                 # Update Model CSS
-                model['css'] = '@import url("_AviAnkiCSS.css");'
+                model['css'] = model_css
 
                 # Set Type to Cloze
                 if cloze:

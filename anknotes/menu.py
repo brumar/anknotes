@@ -116,7 +116,6 @@ def import_from_evernote_manual_metadata(guids=None):
         guids = find_evernote_guids(file(ANKNOTES.LOG_FDN_UNIMPORTED_EVERNOTE_NOTES, 'r').read())
     log("Manually downloading %d Notes" % len(guids))
     controller = Controller()
-    controller.evernote.initialize_note_store()
     controller.forceAutoPage = True
     controller.currentPage = 1
     controller.ManualGUIDs = guids
@@ -125,7 +124,6 @@ def import_from_evernote_manual_metadata(guids=None):
 
 def import_from_evernote(auto_page_callback=None):
     controller = Controller()
-    controller.evernote.initialize_note_store()
     controller.auto_page_callback = auto_page_callback
     if auto_page_callback:
         controller.forceAutoPage = True
@@ -300,7 +298,6 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 
 def update_ancillary_data():
     controller = Controller()
-    controller.evernote.initialize_note_store()
     controller.update_ancillary_data()
 
 

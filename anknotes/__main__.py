@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
+import os
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -78,6 +79,9 @@ def anknotes_search_hook(search):
         search['edited'] = _findEdited
 
 def anknotes_profile_loaded():
+    if not os.path.exists(os.path.dirname(ANKNOTES.LAST_PROFILE_LOCATION)): os.makedirs(os.path.dirname(ANKNOTES.LAST_PROFILE_LOCATION))
+    with open(ANKNOTES.LAST_PROFILE_LOCATION, 'w+') as myFile: 
+        print>> myFile, mw.pm.name
     menu.anknotes_load_menu_settings()
     if ANKNOTES.ENABLE_VALIDATION and ANKNOTES.AUTOMATE_VALIDATION:
         menu.upload_validated_notes(True)
@@ -88,7 +92,7 @@ def anknotes_profile_loaded():
          Add a function here and it will automatically run on profile load
          You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder 
         '''    
-        # resync_with_local_db()
+        menu.resync_with_local_db()
         # menu.see_also()
         # menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))
         # menu.see_also(3)

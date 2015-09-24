@@ -4,6 +4,7 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
+import os 
 
 ### Check if in Anki 
 try:
@@ -25,7 +26,7 @@ try:
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
         EDAMNotFoundException
 except:
-    pass
+    pass   
     
 # log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def get_friendly_interval_string(lastImport):

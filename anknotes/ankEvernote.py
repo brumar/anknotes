@@ -343,12 +343,12 @@ class Evernote(object):
 
     def check_ancillary_data_up_to_date(self):
         if not self.check_tags_up_to_date():
-            self.update_tags_db()
+            self.update_tags_db("Tags were not up to date when checking ancillary data")
         if not self.check_notebooks_up_to_date():
             self.update_notebook_db()
 
     def update_ancillary_data(self):
-        self.update_tags_db()
+        self.update_tags_db("Manual call to update ancillary data")
         self.update_notebook_db()
 
     def check_notebook_metadata(self, notes):
@@ -385,6 +385,7 @@ class Evernote(object):
         return True
 
     def update_notebook_db(self):
+        self.initialize_note_store()
         api_action_str = u'trying to update Evernote notebooks.'
         log_api("listNotebooks")
         try:
@@ -428,9 +429,10 @@ class Evernote(object):
                         self.tag_data[tag_guid] = tag
         return True
 
-    def update_tags_db(self):
+    def update_tags_db(self, reason_str=''):
+        self.initialize_note_store()
         api_action_str = u'trying to update Evernote tags.'
-        log_api("listTags")
+        log_api("listTags" + (': ' + reason_str) if reason_str else '')
         
         try:
             tags = self.noteStore.listTags(self.token)
@@ -474,7 +476,7 @@ class Evernote(object):
         from_guids = True if (tag_guids is not None) else False 
         tags_original = tag_guids if from_guids else tag_names
         if self.get_missing_tags(tags_original, from_guids):
-            self.update_tags_db()
+            self.update_tags_db("Missing Tags Were found when attempting to get matching tag data for tags: %s" % ', '.join(tags_original))
             missing_tags = self.get_missing_tags(tags_original, from_guids)
             if missing_tags:
                 log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % ('Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags))))

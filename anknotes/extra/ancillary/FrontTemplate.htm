@@ -2,12 +2,14 @@
 <div id='Card-{{Card}}'>
 <div id='Deck-{{Deck}}'>
 <div id='Side-Front'>
-<div id='Header'>
-<header id='Header-Avi'><h2>
-<div id='Field-%(Title)s-Prompt'>What is the Note's Title???</div>
-<div id='Field-%(Title)s'>{{%(Title)s}} </div>
-</h2></header>
-</div>
+<section class="header header-avi Field-%(Title)s-Prompt">
+  <h2>ANKNOTES</h2>
+  <div id='Field-%(Title)s-Prompt-New'>What is the Note's Title???</div>
+</section>
+<section class="header header-avi Field-%(Title)s" id='Header-Field-%(Title)s'>
+  <h2>ANKNOTES</h2>
+  <div id='Field-%(Title)s-New'>{{%(Title)s}}</div>
+</section>
 
 <hr id=answer>
 {{#%(See Also)s}}
@@ -26,7 +28,7 @@
 <span class='Field-%(See Also)s'> | </span>
 {{/%(TOC)s}}
 <span class='Field-%(Outline)s'>
-<a href='javascript:;' onclick='scrollToElementToggle("Field-%(Outline)s")' class='header'>[Outline]</a>
+<a href='javascript:;' onclick='scrollToElementToggle("Field-%(Outline)s")' class='header'>(Outline)</a>
 </span>
 {{/%(Outline)s}}
 </div>
@@ -83,7 +85,6 @@
 </div>
 
 
-
 <script>
  evernote_guid_prefix = '%(Evernote GUID Prefix)s'
  evernote_uid = '%(Evernote UID)s'
@@ -116,7 +117,7 @@
   if (el == null) { return; }
   window.scroll(0,findPos(el));
  } 
- 
+  
  function scrollToElementToggle(id) {
   scrollToElement(id, 0);
  } 
@@ -136,7 +137,8 @@ function findPos(obj) {
     }
 }
 
-document.getElementById('Link-EN-Self').innerHTML = "<a href='" + generateEvernoteLink('{{Evernote GUID}}') + "'>Open in EN</a> <span class='separator'> | </span>"
-document.getElementById('Field-Title').innerHTML = "<a href='" + generateEvernoteLink('{{Evernote GUID}}') + "'>" + document.getElementById('Field-Title').innerHTML + "</a>"
+document.getElementById('Link-EN-Self').innerHTML = "<a href='" + generateEvernoteLink('{{%(Evernote GUID)s}}') + "'>Open in EN</a> <span class='separator'> | </span>"
+document.getElementById('Field-%(Title)s-New').innerHTML = "<span class='link'>" + document.getElementById('Field-%(Title)s-New').innerHTML + "</span>"
+document.getElementById('Header-Field-%(Title)s').outerHTML = "<a href='" + generateEvernoteLink('{{%(Evernote GUID)s}}') + "'>" + document.getElementById('Header-Field-%(Title)s').outerHTML + "</a>"
 
 </script>

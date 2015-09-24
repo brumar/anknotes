@@ -14,6 +14,18 @@ except:
 ankNotesDBInstance = None
 dbLocal = False
 
+def last_anki_profile_name():
+    anki_profile_path_root = os.path.abspath(os.path.join(os.path.dirname(PATH), '..' + os.path.sep))
+    print anki_profile_path_root
+    name = SETTINGS.ANKI_PROFILE_NAME
+    if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name 
+    if os.path.isfile(ANKNOTES.LAST_PROFILE_LOCATION): name = file(ANKNOTES.LAST_PROFILE_LOCATION, 'r').read().strip()
+    if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name 
+    name = SETTINGS.ANKI_PROFILE_NAME
+    if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name     
+    dirs = [x for x in os.listdir(anki_profile_path_root) if os.path.isdir(os.path.join(anki_profile_path_root, x)) and x is not 'addons']
+    if not dirs: return ""
+    return dirs[0]
 
 def ankDBSetLocal():
     global dbLocal
@@ -28,13 +40,7 @@ def ankDB(reset=False):
     global ankNotesDBInstance, dbLocal
     if not ankNotesDBInstance or reset:
         if dbLocal:
-            anki_profile_path_root = os.path.join(PATH, '..\\..\\')
-            anki_profile_path = os.path.join(anki_profile_path_root, SETTINGS.ANKI_PROFILE_NAME)
-            if SETTINGS.ANKI_PROFILE_NAME =='' or not os.path.is_dir(anki_profile_path):
-                dirs = [x for x in os.listdir(anki_profile_path_root) if os.path.isdir(os.path.join(anki_profile_path_root, x)) and x is not 'addons']
-                assert len(dirs>0)
-                anki_profile_path = os.path.join(anki_profile_path_root, dirs[0])
-            ankNotesDBInstance = ank_DB(os.path.join(anki_profile_path, 'collection.anki2'))
+            ankNotesDBInstance = ank_DB( os.path.abspath(os.path.join(PATH, '..' + os.path.sep , '..' + os.path.sep  , last_anki_profile_name() + os.path.sep, 'collection.anki2')))
         else:
             ankNotesDBInstance = ank_DB()
     return ankNotesDBInstance

@@ -267,9 +267,8 @@ class Controller:
             self.evernoteImporter.ManualGUIDs = self.ManualGUIDs
         self.evernoteImporter.proceed(auto_paging)
 
-    def resync_with_local_db(self):
-        self.evernote.initialize_note_store()
-        evernote_guids = get_all_local_db_guids()        
+    def resync_with_local_db(self):        
+        evernote_guids = get_all_local_db_guids() 
         results = self.evernote.create_evernote_notes(evernote_guids, use_local_db_only=True)        
         """:type: EvernoteNoteFetcherResults"""
         number = self.anki.update_evernote_notes(results.Notes, log_update_if_unchanged=False)

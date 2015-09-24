@@ -1,39 +1,88 @@
-/* @import url("_AviAnkiCSS.css") */
+/* @import url("_AviAnkiCSS.css"); */
+@import url(https://fonts.googleapis.com/css?family=Roboto:400,300,700,100);
 
 /******************************************************************************************************* 
   Default Card Rules
 *******************************************************************************************************/
 
+body {
+  font-family: Roboto, sans-serif;
+  background: rgb(44, 61, 81);
+  padding: 1em;
+  -webkit-font-smoothing: antialiased;
+}
+
 .card {
- font-family: Tahoma;
- font-size: 20px;
- text-align: left;
- color: black;
- background-color: white;
-} 
+  font-size: 20px;
+  text-align: left;
+  background-color: white;
+  color: black;
+}
 
 /******************************************************************************************************* 
   Header rectangles, which sit at the top of every single card
 *******************************************************************************************************/
 
-header {
-background: #000;
-width:100%;
-text-align: center;
-/* border:3px #990000 solid; */
+/* Positioning: Vertical Align: Middle */
+
+section.header {
+  display: block;
+  width: 100%;
+  height: 200px;
+  position: relative;
+  text-align: center;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  transform-style: preserve-3d;
 }
 
-header h2 {
-color: #fff;
-text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+section.header div {
+  padding: 1em;
+  margin: 0px;  
+  position: relative;
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+/* Other Styling */
+
+section.header {
+  background: rgb(231, 76, 60);
+  margin: 0px;
+  border-radius: .2em;
+  /* border:3px #990000 solid; */
+}
+
+/******************************************************************************************************* 
+  ANKNOTES Top-Right call out
+*******************************************************************************************************/
+
+section.header h2 {
+  text-transform: uppercase;
+  margin: 0;
+  font-size: 16px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-weight: bold;
+  /* color: rgb(236, 240, 241); */
+  color: rgb(44, 61, 81);
+  /* border:3px #990000 solid; */
+}
+
+section.header.header-avi h2, section.header.header-bluewhitered h2 {
+color: rgb(138, 16, 16);
 }
 
 /******************************************************************************************************* 
   TITLE Fields
 *******************************************************************************************************/
 
-.card  #Field-Title, .card  #Field-Title-Prompt { 
+.card section.header.Field-Title, .card section.header.Field-Title-Prompt { 
   text-align: center;
+  font-family: Tahoma;
   font-weight: bold;
   font-size: 72px;
   font-variant: small-caps; 
@@ -41,31 +90,23 @@ text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
   /* color: #A40F2D; */
 }
 
-
-.card  #Header a {
+.card section.header a {
 	text-decoration: none;
 }
 
-.card  #Header:hover #Field-Title span.link, .card  #Header:hover #Field-Title-Prompt span.link {
+.card  section.header:hover #Field-Title-New span.link, .card  section.header:hover #Field-Title-Prompt-New span.link {
 	border-bottom: none;
 }
 
-.card  #Field-Title-Prompt {
-  width: 100%	;
-	position: fixed;
-  font-size: 48px;
+.card  section.header.Field-Title-Prompt {
   color: #a90030;
 }
 
-.card  #Header #Field-Title span.link, .card  #Header #Field-Title-Prompt span.link {
-	border-bottom: 5px black solid;
-}
-
-.card  #Header #Field-Title-Prompt span.link {
+.card  section.header #Field-Title-Prompt-New span.link  {
 	border-bottom-color: #a90030;
 }
 
- .card a:hover #Field-Title-Prompt  {
+.card a:hover #Field-Title-Prompt-New {
 	 color: rgb(210, 13, 13);
  }
 
@@ -73,94 +114,94 @@ text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
   Header bars with custom gradient backgrounds
 *******************************************************************************************************/
  
-
-#Header-BlueWhiteRed, #Header-Avi h2,
-#Header-Avi-BlueRed h2,
-#Header-RedOrange h2 
+section.header
 {
-text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-text-shadow: black 0 1px;
+ text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+ text-shadow: black 0 1px;
 }
 
-#Header-RedOrange h2, #Header-RedOrange h2 {
-color:#990000;
+section.header.header-redorange {
+ color:#990000;
 }
 
-a:hover #Header-RedOrange h2 {
+a:hover section.header.header-redorange {
  color: rgb(106, 6, 6);
 }
 
-.card  #Header-RedOrange #Field-Title span.link {
-	border-bottom-color:#990000;
+.card  section.header.header-redorange.Field-Title span.link {
+ border-bottom-color:#990000;
 }
 
-#Header-RedOrange {
-/* Background gradient code */
-background: -moz-linear-gradient(left, #ff1a00 0%, #fff200 36%, #fff200 58%, #ff1a00 100%); /* FF3.6+ */
-background: -webkit-gradient(linear, left top, right top, color-stop(0%,#ff1a00), color-stop(36%,#fff200), color-stop(58%,#fff200), color-stop(100%,#ff1a00)); /* Chrome,Safari4+ */
-background: -webkit-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Chrome10+,Safari5.1+ */
-background: -o-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Opera 11.10+ */
-background: -ms-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* IE10+ */
-background: linear-gradient(to right, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* W3C */
-filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff1a00', endColorstr='#ff1a00',GradientType=1 ); /* IE6-9 */
-/* z-index: 100; /* the stack order: foreground */
-/* border-bottom:1px #990000 solid; */
-border:3px #990000 solid;
+section.header.header-redorange {
+	/* Background gradient code */
+	background: -moz-linear-gradient(left, #ff1a00 0%, #fff200 36%, #fff200 58%, #ff1a00 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#ff1a00), color-stop(36%,#fff200), color-stop(58%,#fff200), color-stop(100%,#ff1a00)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* IE10+ */
+	background: linear-gradient(to right, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff1a00', endColorstr='#ff1a00',GradientType=1 ); /* IE6-9 */
+	/* z-index: 100; /* the stack order: foreground */
+	/* border-bottom:1px #990000 solid; */
+	border:3px #990000 solid;
 }
 
-
-#Header-BlueWhiteRed h2, #Header-Avi h2 {
-color:#004C99;
+section.header.header-bluewhitered, 
+section.header.header-avi {
+ color:#004C99;
 }
 
-a:hover #Header-BlueWhiteRed h2, a:hover  #Header-Avi h2 {
+a:hover section.header.header-bluewhitered, 
+a:hover section.header.header-avi {
 color: rgb(10, 121, 243);
 }
 
-.card  #Header-BlueWhiteRed #Field-Title span.link, .card  #Header-Avi #Field-Title span.link  {
+.card section.header.header-bluewhitered.Field-Title span.link, 
+.card section.header.header-avi.Field-Title span.link {
 	border-bottom-color:#004C99;
 }
 
-#Header-BlueWhiteRed, #Header-Avi {
+section.header.header-bluewhitered, 
+section.header.header-avi {
 	/* Background gradient code */
-background: #3b679e; /* Old browsers */
-background: -moz-linear-gradient(left, #3b679e 0%, #ffffff 38%, #ffffff 59%, #ff1111 100%); /* FF3.6+ */
-background: -webkit-gradient(linear, left top, right top, color-stop(0%,#3b679e), color-stop(38%,#ffffff), color-stop(59%,#ffffff), color-stop(100%,#ff1111)); /* Chrome,Safari4+ */
-background: -webkit-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Chrome10+,Safari5.1+ */
-background: -o-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Opera 11.10+ */
-background: -ms-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* IE10+ */
-background: linear-gradient(to right, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* W3C */
-filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#ff1111',GradientType=1 ); /* IE6-9 */
-/* z-index: 100; /* the stack order: foreground */
-/* border-bottom:1px #004C99 solid; */
-border:3px #990000 solid;
+	background: #3b679e; /* Old browsers */
+	background: -moz-linear-gradient(left, #3b679e 0%, #ffffff 38%, #ffffff 59%, #ff1111 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#3b679e), color-stop(38%,#ffffff), color-stop(59%,#ffffff), color-stop(100%,#ff1111)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* IE10+ */
+	background: linear-gradient(to right, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#ff1111',GradientType=1 ); /* IE6-9 */
+	/* z-index: 100; /* the stack order: foreground */
+	/* border-bottom:1px #004C99 solid; */
+	border:3px #990000 solid;
 }
 
-#Header-Avi-BlueRed h2, #Header-Avi-BlueRed h2 {
+section.header.header-avi-bluered {
 color:#80A6CC;
 }
 
-a:hover #Header-Avi-BlueRed h2 {
+a:hover section.header.header-avi-bluered {
 color: rgb(241, 135, 154);
 }
 
 
-.card  #Header-BlueRed #Field-Title span.link {
+.card  section.header.header-avi-bluered.Field-Title span.link {
 	border-bottom-color:#80A6CC;
 }
 
-#Header-Avi-BlueRed {
+section.header.header-avi-bluered {
 	/* Background gradient code */
-background: -moz-linear-gradient(left, #bf0060 0%, #0060bf 36%, #0060bf 58%, #bf0060 100%); /* FF3.6+ */
-background: -webkit-gradient(linear, left top, right top, color-stop(0%,#bf0060), color-stop(36%,#0060bf), color-stop(58%,#0060bf), color-stop(100%,#bf0060)); /* Chrome,Safari4+ */
-background: -webkit-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Chrome10+,Safari5.1+ */
-background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
-background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
-background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
-filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */ 
-/* z-index: 100; /* the stack order: foreground */
-/* border-bottom:1px #004C99 solid; */
-border:3px #004C99 solid;
+	background: -moz-linear-gradient(left, #bf0060 0%, #0060bf 36%, #0060bf 58%, #bf0060 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#bf0060), color-stop(36%,#0060bf), color-stop(58%,#0060bf), color-stop(100%,#bf0060)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
+	background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */ 
+	/* z-index: 100; /* the stack order: foreground */
+	/* border-bottom:1px #004C99 solid; */
+	border:3px #004C99 solid;
 }
 
 /******************************************************************************************************* 
@@ -305,7 +346,17 @@ a:hover {
 *******************************************************************************************************/
 
 .card .occluded {
-	color: #444;
+	color: #555;
+}
+.card div.occluded {	
+	display: inline-block;	
+	margin: 0px; padding: 0px;
+}
+.card div.occluded :first-child {
+	margin-top: 0px;
+}
+.card div.occluded :last-child {
+	margin-bottom: 0px;
 }
 
 .card .See_Also, .card .Field-See_Also, .card .separator {
@@ -318,29 +369,29 @@ a:hover {
 *******************************************************************************************************/
 
 
-.card 												#Field-Cloze-Content, 
-.card 												#Field-Title-Prompt, 
-.card 								#Side-Front 		#Footer-Line, 
-.card 								#Side-Front 								.occluded, 
-.card								#Side-Front 		#Field-See_Also,
+.card 												#Field-Cloze-Content,
+.card 												section.header.Field-Title-Prompt, 
+.card 								#Side-Front 	#Footer-Line, 
+.card								#Side-Front 	#Field-See_Also,
 .card										 		#Field-TOC,
 .card												#Field-Outline,
-.card 								#Side-Front 		#Field-Extra, 
+.card 								#Side-Front 	#Field-Extra, 
 .card 								#Side-Back 	 	#Field-Extra-Front,
-.card #Card-EvernoteReviewCloze  						#Field-Content
+.card #Card-EvernoteReviewCloze  					#Field-Content,
+.card #Card-EvernoteReviewReversed 	#Side-Front		section.header.Field-Title
 {
 	display: none;
 }
 
-.card 					                	 #Side-Front  	#Header-Links,
-.card #Card-EvernoteReview                 	 #Side-Front  	#Field-Content,
-.card #Card-EvernoteReviewReversed  	 #Side-Front 	#Field-Title 
+.card 					            #Side-Front  	#Header-Links,
+.card #Card-EvernoteReview          #Side-Front  	#Field-Content,
+.card 								#Side-Front 	.occluded  
 {
     visibility: hidden;
 }
  
-.card #Card-EvernoteReviewCloze  						#Field-Cloze-Content, 
-.card #Card-EvernoteReviewReversed	#Side-Front		#Field-Title-Prompt,
+.card #Card-EvernoteReviewCloze  					#Field-Cloze-Content, 
+.card #Card-EvernoteReviewReversed	#Side-Front		section.header.Field-Title-Prompt,
 .card								#Side-Back	 	#Field-See_Also
 {
 	display: block;

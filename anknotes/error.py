@@ -21,6 +21,9 @@ def HandleSocketError(e, strErrorBase):
         errno.WSAECONNRESET: "Connection was reset or forcibly closed by the remote host",
         errno.ETIMEDOUT:     "Connection timed out"
     }
+    if errorcode not in errno.errorcode:
+        log_error("Unknown socket error (%s) occurred: %s" %  (str(errorcode), str(e)))
+        return False 
     error_constant = errno.errorcode[errorcode]
     if errorcode in friendly_error_msgs:
         strError = friendly_error_msgs[errorcode]
