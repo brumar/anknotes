@@ -115,6 +115,7 @@ class TABLES:
 
 
 class SETTINGS:
+    ANKI_PROFILE_NAME = 'Evernote'
     EVERNOTE_LAST_IMPORT = "ankNotesEvernoteLastAutoImport"
     ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX = "ankNotesCheckableMenuItems"
     KEEP_EVERNOTE_TAGS_DEFAULT_VALUE = True

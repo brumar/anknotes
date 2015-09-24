@@ -1,6 +1,7 @@
 ### Python Imports
 from sqlite3 import dbapi2 as sqlite
 import time
+import os
 
 ### Anki Shared Imports
 from anknotes.constants import *
@@ -27,7 +28,13 @@ def ankDB(reset=False):
     global ankNotesDBInstance, dbLocal
     if not ankNotesDBInstance or reset:
         if dbLocal:
-            ankNotesDBInstance = ank_DB(os.path.join(PATH, '..\\..\\Evernote\\collection.anki2'))
+            anki_profile_path_root = os.path.join(PATH, '..\\..\\')
+            anki_profile_path = os.path.join(anki_profile_path_root, SETTINGS.ANKI_PROFILE_NAME)
+            if SETTINGS.ANKI_PROFILE_NAME =='' or not os.path.is_dir(anki_profile_path):
+                dirs = [x for x in os.listdir(anki_profile_path_root) if os.path.isdir(os.path.join(anki_profile_path_root, x)) and x is not 'addons']
+                assert len(dirs>0)
+                anki_profile_path = os.path.join(anki_profile_path_root, dirs[0])
+            ankNotesDBInstance = ank_DB(os.path.join(anki_profile_path, 'collection.anki2'))
         else:
             ankNotesDBInstance = ank_DB()
     return ankNotesDBInstance
