@@ -2,6 +2,7 @@ anknotes/extra/ancillary/FrontTemplate-Processed.htm
 anknotes/extra/logs/
 anknotes/extra/dev/Restart Anki.lnk
 anknotes/extra/dev/anknotes.developer*
+anknotes/extra/dev/auth_tokens.txt
 anknotes/extra/user/
 *.bk
 

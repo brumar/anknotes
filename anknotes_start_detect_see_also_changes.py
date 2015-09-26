@@ -5,5 +5,5 @@ except:
     isAnki = False
 
 if not isAnki:
-    from anknotes import bare
-    bare.main_bare()
+    from anknotes import detect_see_also_changes
+    detect_see_also_changes.main()
