@@ -334,10 +334,10 @@ class Evernote(object):
 			fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
 			return fetcher.results
 		if inAnki:
-			fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).split()
-			fetcher.keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS., SETTINGS.ANKI.TAGS.KEEP_TAGS._DEFAULT_VALUE)
+			fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',', ' ').split()
+			fetcher.keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS, SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
 			fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, True)
-			fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.TAGS.TO_DELETE, "").split()
+			fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
 		for evernote_guid in self.evernote_guids:
 			self.evernote_guid = evernote_guid
 			if not fetcher.getNote(evernote_guid):

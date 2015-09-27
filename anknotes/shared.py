@@ -66,8 +66,8 @@ class EvernoteQueryLocationType:
 def get_tag_names_to_import(tagNames, evernoteTags=None, evernoteTagsToDelete=None, keepEvernoteQueryTags=True):
 	if keepEvernoteQueryTags is None: keepEvernoteQueryTags =  mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, True)    
 	if not keepEvernoteQueryTags: return {} if isinstance(tagNames, dict) else []
-	if evernoteTags is None: evernoteTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).split(",") 
-	if evernoteTagsToDelete is None: evernoteTagsToDelete = mw.col.conf.get(SETTINGS.TAGS.TO_DELETE, "").split(",")
+	if evernoteTags is None: evernoteTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',', ' ').split() 
+	if evernoteTagsToDelete is None: evernoteTagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
 	tags_to_delete = evernoteTags + evernoteTagsToDelete
 	if isinstance(tagNames, dict):        
 		return {k: v for k, v in tagNames.items() if v not in tags_to_delete and (not hasattr(v, 'Name') or getattr(v, 'Name') not in tags_to_delete)}

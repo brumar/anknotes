@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import os
+import re, sre_constants
 try:
 	from pysqlite2 import dbapi2 as sqlite
 	is_pysqlite = True 
@@ -24,6 +25,7 @@ from aqt import mw, browser
 # from aqt.qt import QIcon, QTreeWidget, QTreeWidgetItem
 from aqt.qt import Qt, QIcon, QTreeWidget, QTreeWidgetItem, QDesktopServices, QUrl
 from aqt.webview import AnkiWebView
+from anki.utils import ids2str, splitFields	
 # from aqt.qt.Qt import MatchFlag
 # from aqt.qt.qt import MatchFlag
 
@@ -130,18 +132,12 @@ where mid in %s and flds like ? escape '\\'""" % (
 			ord = mods[str(mid)][1]
 			strg = flds[ord]			
 			try:
-				if re.search("(?si)^"+regex+"$", strg):
-					nids.append(id)
-			except sre_constants.error:
-							return
-		if not nids:
-			return "0"
+				if re.search("(?si)^"+regex+"$", strg): nids.append(id)
+			except sre_constants.error: return
+		if not nids: return "0"
 		return "n.id in %s" % ids2str(nids)	
 	
-	# val = doCheck(field, val)
-	
-	from anki.utils import ids2str, splitFields
-	import re, sre_constants
+	# val = doCheck(field, val)	
 	vtest = doCheck(self, field, val)
 	log("FindField for %s: %s: Total %d matches " %(field, str(val), len(vtest.split(','))), 'sql-finder')
 	return vtest 
@@ -203,7 +199,7 @@ def anknotes_profile_loaded():
 		menu.upload_validated_notes(True)
 	import_timer_toggle()
 	
-	if ANKNOTES.DEVELOPER_MODE_AUTOMATE:
+	if ANKNOTES.DEVELOPER_MODE.AUTOMATED:
 		'''
 		 For testing purposes only!
 		 Add a function here and it will automatically run on profile load

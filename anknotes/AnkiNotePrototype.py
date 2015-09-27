@@ -433,10 +433,10 @@ class AnkiNotePrototype:
 		new_guid = self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
 		new_title = self.Fields[FIELD.TITLE]
 		old_title = db_title
-		if !isinstance(new_title, unicode):
+		if not isinstance(new_title, unicode):
 			try: new_title = unicode(new_title, 'utf-8')
 			except: do_log_title = True 
-		if !isinstance(old_title, unicode):
+		if not isinstance(old_title, unicode):
 			try: old_title = unicode(old_title, 'utf-8')
 			except: do_log_title = True 
 		if do_log_title or new_title != old_title or new_guid != self.OriginalGuid:

@@ -41,11 +41,14 @@ def show_tooltip(text, time_out=7000, delay=None):
 	tooltip(text, time_out)
 
 def counts_as_str(count, max=None):
-	if max is None: return str(count).center(3)
+	from anknotes.counters import Counter
+	if isinstance(count, Counter): count = count.val	
+	if isinstance(max, Counter): max = max.val
+	if max is None or max <= 0: return str(count).center(3)
 	if count == max: return "All  %s" % str(count).center(3)
 	return "Total %s of %s" % (str(count).center(3), str(max).center(3))
 
-def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5):
+def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True):
 	if log_lines is None: log_lines = []
 	if header is None: header = []
 	lines = []
@@ -55,14 +58,17 @@ def show_report(title, header=None, log_lines=None, delay=None, log_header_prefi
 		lines.append('\t'*level + ('\t\t- ' if lines else '') + line[level:])
 	if len(lines) > 1: lines[0] += ': '
 	log_text = '<BR>'.join(lines)
-	show_tooltip(log_text.replace('\t', '&nbsp; '), delay=delay)
-	log_blank()
-	log(title)
+	if not header and not log_lines: 
+		i=title.find('> ')
+		show_tooltip(title[0 if i < 0 else i + 2:], delay=delay)
+	else: show_tooltip(log_text.replace('\t', '&nbsp; '*4), delay=delay)
+	if blank_line_before: log_blank(filename=filename)
+	log(title, filename=filename)
 	if len(lines) == 1 and not lines[0]: 
-		log(" " + "-" * 187, timestamp=False)
+		log(" " + "-" * 187, timestamp=False, filename=filename)
 	else:
-		log(" " + "-" * 187 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True)
-		log_blank()
+		log(" " + "-" * 187 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True, filename=filename)
+		log_blank(filename=filename)
 
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False, minHeight=None, minWidth=400, styleSheet=None, convertNewLines=True):
@@ -193,7 +199,7 @@ class Logger(object):
 		else:
 			self.caller_info = caller_name()
 			if self.caller_info:
-				self.base_path = self.caller_info.Base.replace('.', '\\')     
+				self.base_path = create_log_filename(c.Base)
 		if rm_path:
 			rm_log_path(self.base_path)
 					
@@ -469,15 +475,20 @@ class CallerInfo:
 		self.Outer = [f[1] for f in self.__outer__ if f and f[1] and not [exclude for exclude in self.__keywords_exclude__ + [self.Name] if exclude in f[0] or exclude in f[1]]]
 		del parentframe
 
+def create_log_filename(strr):
+	if strr is None: return ""
+	strr = strr.replace('.', '\\')
+	strr = re.sub(r"(^|\\)([^\\]+)\\\2(\b.|\\.|$)", r"\1\2\\", strr)
+	strr = re.sub(r"^\\*(.+?)\\*$", r"\1", strr)
+	return strr	
+		
 # @clockit        
-def caller_name(skip=None, simplify=True, return_string=False):
-	if skip is None:
-		for c in [__caller_name__(i,simplify) for i in range(0,20)]:
-			if c and c.Base:
-				return c.Base if return_string else c
-		return None
-	c = __caller_name__(skip, simplify=simplify)
-	return c.Base if return_string else c
+def caller_name(skip=None, simplify=True, return_string=False, return_filename=False):
+	if skip is None: names = [__caller_name__(i,simplify) for i in range(0,20)]
+	else: names = [__caller_name__(skip, simplify=simplify)]	
+	for c in [c for c in names if c and c.Base]:
+		return create_log_filename(c.Base) if return_filename else c.Base if return_string else c
+	return "" if return_filename or return_string else None
 
 def __caller_name__(skip=0, simplify=True):
 	"""Get a name of a caller in the format module.class.method

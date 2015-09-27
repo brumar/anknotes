@@ -351,12 +351,12 @@ def setup_evernote(self):
 	# Keep Evernote Tags
 	keep_evernote_tags = QCheckBox("     Save To Anki Note", self)
 	keep_evernote_tags.setChecked(
-		mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS., SETTINGS.ANKI.TAGS.KEEP_TAGS._DEFAULT_VALUE))
+		mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS, SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE))
 	keep_evernote_tags.stateChanged.connect(update_keep_evernote_tags)
 
 	# Evernote Tags: Tags to Delete
 	evernote_tags_to_delete = QLineEdit()
-	evernote_tags_to_delete.setText(mw.col.conf.get(SETTINGS.TAGS.TO_DELETE, ""))
+	evernote_tags_to_delete.setText(mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, ""))
 	evernote_tags_to_delete.connect(evernote_tags_to_delete,
 									SIGNAL("textEdited(QString)"),
 									update_evernote_tags_to_delete)
@@ -452,7 +452,7 @@ def update_anki_deck_evernote_notebook_integration():
 
 
 def update_evernote_tags_to_delete(text):
-	mw.col.conf[SETTINGS.TAGS.TO_DELETE] = text
+	mw.col.conf[SETTINGS.ANKI.TAGS.TO_DELETE] = text
 
 
 def update_evernote_query_tags(text):
@@ -522,7 +522,7 @@ def update_evernote_query_any():
 
 
 def update_keep_evernote_tags():
-	mw.col.conf[SETTINGS.ANKI.TAGS.KEEP_TAGS.] = keep_evernote_tags.isChecked()
+	mw.col.conf[SETTINGS.ANKI.TAGS.KEEP_TAGS] = keep_evernote_tags.isChecked()
 	evernote_query_text_changed()
 
 
@@ -723,13 +723,13 @@ def generate_evernote_query():
 			query_note_title = '"%s"' % query_note_title
 		query += 'intitle:%s ' % query_note_title
 	if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_TAGS, True):
-		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).split(",")
+		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',', ' ').split()
 		for tag in tags:
 			tag = tag.strip()
 			if ' ' in tag: tag = '"%s"' % tag 
 			query += 'tag:%s ' % tag
 	if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_EXCLUDED_TAGS, True):
-		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.EXCLUDED_TAGS, '').split(",")
+		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.EXCLUDED_TAGS, '').replace(',', ' ').split()
 		for tag in tags:
 			tag = tag.strip()
 			if ' ' in tag: tag = '"%s"' % tag 

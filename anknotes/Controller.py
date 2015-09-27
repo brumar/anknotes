@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
 import socket
+from datetime import datetime
 
 try:
 	from pysqlite2 import dbapi2 as sqlite
@@ -33,8 +34,8 @@ from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 from aqt import mw
 
 DEBUG_RAISE_API_ERRORS = False
-
-
+# load_time = datetime.now()
+# log("Loaded controller at " + load_time.isoformat(), 'import')
 class Controller:
 	evernoteImporter = None
 	""":type : EvernoteImporter"""
@@ -68,30 +69,22 @@ class Controller:
 
 	def upload_validated_notes(self, automated=False):
 		dbRows = ankDB().all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.NOTE_VALIDATION_QUEUE)
-		retry=True
+		did_break=True
 		notes_created, notes_updated, queries1, queries2 = ([] for i in range(4))
 		"""
 		:type: (list[EvernoteNote], list[EvernoteNote], list[str], list[str])
 		"""
 		noteFetcher = EvernoteNoteFetcher()
-		tmr = stopwatch.Timer(len(dbRows), 25, "Upload of Validated Evernote Notes")
+		tmr = stopwatch.Timer(len(dbRows), 25, "Upload of Validated Evernote Notes", automated=automated, enabled=EVERNOTE.UPLOAD.ENABLED, max_allowed=EVERNOTE.UPLOAD.MAX, display_initial_info=True)
 		if tmr.actionInitializationFailed: return tmr.status, 0, 0
-		if not EVERNOTE.UPLOAD.ENABLED: 
-			tmr.info.ActionLine("Aborted", "EVERNOTE.UPLOAD.ENABLED is set to False")
-			return EvernoteAPIStatus.Disabled
 		for dbRow in dbRows:
 			entry = EvernoteValidationEntry(dbRow)
 			evernote_guid, rootTitle, contents, tagNames, notebookGuid = entry.items()
-			tagNames = tagNames.split(',')						
-			if -1 < EVERNOTE.UPLOAD.MAX <= count_update + count_create: 
-				tmr.reportStatus(EvernoteAPIStatus.DelayedDueToRateLimit if EVERNOTE.UPLOAD.RESTART_INTERVAL > 0 else EvernoteAPIStatus.ExceededLocalLimit)
-				log("upload_validated_notes: Count exceeded- Breaking with status " + str(tmr.status))
-				break
+			tagNames = tagNames.split(',')		
+			if not tmr.checkLimits(): break 
 			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid, validated=True), rootTitle, evernote_guid)
 			if tmr.report_result == False: raise ValueError
-			if tmr.status.IsDelayableError: 
-				log("upload_validated_notes: Delayable error - breaking with status " + str(tmr.status))
-				break 
+			if tmr.status.IsDelayableError: break
 			if not tmr.status.IsSuccess: continue 
 			if not whole_note.tagNames: whole_note.tagNames = tagNames 
 			noteFetcher.addNoteFromServerToDB(whole_note, tagNames)
@@ -104,104 +97,66 @@ class Controller:
 			else:
 				notes_created.append(note)
 				queries2.append([rootTitle, contents])
-		else:
-			retry=False
-			log("upload_validated_notes: Did not break out of for loop")
-		log("upload_validated_notes: Outside of the for loop ")
-			
-		tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.count_created else 0, self.anki.update_evernote_notes(notes_updated) if tmr.count_updated else 0)
-		if tmr.subcount_created: ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries2)            
-		if tmr.subcount_updated: ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries1)		
+		else: did_break=False			
+		tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.counts.created else 0, self.anki.update_evernote_notes(notes_updated) if tmr.counts.updated else 0)
+		if tmr.counts.created.anki: ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries2)            
+		if tmr.counts.updated.anki: ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries1)		
 		if tmr.is_success: ankDB().commit()
-		if retry and tmr.status != EvernoteAPIStatus.ExceededLocalLimit: mw.progress.timer((30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000, lambda: self.upload_validated_notes(True), False)	
-		return tmr.status, tmr.count, 0
+		if did_break and tmr.status != EvernoteAPIStatus.ExceededLocalLimit: mw.progress.timer((30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000, lambda: self.upload_validated_notes(True), False)	
+		return tmr.status, tmr.counts, 0
 
 	def create_auto_toc(self):
+		def check_old_values():			
+			old_values = ankDB().first(
+				"SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES,
+				rootTitle.upper(), TAGS.AUTO_TOC)		
+			if not old_values: 
+				log(rootTitle, 'AutoTOC-Create\\Add')				
+				return None, contents
+			evernote_guid, old_content = old_values
+			# log(['old contents exist', old_values is None, old_values, evernote_guid, old_content])
+			noteBodyUnencoded = self.evernote.makeNoteBody(contents, encode=False)
+			if type(old_content) != type(noteBodyUnencoded):
+				log([rootTitle, type(old_content), type(noteBodyUnencoded)], 'AutoTOC-Create\\Update\\Diffs\\_')
+				raise UnicodeWarning
+			old_content = old_content.replace('guid-pending', evernote_guid).replace("'", '"')
+			noteBodyUnencoded = noteBodyUnencoded.replace('guid-pending', evernote_guid).replace("'", '"')
+			if old_content == noteBodyUnencoded:
+				log(rootTitle, 'AutoTOC-Create\\Skipped')		
+				tmr.reportSkipped()
+				return None, None 
+			log(noteBodyUnencoded, 'AutoTOC-Create\\Update\\New\\'+rootTitle, clear=True)
+			log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create\\Update\\Diffs\\'+rootTitle, clear=True)		
+			return evernote_guid, contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
+		
 		update_regex()
 		NotesDB = EvernoteNotes()
 		NotesDB.baseQuery = ANKNOTES.HIERARCHY.ROOT_TITLES_BASE_QUERY
 		dbRows = NotesDB.populateAllNonCustomRootNotes()
-		# number_updated = number_created = 0
-		# count = count_create = count_update = count_update_skipped = 0
-		# count_queued = count_queued_create = count_queued_update = 0
-		# exist = error = 0
-		# status = EvernoteAPIStatus.Uninitialized
 		notes_created, notes_updated = [], []
 		"""
 		:type: (list[EvernoteNote], list[EvernoteNote])
 		"""
-		info = stopwatch.ActionInfo('Creation of Table of Content Note(s)', row_source='Root Title(s)')
-		tmr = stopwatch.Timer(len(dbRows), 25, info)		
-		if tmr.actionInitializationFailed: return tmr.status, 0, 0
+		info = stopwatch.ActionInfo('Creation of Table of Content Note(s)', row_source='Root Title(s)', enabled=EVERNOTE.UPLOAD.ENABLED)
+		tmr = stopwatch.Timer(len(dbRows), 25, info, max_allowed=EVERNOTE.UPLOAD.MAX)	
+		tmr.label = 'create-auto_toc'		
+		if tmr.actionInitializationFailed: return tmr.tmr.status, 0, 0
 		for dbRow in dbRows:
+			evernote_guid = None
 			rootTitle, contents, tagNames, notebookGuid = dbRow.items()
 			tagNames = (set(tagNames[1:-1].split(',')) | {TAGS.TOC, TAGS.AUTO_TOC} |  ({"#Sandbox"} if EVERNOTE.API.IS_SANDBOXED else set())) - {TAGS.REVERSIBLE, TAGS.REVERSE_ONLY}
-			rootTitle = generateTOCTitle(rootTitle)
-			old_values = ankDB().first(
-				"SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES,
-				rootTitle.upper(), TAGS.AUTO_TOC)
-			evernote_guid = None
-			noteBodyUnencoded = self.evernote.makeNoteBody(contents, encode=False)
-			if old_values:
-				evernote_guid, old_content = old_values
-				if type(old_content) != type(noteBodyUnencoded):
-					log([rootTitle, type(old_content), type(noteBodyUnencoded)], 'AutoTOC-Create-Diffs\\_')
-					raise UnicodeWarning
-				old_content = old_content.replace('guid-pending', evernote_guid)
-				noteBodyUnencoded = noteBodyUnencoded.replace('guid-pending', evernote_guid)				
-				if old_content == noteBodyUnencoded:
-					tmr.report
-					count += 1
-					count_update_skipped += 1
-					continue
-				contents = contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
-				log(noteBodyUnencoded, 'AutoTOC-Create-New\\'+rootTitle, clear=True)
-				log(generate_diff(old_content, noteBodyUnencoded), 'AutoTOC-Create-Diffs\\'+rootTitle, clear=True)
-			if not EVERNOTE.UPLOAD.ENABLED or (
-							-1 < EVERNOTE.UPLOAD.MAX <= count_update + count_create):
-				continue
-			status, whole_note = self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid)
-			if status.IsError:
-				error += 1
-				if status == EvernoteAPIStatus.RateLimitError or status == EvernoteAPIStatus.SocketError:
-					break
-				else:
-					continue
-			if status == EvernoteAPIStatus.RequestQueued:
-				count_queued += 1
-				if old_values: count_queued_update += 1
-				else: count_queued_create += 1
-				continue
-			count += 1
-			if status.IsSuccess:
-				note = EvernoteNotePrototype(whole_note=whole_note)
-				if evernote_guid:
-					notes_updated.append(note)
-					count_update += 1
-				else:
-					notes_created.append(note)
-					count_create += 1
-		if count_update + count_create > 0:
-			number_updated = self.anki.update_evernote_notes(notes_updated)
-			number_created = self.anki.add_evernote_notes(notes_created)
-		count_total = count + count_queued
-		count_max = len(dbRows)
-		str_tip_header = "%s Auto TOC note(s) successfully generated" % counts_as_str(count_total, count_max)
-		str_tips = []
-		if count_create: str_tips.append("%-3d Auto TOC note(s) were newly created " % count_create)
-		if number_created: str_tips.append("-%d of these were successfully added to Anki " % number_created)
-		if count_queued_create: str_tips.append("-%s Auto TOC note(s) are brand new and and were queued to be added to Anki " % counts_as_str(count_queued_create))
-		if count_update: str_tips.append("%-3d Auto TOC note(s) already exist in local db and were updated" % count_update)
-		if number_updated: str_tips.append("-%s of these were successfully updated in Anki " % counts_as_str(number_updated))
-		if count_queued_update:  str_tips.append("-%s Auto TOC note(s) already exist in local db and were queued to be updated in Anki" % counts_as_str(count_queued_update))
-		if count_update_skipped: str_tips.append("-%s Auto TOC note(s) already exist in local db and were unchanged" % counts_as_str(count_update_skipped))
-		if error > 0: str_tips.append("%d Error(s) occurred " % error)
-		show_report("   > TOC Creation Complete: ", str_tip_header, str_tips)
-
-		if count_queued > 0:
-			ankDB().commit()
-
-		return status, count, exist
+			rootTitle = generateTOCTitle(rootTitle)			
+			evernote_guid, contents = check_old_values()
+			if contents is None: continue 
+			if not tmr.checkLimits(): break 
+			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid), rootTitle, evernote_guid)
+			if tmr.report_result == False: raise ValueError
+			if tmr.status.IsDelayableError: break
+			if not tmr.status.IsSuccess: continue 
+			(notes_updated if evernote_guid else notes_created).append(EvernoteNotePrototype(whole_note=whole_note))
+		tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.counts.created.completed else 0, self.anki.update_evernote_notes(notes_updated) if tmr.counts.updated.completed else 0)
+		if tmr.counts.queued: ankDB().commit()
+		return tmr.status, tmr.count, tmr.counts.skipped.val
 
 	def update_ancillary_data(self):
 		self.evernote.update_ancillary_data()

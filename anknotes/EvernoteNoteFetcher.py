@@ -148,8 +148,8 @@ class EvernoteNoteFetcher(object):
 
 	def getNoteRemote(self):
 		if self.api_calls > EVERNOTE.IMPORT.API_CALLS_LIMIT > -1:
-		log("Aborting Evernote.getNoteRemote: EVERNOTE.IMPORT.API_CALLS_LIMIT of %d has been reached" % EVERNOTE.IMPORT.API_CALLS_LIMIT)
-		return None
+			log("Aborting Evernote.getNoteRemote: EVERNOTE.IMPORT.API_CALLS_LIMIT of %d has been reached" % EVERNOTE.IMPORT.API_CALLS_LIMIT)
+			return None
 		if not self.getNoteRemoteAPICall(): return False
 		# self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_evernote_guids(self.whole_note.tagGuids)
 		self.setNoteTags(tag_guids=self.whole_note.tagGuids)

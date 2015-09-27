@@ -291,6 +291,8 @@ class EvernoteAPIStatus(AutoNumberedEnum):
 	""":type : EvernoteAPIStatus"""
 	Manual = -5
 	""":type : EvernoteAPIStatus"""
+	RequestSkipped = -4
+	""":type : EvernoteAPIStatus"""
 	RequestQueued = -3
 	""":type : EvernoteAPIStatus"""
 	ExceededLocalLimit = -2

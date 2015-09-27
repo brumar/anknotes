@@ -12,7 +12,7 @@ class FOLDERS:
 	USER = os.path.join(EXTRA, 'user')
 
 class FILES:
-	class LOG:
+	class LOGS:
 		class FDN:
 			ANKI_ORPHANS = 'Find Deleted Notes\\'
 			UNIMPORTED_EVERNOTE_NOTES = ANKI_ORPHANS + 'UnimportedEvernoteNotes'
@@ -31,7 +31,7 @@ class FILES:
 		CSS_QMESSAGEBOX = os.path.join(FOLDERS.ANCILLARY, 'QMessageBox.css')
 		ENML_DTD = os.path.join(FOLDERS.ANCILLARY, 'enml2.dtd')
 	class SCRIPTS:
-		VALIDATION = os.path.join(FOLDERS.ADDONS, 'anknotes_start_note_validation.py')
+		VALIDATION = os.path.join(FOLDERS.ADDONS, 'anknotes_start_note_validation.py') 
 		FIND_DELETED_NOTES = os.path.join(FOLDERS.ADDONS, 'anknotes_start_find_deleted_notes.py')  
 	class GRAPHICS:
 		class ICON:
@@ -48,8 +48,10 @@ class FILES:
 	
 class ANKNOTES:
 	DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-	DEVELOPER_MODE = (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer')))
-	DEVELOPER_MODE_AUTOMATE = (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer.automate')))
+	class DEVELOPER_MODE:
+		ENABLED = (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer')))
+		AUTOMATED = ENABLED and (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer.automate')))
+		AUTO_RELOAD_MODULES = True
 	class HIERARCHY:
 		ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
 
@@ -119,11 +121,11 @@ class EVERNOTE:
 		API_CALLS_LIMIT = 300
 	class UPLOAD:
 		ENABLED = True  # Set False if debugging note creation
-		MAX = 25  # Set to -1 for unlimited
+		MAX = -1  # Set to -1 for unlimited
 		RESTART_INTERVAL = 30 # In seconds 
 		class VALIDATION:
 			ENABLED = True 
-			AUTOMATE = True 	
+			AUTOMATED = True 	
 	class API:
 		CONSUMER_KEY = "holycrepe"
 		IS_SANDBOXED = False	
@@ -173,11 +175,11 @@ class SETTINGS:
 		class DECKS:
 			EVERNOTE_NOTEBOOK_INTEGRATION = 'anknotesUseNotebookNameForAnkiDeckName'
 			BASE = 'anknotesDefaultAnkiDeck'	
-			BASE_DEFAULT_VALUE = DECKS.DEFAULT	
+			BASE_DEFAULT_VALUE = DECKS.DEFAULT			
+		class TAGS:
+			TO_DELETE = 'anknotesTagsToDelete'	
+			KEEP_TAGS_DEFAULT_VALUE = True	
+			KEEP_TAGS = 'anknotesTagsKeepEvernoteTags'
+			DELETE_EVERNOTE_QUERY_TAGS = 'anknotesTagsDeleteEvernoteQueryTags'
 		UPDATE_EXISTING_NOTES = 'anknotesUpdateExistingNotes'	
-	class TAGS:
-		TO_DELETE = 'anknotesTagsToDelete'	
-		KEEP_TAGS_DEFAULT_VALUE = True	
-		KEEP_TAGS = 'anknotesTagsKeepEvernoteTags'
-		DELETE_EVERNOTE_QUERY_TAGS = 'anknotesTagsDeleteEvernoteQueryTags'
 	ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX = "ankNotesCheckableMenuItems"

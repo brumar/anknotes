@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Python Imports
 from subprocess import *
-
+from datetime import datetime
 try:
 	from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -12,7 +12,8 @@ from anknotes.shared import *
 from anknotes.constants import *
 
 # Anknotes Main Imports
-from anknotes.Controller import Controller
+import anknotes.Controller 
+# from anknotes.Controller import Controller
 
 # Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
@@ -41,7 +42,7 @@ def anknotes_setup_menu():
 			  ],
 			 ["Process &See Also Footer Links [Power Users Only!]",
 			  [
-				  ["Complete All &Steps", see_also],
+				  ["Complete All &Steps",  see_also],
 				  ["SEPARATOR", None],
 				  ["Step &1: Process Anki Notes Without See Also Field", lambda: see_also(1)],
 				  ["Step &2: Extract Links from TOC", lambda: see_also(2)],
@@ -54,7 +55,7 @@ def anknotes_setup_menu():
 				  ["Step &7: Update See Also Footer In Evernote Notes", lambda: see_also(7)],
 				  ["Step &8: Validate and Upload Modified Evernote Notes", lambda: see_also(8)],
 				  ["SEPARATOR", None],
-				  ["Step &9: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(9)] 
+				  ["Step &9: Insert TOC and Outline Content Into Anki Notes", lambda: see_also(9)]
 			  ]
 			  ],
 			 ["&Maintenance Tasks",
@@ -70,7 +71,15 @@ def anknotes_setup_menu():
 	]
 	add_menu_items(menu_items)
 
-
+def auto_reload_wrapper(function): return lambda: auto_reload_modules(function)
+	
+def auto_reload_modules(function):
+	if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
+		anknotes.shared = reload(anknotes.shared)				
+		if not anknotes.Controller: importlib.import_module('anknotes.Controller')
+		reload(anknotes.Controller)
+	function()
+	
 def add_menu_items(menu_items, parent=None):
 	if not parent: parent = mw.form.menubar
 	for title, action in menu_items:
@@ -83,13 +92,15 @@ def add_menu_items(menu_items, parent=None):
 		else:
 			checkable = False
 			if isinstance(action, dict):
-				options = action
+				options = action				
 				action = options['action']
 				if 'checkable' in options:
 					checkable = options['checkable']
+			# if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
+			action = auto_reload_wrapper(action)
 			menu_action = QAction(_(title), mw, checkable=checkable)
-			parent.addAction(menu_action)
-			parent.connect(menu_action, SIGNAL("triggered()"), action)
+			parent.addAction(menu_action)			
+			parent.connect(menu_action, SIGNAL("triggered()"),  action)
 			if checkable:
 				anknotes_checkable_menu_items[title] = menu_action
 
@@ -115,7 +126,7 @@ def import_from_evernote_manual_metadata(guids=None):
 	if not guids:
 		guids = find_evernote_guids(file(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES, 'r').read())
 	log("Manually downloading %d Notes" % len(guids))
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	controller.forceAutoPage = True
 	controller.currentPage = 1
 	controller.ManualGUIDs = guids
@@ -123,7 +134,7 @@ def import_from_evernote_manual_metadata(guids=None):
 
 
 def import_from_evernote(auto_page_callback=None):
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	controller.auto_page_callback = auto_page_callback
 	if auto_page_callback:
 		controller.forceAutoPage = True
@@ -135,7 +146,7 @@ def import_from_evernote(auto_page_callback=None):
 
 
 def upload_validated_notes(automated=False):
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	controller.upload_validated_notes(automated)
 
 
@@ -250,12 +261,12 @@ def external_tool_callback_timer(callback=None):
 
 
 def see_also(steps=None, showAlerts=None, validationComplete=False):
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	if not steps: steps = range(1, 10)
 	if isinstance(steps, int): steps = [steps]
 	multipleSteps = (len(steps) > 1)
 	if showAlerts is None: showAlerts = not multipleSteps
-	remaining_steps=steps
+	remaining_steps=steps	
 	if 1 in steps:
 		# Should be unnecessary once See Also algorithms are finalized
 		log(" > See Also: Step 1: Processing Un Added See Also Notes")
@@ -299,12 +310,12 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 		validate_pending_notes(showAlerts, callback=lambda: see_also(remaining_steps, False, True))
 
 def update_ancillary_data():
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	controller.update_ancillary_data()
 
 
 def resync_with_local_db():
-	controller = Controller()
+	controller = anknotes.Controller.Controller()
 	controller.resync_with_local_db()
 
 

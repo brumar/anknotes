@@ -84,9 +84,9 @@ class Anki:
 		:return: Count of notes successfully added or updated
 		"""
 		count_update = 0
-		tmr = stopwatch.Timer(len(evernote_notes), 100, label='AddEvernoteNotes')
+		tmr = stopwatch.Timer(len(evernote_notes), 100, label='AddEvernoteNotes', display_initial_info=False)
 		if tmr.willReportProgress:
-			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.max, ['TO', 'IN'][update]), tmr.label, append_newline=False)
+			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.counts.max, ['TO', 'IN'][update]), tmr.label, append_newline=False)
 		for ankiNote in evernote_notes:
 			try:
 				title = ankiNote.Title.FullTitle
@@ -114,10 +114,10 @@ class Anki:
 			assert ankiNote.Tags
 			anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
-													count_update=tmr.count_success, max_count=tmr.max)
+													count_update=tmr.counts.success, max_count=tmr.counts.max)
 			anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
 			if (update and anki_note_prototype.update_note()) or (not update and anki_note_prototype.add_note() != -1): tmr.reportSuccess()
-		return tmr.count_success
+		return tmr.counts.success
 
 	def delete_anki_cards(self, evernote_guids):
 		col = self.collection()
