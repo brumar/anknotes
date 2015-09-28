@@ -351,7 +351,7 @@ class Evernote(object):
 
 	def check_ancillary_data_up_to_date(self):
 		new_tags = 0 if self.check_tags_up_to_date() else self.update_tags_database("Tags were not up to date when checking ancillary data")
-		new_nbs = 0 f self.check_notebooks_up_to_date() else self.update_notebooks_database()
+		new_nbs = 0 if self.check_notebooks_up_to_date() else self.update_notebooks_database()
 		self.report_ancillary_data_results(new_tags, new_nbs)
 
 	def update_ancillary_data(self):
