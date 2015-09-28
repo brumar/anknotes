@@ -81,6 +81,9 @@ class TOCHierarchyClass:
 		if self.__isSorted__: return
 		self.sortChildren()
 
+	@property 
+	def FullTitle(self): return self.Title.FullTitle if self.Title else ""
+		
 	@property
 	def Level(self):
 		return self.Title.Level
@@ -130,12 +133,12 @@ class TOCHierarchyClass:
 		tocNewTitle = tocHierarchy.Title
 		tocNewLevel = tocNewTitle.Level
 		selfLevel = self.Title.Level
-		tocTestBase = tocHierarchy.Title.FullTitle.replace(self.Title.FullTitle, '')
+		tocTestBase = tocHierarchy.FullTitle.replace(self.FullTitle, '')
 		if tocTestBase[:2] == ': ':
 			tocTestBase = tocTestBase[2:]
 
 		print " \nAdd Hierarchy: %-70s --> %-40s\n-------------------------------------" % (
-			self.Title.FullTitle, tocTestBase)
+			self.FullTitle, tocTestBase)
 
 		if selfLevel > tocHierarchy.Title.Level:
 			print "New Title Level is Below current level"
@@ -171,33 +174,33 @@ class TOCHierarchyClass:
 			assert (isinstance(tocChild, TOCHierarchyClass))
 			if tocChild.Title.TOCName == tocNewSelfChildTOCName:
 				print "%-60s Child %-20s Match Succeeded for %s." % (
-					self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+					self.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
 				success = tocChild.addHierarchy(tocHierarchy)
 				if success:
 					return True
 				print "%-60s Child %-20s Match Succeeded for %s: However, unable to add to matched child" % (
-					self.Title.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
+					self.FullTitle + ':', tocChild.Title.Name + ':', tocNewChildNamesTitle)
 		print "%-60s Child %-20s Search failed for %s" % (
-			self.Title.FullTitle + ':', tocNewSelfChild.Name, tocNewChildNamesTitle)
+			self.FullTitle + ':', tocNewSelfChild.Name, tocNewChildNamesTitle)
 
 		newChild = tocHierarchy if isDirectChild else TOCHierarchyClass(tocNewSelfChild)
 		newChild.parent = self
 		if isDirectChild:
 			print "%-60s Child %-20s Created Direct Child for %s." % (
-				self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+				self.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
 			success = True
 		else:
 			print "%-60s Child %-20s Created Title-Only Child for %-40ss." % (
-				self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
+				self.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle)
 			success = newChild.addHierarchy(tocHierarchy)
 			print "%-60s Child %-20s Created Title-Only Child for %-40s: Match %s." % (
-				self.Title.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle,
+				self.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle,
 				"succeeded" if success else "failed")
 		self.__isSorted__ = False
 		self.Children.append(newChild)
 
 		print "%-60s Child %-20s Appended Child for %s. Operation was an overall %s." % (
-			self.Title.FullTitle + ':', newChild.Title.Name + ':', tocNewChildNamesTitle,
+			self.FullTitle + ':', newChild.Title.Name + ':', tocNewChildNamesTitle,
 			"success" if success else "failure")
 		return success
 
@@ -206,7 +209,7 @@ class TOCHierarchyClass:
 		self.__isSorted__ = True
 
 	def __strsingle__(self, fullTitle=False):
-		selfTitleStr = self.Title.FullTitle
+		selfTitleStr = self.FullTitle
 		selfNameStr = self.Title.Name
 		selfLevel = self.Title.Level
 		selfDepth = self.Title.Depth
@@ -284,7 +287,7 @@ class TOCHierarchyClass:
 		return base
 
 	def __reprsingle__(self, fullTitle=True):
-		selfTitleStr = self.Title.FullTitle
+		selfTitleStr = self.FullTitle
 		selfNameStr = self.Title.Name
 		# selfLevel = self.title.Level
 		# selfDepth = self.title.Depth

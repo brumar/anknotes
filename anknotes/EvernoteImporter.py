@@ -32,8 +32,6 @@ from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 try: from aqt import mw
 except: pass
 
-DEBUG_RAISE_API_ERRORS = False
-
 
 class EvernoteImporter:
 	forceAutoPage = False
@@ -92,21 +90,16 @@ class EvernoteImporter:
 			:type: NotesMetadataList
 			"""
 		except EDAMSystemException as e:
-			if HandleEDAMRateLimitError(e, api_action_str):
-				if DEBUG_RAISE_API_ERRORS: raise
-				self.MetadataProgress.Status = EvernoteAPIStatus.RateLimitError
-				return False
-			raise
+			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			self.MetadataProgress.Status = EvernoteAPIStatus.RateLimitError
+			return False
 		except socket.error, v:
-			if HandleSocketError(v, api_action_str):
-				if DEBUG_RAISE_API_ERRORS: raise
-				self.MetadataProgress.Status = EvernoteAPIStatus.SocketError
-				return False
-			raise
-
+			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			self.MetadataProgress.Status = EvernoteAPIStatus.SocketError
+			return False
 		self.MetadataProgress.loadResults(result)
 		self.evernote.metadata = self.MetadataProgress.NotesMetadata
-		log("                                - Metadata Results: %s" % self.MetadataProgress.Summary, timestamp=False)
+		log(" " * 32 + "- Metadata Results: %s" % self.MetadataProgress.Summary, timestamp=False)
 		return True
 
 	def update_in_anki(self, evernote_guids):

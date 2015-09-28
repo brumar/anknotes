@@ -14,16 +14,17 @@ except:
 ankNotesDBInstance = None
 dbLocal = False
 
+def anki_profile_path_root():
+	return os.path.abspath(os.path.join(os.path.dirname(PATH), '..' + os.path.sep))
+
 def last_anki_profile_name():
-	anki_profile_path_root = os.path.abspath(os.path.join(os.path.dirname(PATH), '..' + os.path.sep))
-	print anki_profile_path_root
+	root = anki_profile_path_root()
 	name = ANKI.PROFILE_NAME
-	if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name 
-	if os.path.isfile(FILES.USER.LAST_PROFILE_LOCATION): name = file(FILES.USER.LAST_PROFILE_LOCATION, 'r').read().strip()
-	if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name 
-	name = ANKI.PROFILE_NAME
-	if name and os.path.isdir(os.path.join(anki_profile_path_root, name)): return name     
-	dirs = [x for x in os.listdir(anki_profile_path_root) if os.path.isdir(os.path.join(anki_profile_path_root, x)) and x is not 'addons']
+	if name and os.path.isdir(os.path.join(root, name)): return name 
+	if os.path.isfile(FILES.USER.LAST_PROFILE_LOCATION): 
+		name = file(FILES.USER.LAST_PROFILE_LOCATION, 'r').read().strip()
+		if name and os.path.isdir(os.path.join(root, name)): return name 
+	dirs = [x for x in os.listdir(root) if os.path.isdir(os.path.join(root, x)) and x is not 'addons']
 	if not dirs: return ""
 	return dirs[0]
 
@@ -39,10 +40,8 @@ def ankDBIsLocal():
 def ankDB(reset=False):
 	global ankNotesDBInstance, dbLocal
 	if not ankNotesDBInstance or reset:
-		if dbLocal:
-			ankNotesDBInstance = ank_DB( os.path.abspath(os.path.join(PATH, '..' + os.path.sep , '..' + os.path.sep  , last_anki_profile_name() + os.path.sep, 'collection.anki2')))
-		else:
-			ankNotesDBInstance = ank_DB()
+		if dbLocal: ankNotesDBInstance = ank_DB( os.path.abspath(os.path.join(anki_profile_path_root(), last_anki_profile_name(), 'collection.anki2')))
+		else: ankNotesDBInstance = ank_DB()
 	return ankNotesDBInstance
 
 
@@ -71,7 +70,7 @@ class ank_DB(object):
 	def __init__(self, path=None, text=None, timeout=0):
 		encpath = path
 		if isinstance(encpath, unicode):
-			encpath = path.encode("utf-8")
+			encpath = path.encode("utf-8")		
 		if path:
 			self._db = sqlite.connect(encpath, timeout=timeout)
 			self._db.row_factory = sqlite.Row
@@ -81,7 +80,7 @@ class ank_DB(object):
 		else:
 			self._db = mw.col.db._db
 			self._path = mw.col.db._path
-			self._db.row_factory = sqlite.Row
+			self._db.row_factory = sqlite.Row		
 		self.echo = os.environ.get("DBECHO")
 		self.mod = False
 

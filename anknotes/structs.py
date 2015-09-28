@@ -171,8 +171,7 @@ class EvernoteLink(EvernoteStruct):
 		return self.__title__
 
 	@property
-	def FullTitle(self):
-		return self.Title.FullTitle
+	def FullTitle(self): return self.Title.FullTitle
 
 	@Title.setter
 	def Title(self, value):
@@ -308,6 +307,8 @@ class EvernoteAPIStatus(AutoNumberedEnum):
 	UserError = ()
 	""":type : EvernoteAPIStatus"""
 	NotFoundError = ()
+	""":type : EvernoteAPIStatus"""
+	MissingDataError = ()
 	""":type : EvernoteAPIStatus"""
 	UnhandledError = ()
 	""":type : EvernoteAPIStatus"""

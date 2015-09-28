@@ -55,7 +55,7 @@ class EvernoteNotePrototype:
 			db_note_keys = db_note.keys()
 			for key in ['content', 'guid', 'notebookGuid', 'updateSequenceNum', 'tagNames', 'tagGuids']:
 				if not key in db_note_keys:
-					log_error("FATAL ERROR: Unable to find key %s in db note %s! \n%s" % (key, self.Title.FullTitle, db_note_keys))
+					log_error("FATAL ERROR: Unable to find key %s in db note %s! \n%s" % (key, self.FullTitle, db_note_keys))
 					log("Values: \n\n" + str({k: db_note[k] for k in db_note_keys  }), 'EvernoteNotePrototypeInit')
 				else:
 					setattr(self, upperFirst(key), db_note[key])
@@ -92,8 +92,7 @@ class EvernoteNotePrototype:
 		return self.Title.Depth
 
 	@property
-	def FullTitle(self):
-		return self.Title.FullTitle
+	def FullTitle(self): return self.Title.FullTitle
 
 	@property
 	def Name(self):

@@ -6,12 +6,10 @@ except ImportError:
 	from sqlite3 import dbapi2 as sqlite
 import os 
 import re
+import sys 
 
 ### Check if in Anki 
-try:
-	from aqt import mw    
-	inAnki = True     
-except: inAnki = False     
+inAnki='anki' in sys.modules     
 	
 ### Anknotes Imports
 from anknotes.constants import *
@@ -21,13 +19,12 @@ from anknotes.structs import *
 from anknotes.db import *
 
 ### Anki and Evernote Imports
-try:
+if inAnki:
+	from aqt import mw 
 	from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
 	from aqt.utils import tooltip
 	from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
 		EDAMNotFoundException
-except:
-	pass   
 	
 # log('Checking for log at %s:\n%s' % (__name__,  dir(log)), 'import')
 def get_friendly_interval_string(lastImport):

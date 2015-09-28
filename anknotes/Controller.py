@@ -14,6 +14,7 @@ from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
+from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.EvernoteNoteTitle import generateTOCTitle
 from anknotes import stopwatch 
 
@@ -33,7 +34,6 @@ from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 ### Anki Imports
 from aqt import mw
 
-DEBUG_RAISE_API_ERRORS = False
 # load_time = datetime.now()
 # log("Loaded controller at " + load_time.isoformat(), 'import')
 class Controller:
@@ -97,13 +97,13 @@ class Controller:
 			else:
 				notes_created.append(note)
 				queries2.append([rootTitle, contents])
-		else: did_break=False			
+		else: tmr.reportNoBreak()
 		tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.counts.created else 0, self.anki.update_evernote_notes(notes_updated) if tmr.counts.updated else 0)
-		if tmr.counts.created.anki: ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries2)            
-		if tmr.counts.updated.anki: ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries1)		
+		if tmr.counts.created.completed.subcount: ankDB().executemany("DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries2)            
+		if tmr.counts.updated.completed.subcount: ankDB().executemany("DELETE FROM %s WHERE guid = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries1)		
 		if tmr.is_success: ankDB().commit()
-		if did_break and tmr.status != EvernoteAPIStatus.ExceededLocalLimit: mw.progress.timer((30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000, lambda: self.upload_validated_notes(True), False)	
-		return tmr.status, tmr.counts, 0
+		if tmr.should_retry: mw.progress.timer((30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000, lambda: self.upload_validated_notes(True), False)	
+		return tmr.status, tmr.count, 0
 
 	def create_auto_toc(self):
 		def check_old_values():			

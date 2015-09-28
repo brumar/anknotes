@@ -159,8 +159,8 @@ class EvernoteNotes:
 						assert enNote.Title.Base
 						childBaseTitleStr = enNote.Title.Base.FullTitle
 						if childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]:
-							log_dump(self.RootNotesMissing.ChildTitlesDict[rootTitleStr], repr(enNote))
-						assert not childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]
+							log_error("Duplicate Child Base Title String. \n%-18s%s\n%-18s%s: %s\n%-18s%s" % ('Root Note Title: ', rootTitleStr, 'Child Note: ', enNote.Guid, childBaseTitleStr, 'Duplicate Note: ', self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr]), crosspost_to_default=False)
+							log("     > WARNING: Duplicate Child Notes: " + enNote.FullTitle)
 						self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr] = enNote.Guid
 						self.RootNotesMissing.ChildNotesDict[rootTitleStr][enNote.Guid] = enNote
 				if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict:
@@ -348,7 +348,7 @@ class EvernoteNotes:
 					notebookGuids[enChildNote.NotebookGuid] += 1
 					level = enChildNote.Title.Level
 					# childName = enChildNote.Title.Name
-					# childTitle = enChildNote.Title.FullTitle
+					# childTitle = enChildNote.FullTitle
 					log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
 						'RootTitles-TOC', timestamp=False)
 					# tocList.generateEntry(childTitle, enChildNote)                    

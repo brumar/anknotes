@@ -21,7 +21,6 @@ from aqt import mw
 from aqt.utils import getText
 # from anki.storage import Collection
 
-DEBUG_RAISE_API_ERRORS = False
 # log('Checking for log at %s:\n%s' % (__name__, dir(log)), 'import')
 
 
@@ -226,6 +225,7 @@ Anki will be unresponsive until the validation tool completes. This will take at
 	info = ("ERROR: {%s}<HR>" % stderrdata) if stderrdata else ''
 	allowUpload = True
 	if showAlerts:        
+		log('vpn stdout: ' + FILES.SCRIPTS.VALIDATION + '\n' +  stdoutdata)
 		tds = [[str(count), '<a href="%s">VIEW %s VALIDATIONS LOG</a>' % (fn, key.upper())] for key, fn, count in [
 			[key, get_log_full_path('MakeNoteQueue\\' + key, as_url_link=True), int(re.search(r'CHECKING +(\d{1,3}) +' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
 			for key in ['Pending', 'Successful', 'Failed']] if count > 0]        
@@ -269,48 +269,48 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 	remaining_steps=steps	
 	if 1 in steps:
 		# Should be unnecessary once See Also algorithms are finalized
-		log(" > See Also: Step 1: Processing Un Added See Also Notes")
+		log(" > See Also: Step 1:  Process Un Added See Also Notes")
 		controller.process_unadded_see_also_notes()
 	if 2 in steps:
-		log(" > See Also: Step 2: Extracting Links from TOC")
+		log(" > See Also: Step 2:  Extract Links from TOC")
 		controller.anki.extract_links_from_toc()
 	if 3 in steps:
-		log(" > See Also: Step 3: Creating Auto TOC Evernote Notes")
+		log(" > See Also: Step 3:  Create Auto TOC Evernote Notes")
 		controller.create_auto_toc()
 	if 4 in steps:
 		if validationComplete:
-			log(" > See Also: Step 4: Validate and Upload Auto TOC Notes: Upload Validating Notes")
+			log(" > See Also: Step 4A: Validate and Upload Auto TOC Notes: Upload Validated Notes")
 			upload_validated_notes(multipleSteps)
-		else:
-			steps = [-4]
+			validationComplete = False
+		else: steps = [-4]
 	if 5 in steps:
-		log(" > See Also: Step 5: Rebuild TOC/Outline Link Database")
+		log(" > See Also: Step 5:  Rebuild TOC/Outline Link Database")
 		controller.anki.extract_links_from_toc()
 	if 6 in steps:
-		log(" > See Also: Step 6: Inserting TOC/Outline Links Into Anki Notes' See Also Field")
+		log(" > See Also: Step 6:  Insert TOC/Outline Links Into Anki Notes' See Also Field")
 		controller.anki.insert_toc_into_see_also()    
 	if 7 in steps:
-		log(" > See Also: Step 7: Update See Also Footer In Evernote Notes")
+		log(" > See Also: Step 7:  Update See Also Footer In Evernote Notes")
 		from anknotes import detect_see_also_changes 
 		detect_see_also_changes.main()
 	if 8 in steps:
 		if validationComplete:
-			log(" > See Also: Step 8: Validate and Upload Modified Notes: Upload Validating Notes")
+			log(" > See Also: Step 8A: Validate and Upload Modified Evernote Notes: Upload Validated Notes")
 			upload_validated_notes(multipleSteps)
-		else:
-			steps = [-8]
+		else: steps = [-8]
 	if 9 in steps:
-		log(" > See Also: Step 9: Inserting TOC/Outline Contents Into Anki Notes")
+		log(" > See Also: Step 9:  Insert TOC/Outline Contents Into Anki Notes")
 		controller.anki.insert_toc_and_outline_contents_into_notes()
 
 	do_validation = steps[0]*-1
 	if do_validation>0:
-		log(" > See Also: Step %d: Validate and Upload %s Notes: Validating Notes" % (do_validation, {4: 'Auto TOC', 8: 'Modified Evernote'}[do_validation]))
-		remaining_steps = remaining_steps[remaining_steps.index(do_validation)+validationComplete and 1 or 0:]
+		log(" > See Also: Step %dB: Validate and Upload %s Notes: Validate Notes" % (do_validation, {4: 'Auto TOC', 8: 'Modified Evernote'}[do_validation]))
+		remaining_steps = remaining_steps[remaining_steps.index(do_validation):]
 		validate_pending_notes(showAlerts, callback=lambda: see_also(remaining_steps, False, True))
 
 def update_ancillary_data():
 	controller = anknotes.Controller.Controller()
+	log("Ancillary data - loaded controller - " + str(controller.evernote) + " - " + str(controller.evernote.client), 'client')
 	controller.update_ancillary_data()
 
 

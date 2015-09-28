@@ -8,6 +8,7 @@ anknotes/extra/user/
 *.lnk
 *.py-bkup
 *.c00k!e
+ctags.tags
 
 #################
 ## Eclipse

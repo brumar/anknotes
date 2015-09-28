@@ -8,7 +8,7 @@
 
 import time
 from anknotes.structs import EvernoteAPIStatus
-from anknotes.logging import caller_name, log, log_banner, show_report, counts_as_str, showInfo
+from anknotes.logging import caller_name, log, log_banner, log_blank, show_report, counts_as_str, showInfo
 from anknotes.counters import Counter, EvernoteCounter
 
 """stopwatch is a very simple Python module for measuring time.
@@ -211,7 +211,8 @@ class Timer(object):
 	__stopped = None
 	__start = None
 	__status = EvernoteAPIStatus.Uninitialized
-	__counts = EvernoteCounter()
+	__counts = None
+	__did_break = True
 	__laps = 0
 	__interval = 100
 	__parent_timer = None
@@ -220,11 +221,14 @@ class Timer(object):
 
 	@property 
 	def counts(self):
+		if self.__counts is None: 
+			log("Init counter from property: " + repr(self.__counts), "counters")
+			self.__counts = EvernoteCounter()
 		return self.__counts
 	
 	@counts.setter
 	def counts(self, value):
-		self.__counts__ = value 
+		self.__counts = value 
 	
 	@property
 	def laps(self):
@@ -363,7 +367,7 @@ class Timer(object):
 		return self.extractStatus(returned_tuple, update)
 	
 	def extractStatus(self, returned_tuple, update=None):
-		self.report_result = self.reportStatus(returned_tuple[0], None)
+		self.report_result = self.reportStatus(returned_tuple[0], update)
 		if len(returned_tuple) == 2: return returned_tuple[1]
 		return returned_tuple[1:]
 	
@@ -406,7 +410,7 @@ class Timer(object):
 
 	@property 
 	def ReportHeader(self):
-		return self.info.FormatLine("%s {r} were processed" % counts_as_str(self.counts.total, self.counts.max), self.count)
+		return None if not self.counts.total else self.info.FormatLine("%s {r} were processed" % counts_as_str(self.counts.total, self.counts.max), self.counts.total)
 
 	def ReportSingle(self, text, count, subtext='', queued_text='', queued=0, subcount=0, process_subcounts=True):
 		if not count: return []
@@ -429,7 +433,11 @@ class Timer(object):
 		str_tips += self.ReportSingle('already exist but were unchanged', self.counts.skipped, process_subcounts=False)
 		if self.counts.error: str_tips.append("%d Error(s) occurred " % self.counts.error.val)
 		if self.status == EvernoteAPIStatus.ExceededLocalLimit: str_tips.append("Action was prematurely terminated because locally-defined limit of %d was exceeded." % self.counts.max_allowed.val)
-		show_report("   > %s Complete" % self.info.Action, self.ReportHeader, str_tips, blank_line_before=False)
+		report_title = "   > %s Complete" % self.info.Action
+		if self.counts.total is 0: report_title += self.info.FormatLine(": No {r} were processed")
+		show_report(report_title, self.ReportHeader, str_tips, blank_line_before=False)
+		log_blank(filename='counters')
+		log(self.counts.fullSummary((self.label if self.label else 'Counter') + ': End'), 'counters')
 
 	def step(self, title=None, val=None):
 		if val is None and (isinstance(title, str) or isinstance(title, unicode)) and  title.isdigit():
@@ -447,19 +455,28 @@ class Timer(object):
 		"""
 		return self.__info
 
+	@property 
+	def did_break(self): return self.__did_break
+	
+	def reportNoBreak(self): self.__did_break = False 
+	
+	@property 
+	def should_retry(self): return self.did_break and self.status != EvernoteAPIStatus.ExceededLocalLimit
+		
 	@property
 	def automated(self):
 		if not self.info: return False
 		return self.info.Automated
 
 	def hasActionInfo(self):
-		return self.info and self.counts.max
+		return self.info is not None and self.counts.max
 
 	def __init__(self, max=None, interval=100, info=None, infoStr=None, automated=None, enabled=None, begin=True, label=None, display_initial_info=None, max_allowed=None):
 		"""
 		:type info : ActionInfo
 		"""
 		simple_label = False		
+		self.counts = EvernoteCounter()		
 		self.counts.max_allowed = -1 if max_allowed is None else max_allowed
 		self.__interval = interval
 		if type(info) == str or type(info) == unicode: info = ActionInfo(info)
@@ -471,13 +488,16 @@ class Timer(object):
 		elif label: info.__label = label
 		if max is not None and info and (info.Max is None or info.Max <= 0): info.Max = max
 		self.counts.max = -1 if max is None else max
+		self.__did_break = True 
 		self.__info = info
 		self.__action_initialized = False
-		self.__action_attempted =  self.hasActionInfo and display_initial_info is not False 
+		self.__action_attempted =  self.hasActionInfo and (display_initial_info is not False)
 		if self.__action_attempted:
-			self.__action_initialized = info.displayInitialInfo(max=self.counts.max,interval=interval, automated=automated, enabled=enabled) is EvernoteAPIStatus.Initialized
-		if begin:
-			self.reset()
+			if self.info is None: print "Unexpected; Timer has no ActionInfo instance"
+			else: self.__action_initialized = self.info.displayInitialInfo(max=self.counts.max,interval=interval, automated=automated, enabled=enabled) is EvernoteAPIStatus.Initialized
+		if begin: self.reset(False)
+		log_blank(filename='counters')
+		log(self.counts.fullSummary((self.label if self.label else 'Counter') + ': Start'), 'counters')
 
 	@property
 	def willReportProgress(self):
@@ -494,8 +514,18 @@ class Timer(object):
 	def start(self):
 		self.reset()
 
-	def reset(self):
-		self.counts = EvernoteCounter()
+	def reset(self, reset_counter = True):
+		# keep = []
+		# if self.counts:
+			# keep = [self.counts.max, self.counts.max_allowed]
+			# del self.__counts 
+		if reset_counter: 
+			log("Resetting counter", 'counters')
+			if self.counts is None: self.counts = EvernoteCounter()
+			else: self.counts.reset()
+		# if keep:
+			# self.counts.max = keep[0]
+			# self.counts.max_allowed = keep[1]
 		if not self.__stopped: self.stop()
 		self.__stopped = None
 		self.__start = self.__time()

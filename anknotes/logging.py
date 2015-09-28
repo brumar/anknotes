@@ -32,13 +32,12 @@ def print_safe(strr, prefix=''):
 	print str_safe(strr, prefix)
 
 
-def show_tooltip(text, time_out=7000, delay=None):
+def show_tooltip(text, time_out=7000, delay=None, do_log=False):
+	if do_log: log(text)
 	if delay:
-		try:
-			return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
-		except:
-			pass
-	tooltip(text, time_out)
+		try: return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
+		except: pass
+	tooltip(text, time_out)	
 
 def counts_as_str(count, max=None):
 	from anknotes.counters import Counter
@@ -48,7 +47,7 @@ def counts_as_str(count, max=None):
 	if count == max: return "All  %s" % str(count).center(3)
 	return "Total %s of %s" % (str(count).center(3), str(max).center(3))
 
-def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True):
+def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True, hr_if_empty=False):
 	if log_lines is None: log_lines = []
 	if header is None: header = []
 	lines = []
@@ -65,10 +64,10 @@ def show_report(title, header=None, log_lines=None, delay=None, log_header_prefi
 	if blank_line_before: log_blank(filename=filename)
 	log(title, filename=filename)
 	if len(lines) == 1 and not lines[0]: 
-		log(" " + "-" * 187, timestamp=False, filename=filename)
-	else:
-		log(" " + "-" * 187 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True, filename=filename)
-		log_blank(filename=filename)
+		if hr_if_empty: log(" " + "-" * 185, timestamp=False, filename=filename)
+		return 
+	log(" " + "-" * 185 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True, filename=filename)
+	log_blank(filename=filename)
 
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False, minHeight=None, minWidth=400, styleSheet=None, convertNewLines=True):
@@ -199,7 +198,7 @@ class Logger(object):
 		else:
 			self.caller_info = caller_name()
 			if self.caller_info:
-				self.base_path = create_log_filename(c.Base)
+				self.base_path = create_log_filename(self.caller_info.Base)
 		if rm_path:
 			rm_log_path(self.base_path)
 					
@@ -324,8 +323,8 @@ def log(content=None, filename=None, prefix='', clear=False, timestamp=True, ext
 def log_sql(content, **kwargs):
 	log(content, 'sql', **kwargs)
 
-def log_error(content, crossPost=True, **kwargs):
-	log(content, ('+' if crossPost else '') + 'error', **kwargs)
+def log_error(content, crosspost_to_default=True, **kwargs):
+	log(content, ('+' if crosspost_to_default else '') + 'error', **kwargs)
 
 
 def print_dump(obj):

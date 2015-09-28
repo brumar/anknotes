@@ -127,8 +127,12 @@ class EVERNOTE:
 			ENABLED = True 
 			AUTOMATED = True 	
 	class API:
+		class RateLimitErrorHandling:
+			IgnoreError, ToolTipError, AlertError = range(3)
 		CONSUMER_KEY = "holycrepe"
 		IS_SANDBOXED = False	
+		EDAM_RATE_LIMIT_ERROR_HANDLING = RateLimitErrorHandling.ToolTipError
+		DEBUG_RAISE_ERRORS = False 
 		
 class TABLES:
 	SEE_ALSO = "anknotes_see_also"

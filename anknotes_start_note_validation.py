@@ -44,9 +44,9 @@ if eTreeImported:
 	db = ankDB()
 	db.Init()
 
-	failed_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.MAKE_NOTE_QUEUE)
-	pending_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 0" % TABLES.MAKE_NOTE_QUEUE)
-	success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.MAKE_NOTE_QUEUE)
+	failed_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.NOTE_VALIDATION_QUEUE)
+	pending_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 0" % TABLES.NOTE_VALIDATION_QUEUE)
+	success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.NOTE_VALIDATION_QUEUE)
 
 	currentLog = 'Successful'
 	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
@@ -104,7 +104,7 @@ if eTreeImported:
 				errors = '\n'.join(errors)
 		
 		
-		sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (TABLES.MAKE_NOTE_QUEUE, validation_status, escape_text_sql(errors))
+		sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (TABLES.NOTE_VALIDATION_QUEUE, validation_status, escape_text_sql(errors))
 		if guid:
 			sql += "guid = '%s'" % guid
 		else:

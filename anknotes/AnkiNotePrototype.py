@@ -78,7 +78,7 @@ class AnkiNotePrototype:
 		self.Fields = fields
 		self.BaseNote = base_note
 		if enNote and light_processing and not fields:
-			self.Fields = {FIELDS.TITLE: enNote.Title.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'', FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid}
+			self.Fields = {FIELDS.TITLE: enNote.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'', FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid}
 			self.enNote = enNote
 		self.Changed = False
 		self.logged = False
@@ -214,7 +214,7 @@ class AnkiNotePrototype:
 			see_also_match = regex_see_also().search(self.Fields[FIELDS.CONTENT])            
 			if not see_also_match: 
 				if self.Fields[FIELDS.CONTENT].find("See Also") > -1:
-					log("No See Also Content Found, but phrase 'See Also' exists in " + self.Title.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
+					log("No See Also Content Found, but phrase 'See Also' exists in " + self.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
 					raise ValueError                
 				return            
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0), see_also_match.group('Suffix'))
@@ -427,11 +427,11 @@ class AnkiNotePrototype:
 		if not self.OriginalGuid:
 			flds = get_dict_from_list(self.BaseNote.items())
 			self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
-		old_title = ankDB().scalar(
+		db_title = ankDB().scalar(
 			"SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.OriginalGuid))
 		do_log_title=False
 		new_guid = self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
-		new_title = self.Fields[FIELD.TITLE]
+		new_title = self.Fields[FIELDS.TITLE]
 		old_title = db_title
 		if not isinstance(new_title, unicode):
 			try: new_title = unicode(new_title, 'utf-8')
@@ -458,6 +458,10 @@ class AnkiNotePrototype:
 			title = self.originalFields[FIELDS.TITLE]
 		return EvernoteNoteTitle(title)
 
+	@property
+	def FullTitle(self): return self.Title.FullTitle
+	
+		
 	def add_note(self):
 		self.create_note()
 		if self.note is not None:

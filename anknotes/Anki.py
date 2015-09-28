@@ -25,8 +25,6 @@ try:
 	import aqt
 	from aqt import mw
 except: pass
-DEBUG_RAISE_API_ERRORS = False
-
 
 class Anki:
 	def __init__(self):
@@ -86,7 +84,7 @@ class Anki:
 			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.counts.max.val, ['TO', 'IN'][update]), tmr.label, append_newline=False)
 		for ankiNote in evernote_notes:
 			try:
-				title = ankiNote.Title.FullTitle
+				title = ankiNote.FullTitle
 				content = ankiNote.Content
 				if isinstance(content, str):
 					content = unicode(content, 'utf-8')
@@ -107,8 +105,15 @@ class Anki:
 			baseNote = None
 			if update:
 				baseNote = self.get_anki_note_from_evernote_guid(ankiNote.Guid)
-				if not baseNote: log('Updating note %s: COULD NOT FIND ANKI NOTE ID' % ankiNote.Guid)
-			assert ankiNote.Tags
+				if not baseNote: 
+					log_error('Updating note %s: COULD NOT FIND BASE NOTE FOR ANKI NOTE ID' % ankiNote.Guid)
+					tmr.reportStatus(EvernoteAPIStatus.MissingDataError)
+					continue 
+				
+			if ankiNote.Tags is None:
+				log_error("Could note find tags object for note %s: %s. " % (ankiNote.Guid, ankiNote.FullTitle))
+				tmr.reportStatus(EvernoteAPIStatus.MissingDataError)
+				continue 
 			anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
 													count_update=tmr.counts.success, max_count=tmr.counts.max)
@@ -387,6 +392,7 @@ class Anki:
 			extension='htm')
 		for source_guid, source_guid_info in sorted(grouped_results.items(), key=lambda s: s[1][0]):
 			toc_guids = source_guid_info[1]
+			note_title = source_guid_info[0]
 			ankiNote = self.get_anki_note_from_evernote_guid(source_guid)
 			if not ankiNote:
 				log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False)
@@ -396,7 +402,7 @@ class Anki:
 				content_links = find_evernote_links_as_guids(fields[FIELDS.CONTENT])
 				see_also_links = find_evernote_links_as_guids(see_also_html)                    
 				new_tocs = set(toc_guids) - set(see_also_links) - set(content_links)
-				log.dump([new_tocs, toc_guids, see_also_links, content_links], 'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + source_guid_title, 'insert_toc_new_tocs', crosspost_to_default=False)
+				log.dump([new_tocs, toc_guids, see_also_links, content_links], 'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + note_title , 'insert_toc_new_tocs', crosspost_to_default=False)
 				new_toc_count = len(new_tocs)				
 				if new_toc_count > 0:
 					see_also_count = len(see_also_links)
@@ -480,9 +486,9 @@ class Anki:
 						"select DISTINCT source_evernote_guid from %s WHERE is_toc = 1 ORDER BY source_evernote_guid ASC" % TABLES.SEE_ALSO)
 		source_guids_count = len(source_guids)
 		i = 0
-		for source_evernote_guid in source_guids:
+		for source_guid in source_guids:
 			i += 1
-			note = self.get_anki_note_from_evernote_guid(source_evernote_guid)
+			note = self.get_anki_note_from_evernote_guid(source_guid)
 			if not note: continue
 			if TAGS.TOC in note.tags: continue
 			for fld in note._model['flds']:
@@ -500,7 +506,7 @@ class Anki:
 			outline_count = 0
 			toc_and_outline_links = ankDB().execute(
 				"select target_evernote_guid, is_toc, is_outline from %s WHERE source_evernote_guid = '%s' AND (is_toc = 1 OR is_outline = 1) ORDER BY number ASC" % (
-					TABLES.SEE_ALSO, source_evernote_guid))
+					TABLES.SEE_ALSO, source_guid))
 			for target_evernote_guid, is_toc, is_outline in toc_and_outline_links:
 				if target_evernote_guid in linked_notes_fields:
 					linked_note_contents = linked_notes_fields[target_evernote_guid][FIELDS.CONTENT]
@@ -523,7 +529,7 @@ class Anki:
 					if isinstance(linked_note_contents, str):
 						linked_note_contents = unicode(linked_note_contents, 'utf-8')
 					if (is_toc or is_outline) and (toc_count + outline_count is 0):
-						log("  > [%3d/%3d]  Found TOC/Outline for Note '%s': %s" % (i, source_guids_count, source_evernote_guid, note_title), 'See Also')
+						log("  > [%3d/%3d]  Found TOC/Outline for Note '%s': %s" % (i, source_guids_count, source_guid, note_title), 'See Also')
 					if is_toc:
 						toc_count += 1
 						if toc_count is 1:

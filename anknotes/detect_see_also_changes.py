@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import shutil
+import sys
 
 try:
 	from pysqlite2 import dbapi2 as sqlite
@@ -8,9 +9,6 @@ except ImportError:
 
 from anknotes.shared import *
 from anknotes import stopwatch
-# from anknotes.stopwatch import clockit
-import re
-from anknotes._re import __Match
 
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
@@ -91,7 +89,7 @@ class notes:
 			__subject__ = None
 			__content__ = None
 			__matchobject__ = None
-			""":type : __Match """
+			""":type : anknotes._re.__Match """
 			__match_attempted__ = 0
 
 			@property
@@ -124,7 +122,7 @@ class notes:
 				if self.__matchobject__: return True
 				if self.__match_attempted__ is 0 and self.subject is not None:
 					self.__matchobject__ = notes.rgx.search(self.subject)
-					""":type : __Match """
+					""":type : anknotes._re.__Match """
 					self.__match_attempted__ += 1
 				return self.__matchobject__ is not None
 
@@ -148,7 +146,7 @@ class notes:
 				self.__content__ = content
 				self.__match_attempted__ = 0
 				self.__matchobject__ = None
-				""":type : __Match """       
+				""":type : anknotes._re.__Match """       
 		content = pstrings()
 		see_also = pstrings()
 	old = version()
@@ -231,17 +229,17 @@ def main(evernote=None, anki=None):
 	# SELECT DISTINCT s.target_evernote_guid, n.* FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%,#TOC,%' AND n.tagNames NOT LIKE '%,#Outline,%'  ORDER BY n.title ASC;
 	sql = "SELECT DISTINCT s.target_evernote_guid, n.* FROM %s as s, %s as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%%,%s,%%' AND n.tagNames NOT LIKE '%%,%s,%%' ORDER BY n.title ASC;"
 	results = ankDB().all(sql % (TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TAGS.TOC, TAGS.OUTLINE))
-	count_queued = 0
-	tmr = stopwatch.Timer(len(results), 25, label='SeeAlso-Step7')
+	# count_queued = 0
+	tmr = stopwatch.Timer(len(results), 25, 'Updating See Also Notes', label='SeeAlso-Step7', display_initial_info=False)
 	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True)
 	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), tmr.label)	
 	notes_updated=[]
-	number_updated = 0
+	# number_updated = 0
 	for result in results:
 		enNote = EvernoteNotePrototype(db_note=result)
 		n = notes()
 		if tmr.step():
-			log.go("Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, enNote.FullTitle if enNote.Status.IsSuccess else '(%s)' % enNote.Guid), , do_print=True, print_timestamp=False)
+			log.go("Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, enNote.FullTitle if enNote.Status.IsSuccess else '(%s)' % enNote.Guid), do_print=True, print_timestamp=False)
 		flds = ankDB().scalar("SELECT flds FROM notes WHERE flds LIKE '%%%s%s%%'" % (FIELDS.EVERNOTE_GUID_PREFIX, enNote.Guid)).split("\x1f")
 		n.new.see_also = notes.version.pstrings(flds[FIELDS.ORD.SEE_ALSO])            
 		result = process_note()
@@ -259,17 +257,16 @@ def main(evernote=None, anki=None):
 		print_results('Diff\\Contents', final=True)			
 		enNote.Content = n.new.content.final 
 		if not evernote: evernote = Evernote()
-		status, whole_note = evernote.makeNote(enNote=enNote)
+		whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote), enNote.FullTitle, True)
 		if tmr.reportStatus(status) == False: raise ValueError
-		if status.IsDelayableError: break 
-		if status.IsSuccess: notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))
-	if tmr.count_success > 0: 
-		if not anki: anki = Anki()
-		number_updated = anki.update_evernote_notes(notes_updated)
-	log.go("Total %d of %d note(s) successfully uploaded to Evernote" % (tmr.count_success, tmr.max), tmr.label, do_print=True)
-	if number_updated > 0: log.go("  > %4d updated in Anki" % number_updated, tmr.label, do_print=True)
-	if tmr.count_queued > 0: log.go("  > %4d queued for validation" % tmr.count_queued, tmr.label, do_print=True)
-	if tmr.count_error > 0:  log.go("  > %4d error(s) occurred" % tmr.count_error, tmr.label, do_print=True)
+		if tmr.status.IsDelayableError: break 
+		if tmr.status.IsSuccess: notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))
+	if tmr.is_success and not anki: anki = Anki()
+	tmr.Report(0, anki.update_evernote_notes(notes_updated) if tmr.is_success else 0)
+	# log.go("Total %d of %d note(s) successfully uploaded to Evernote" % (tmr.count_success, tmr.max), tmr.label, do_print=True)
+	# if number_updated > 0: log.go("  > %4d updated in Anki" % number_updated, tmr.label, do_print=True)
+	# if tmr.count_queued > 0: log.go("  > %4d queued for validation" % tmr.count_queued, tmr.label, do_print=True)
+	# if tmr.count_error > 0:  log.go("  > %4d error(s) occurred" % tmr.count_error, tmr.label, do_print=True)
 
 	
 ## HOCM/MVP

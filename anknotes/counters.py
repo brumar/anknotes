@@ -1,12 +1,13 @@
-from addict import Dict
 import os
+import sys 
 from pprint import pprint
-absolutely_unused_variable = os.system("cls")
+from addict import Dict
+inAnki='anki' in sys.modules
 
 def print_banner(title):
-	print "-" * 40
+	print "-" * max(40, len(title) + 5)
 	print title
-	print "-" * 40
+	print "-" * max(40, len(title) + 5)
 
 
 class Counter(Dict):
@@ -15,7 +16,7 @@ class Counter(Dict):
 	
 	@staticmethod
 	def make_banner(title):
-		return '\n'.join(["-" * 40, title ,"-" * 40])
+		return '\n'.join(["-" * max(40, len(title) + 5), title ,"-" * max(40, len(title) + 5)])
 		
 	def __init__(self, *args, **kwargs):
 		self.setCount(0)
@@ -25,6 +26,11 @@ class Counter(Dict):
 		self.__is_exclusive_sum__ = True
 		# return super(Counter, self).__init__(*args, **kwargs)
 
+	def reset(self, keys_to_keep=None):
+		if keys_to_keep is None: keys_to_keep=self.__my_aggregates__.lower().split("|")
+		for key in self.keys():
+			if key.lower() not in keys_to_keep: del self[key]
+	
 	def __key_transform__(self, key):
 		for k in self.keys():
 			if k.lower() == key.lower(): return k
@@ -260,8 +266,10 @@ class EvernoteCounter(Counter):
 		
 from pprint import pprint
 
-def test():
+def test():	
 	global Counts
+	absolutely_unused_variable = os.system("cls")
+	del absolutely_unused_variable	
 	Counts = EvernoteCounter()	
 	Counts.unhandled.step(5)
 	Counts.skipped.step(3)
@@ -279,6 +287,9 @@ def test():
 	Counts.print_banner("Evernote Counter: Aggregates")
 	print (Counts.aggregateSummary())
 	
+	Counts.reset()
+	
+	print Counts.fullSummary('Reset Counter')
 	return
 
 	Counts.print_banner("Evernote Counter")
@@ -294,7 +305,7 @@ def test():
 	Counts.print_banner("Evernote Counter")
 	# print Counts
 
-# test()
+if not inAnki and 'anknotes' not in sys.modules: test()
 
 
 

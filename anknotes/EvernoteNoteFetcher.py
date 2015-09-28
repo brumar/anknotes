@@ -137,17 +137,13 @@ class EvernoteNoteFetcher(object):
 															  False, False)
 			""":type : evernote.edam.type.ttypes.Note"""
 		except EDAMSystemException as e:
-			if HandleEDAMRateLimitError(e, api_action_str):
-				self.reportResult(EvernoteAPIStatus.RateLimitError)
-				if DEBUG_RAISE_API_ERRORS: raise
-				return False
-			raise
+			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			self.reportResult(EvernoteAPIStatus.RateLimitError)
+			return False
 		except socket.error, v:
-			if HandleSocketError(v, api_action_str):
-				self.reportResult(EvernoteAPIStatus.SocketError)
-				if DEBUG_RAISE_API_ERRORS: raise
-				return False
-			raise
+			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			self.reportResult(EvernoteAPIStatus.SocketError)
+			return False
 		assert self.whole_note.guid == self.evernote_guid
 		return True
 

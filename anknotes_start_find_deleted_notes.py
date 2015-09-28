@@ -1,10 +1,7 @@
-try:
-    from aqt.utils import getText
-    isAnki = True
-except:
-    isAnki = False
+import sys
+inAnki='anki' in sys.modules
 
-if not isAnki:
+if not inAnki:
     from anknotes import find_deleted_notes
     from anknotes.db import ankDBSetLocal
     ankDBSetLocal()
