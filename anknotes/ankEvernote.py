@@ -341,7 +341,7 @@ class Evernote(object):
 		if inAnki:
 			fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',', ' ').split()
 			fetcher.keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS, SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
-			fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, True)
+			fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
 			fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
 		for evernote_guid in self.evernote_guids:
 			self.evernote_guid = evernote_guid
@@ -351,21 +351,23 @@ class Evernote(object):
 
 	def check_ancillary_data_up_to_date(self):
 		new_tags = 0 if self.check_tags_up_to_date() else self.update_tags_database("Tags were not up to date when checking ancillary data")
-		new_nbs = 0 f self.check_notebooks_up_to_date() else self.update_notebooks_database()
-		self.report_ancillary_data_results(new_tags, new_nbs)
+		new_nbs = 0 if self.check_notebooks_up_to_date() else self.update_notebooks_database()
+		self.report_ancillary_data_results(new_tags, new_nbs, 'Forced ')
 
 	def update_ancillary_data(self):
 		new_tags = self.update_tags_database("Manual call to update ancillary data")
 		new_nbs = self.update_notebooks_database()
-		self.report_ancillary_data_results(new_tags, new_nbs)
+		self.report_ancillary_data_results(new_tags, new_nbs, 'Manual ', report_blank=True)
 
 	@staticmethod
-	def report_ancillary_data_results(new_tags, new_nbs):
-		if new_tags is 0 and new_nbs is 0: strr = 'No new tags or notebooks found'
+	def report_ancillary_data_results(new_tags, new_nbs, title_prefix='', report_blank=False):
+		if new_tags is 0 and new_nbs is 0: 
+			if not report_blank: return 
+			strr = 'No new tags or notebooks found' 
 		elif new_tags is 0: strr = '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
 		elif new_nbs is 0: strr = '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
 		else: strr = '%d new tag%s and %d new notebook%s found' % (new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
-		show_tooltip("Update of ancillary data complete: " + strr, do_log=True)	
+		show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + strr, do_log=True)	
 		
 	def set_notebook_data(self):
 		if not hasattr(self, 'notebook_data') or not self.notebook_data or len(self.notebook_data.keys()) == 0:

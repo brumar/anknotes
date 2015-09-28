@@ -363,7 +363,7 @@ def setup_evernote(self):
 
 	# Delete Tags To Import 
 	delete_evernote_query_tags = QCheckBox("     Also Delete Search Tags", self)
-	delete_evernote_query_tags.setChecked(mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, True))
+	delete_evernote_query_tags.setChecked(mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False))
 	delete_evernote_query_tags.stateChanged.connect(update_delete_evernote_query_tags)
 
 	# Add Form Row for Evernote Tag Options
