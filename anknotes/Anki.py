@@ -116,7 +116,7 @@ class Anki:
 				continue 
 			anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
-													count_update=tmr.counts.success, max_count=tmr.counts.max)
+													count_update=tmr.counts.success, max_count=tmr.counts.max.val)
 			anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
 			if (update and anki_note_prototype.update_note()) or (not update and anki_note_prototype.add_note() != -1): tmr.reportSuccess()
 		return tmr.counts.success

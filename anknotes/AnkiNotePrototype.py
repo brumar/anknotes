@@ -446,8 +446,9 @@ class AnkiNotePrototype:
 		if not isinstance(old_title, unicode):
 			try: old_title = unicode(old_title, 'utf-8')
 			except: do_log_title = True 
+		guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + ('' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
 		if do_log_title or new_title != old_title or new_guid != self.OriginalGuid:
-			log_str = ' %s:     %s: ' % (log_title, self.OriginalGuid + ('' if new_guid == self.OriginalGuid else ' vs %s' % new_guid)) + '    ' + new_title + ' vs ' + old_title
+			log_str = ' %s: %s%s' % (log_title, guid_text, '    ' + new_title + ' vs ' + old_title)
 			log_error(log_str)
 			self.log_update(log_str)
 			return False 
