@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 try:
 	from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -15,7 +16,11 @@ def do_find_deleted_notes(all_anki_notes=None):
 	"""
 
 	Error = sqlite.Error
-
+	
+	if not os.path.isfile(FILES.USER.TABLE_OF_CONTENTS_ENEX):
+		log_error('Unable to proceed with find_deleted_notes: TOC enex does not exist.', do_print=True)
+		return False
+		
 	enTableOfContents = file(FILES.USER.TABLE_OF_CONTENTS_ENEX, 'r').read()
 	# find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
 	# replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()

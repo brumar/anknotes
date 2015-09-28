@@ -150,7 +150,7 @@ def upload_validated_notes(automated=False):
 
 
 def find_deleted_notes(automated=False):
-	if not automated and False:
+	if not automated:
 		showInfo("""In order for this to work, you must create a 'Table of Contents' Note using the Evernote desktop application. Include all notes that you want to sync with Anki.
 
 Export this note to the following path: '%s'.
@@ -171,6 +171,9 @@ Once the command line tool is done running, you will get a summary of the result
 	# stdoutdata = re.sub(' +', ' ', stdoutdata)
 	from anknotes import find_deleted_notes
 	returnedData = find_deleted_notes.do_find_deleted_notes()
+	if returnedData is False:
+		showInfo("An error occurred while executing the script. Please ensure you created the TOC note and saved it as instructed in the previous dialog.")
+		return 
 	lines = returnedData['Summary']
 	info = tableify_lines(lines, '#|Type|Info')
 	# info = '<table><tr class=tr0><td class=t1>#</td><td class=t2>Type</td><td class=t3></td></tr>%s</table>' % '\n'.join(lines)
