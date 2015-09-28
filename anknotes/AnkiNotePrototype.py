@@ -439,6 +439,7 @@ class AnkiNotePrototype:
 
 	
 	def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
+		do_log_title = False 
 		if not isinstance(new_title, unicode):
 			try: new_title = unicode(new_title, 'utf-8')
 			except: do_log_title = True 
