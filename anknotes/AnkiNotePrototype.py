@@ -429,10 +429,16 @@ class AnkiNotePrototype:
 			self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
 		db_title = ankDB().scalar(
 			"SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.OriginalGuid))
-		do_log_title=False
 		new_guid = self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
 		new_title = self.Fields[FIELDS.TITLE]
-		old_title = db_title
+		self.check_titles_equal(db_title, new_title, new_guid)
+		self.note.flush()
+		self.update_note_model()
+		self.Counts.Updated += 1
+		return True
+
+	
+	def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
 		if not isinstance(new_title, unicode):
 			try: new_title = unicode(new_title, 'utf-8')
 			except: do_log_title = True 
@@ -440,14 +446,12 @@ class AnkiNotePrototype:
 			try: old_title = unicode(old_title, 'utf-8')
 			except: do_log_title = True 
 		if do_log_title or new_title != old_title or new_guid != self.OriginalGuid:
-			log_str = ' %s:     DB INFO UNEQUAL: ' % (self.OriginalGuid + ('' if new_guid == self.OriginalGuid else ' vs %s' % new_guid)) + '    ' + new_title + ' vs ' + old_title
+			log_str = ' %s:     %s: ' % (log_title, self.OriginalGuid + ('' if new_guid == self.OriginalGuid else ' vs %s' % new_guid)) + '    ' + new_title + ' vs ' + old_title
 			log_error(log_str)
 			self.log_update(log_str)
-		self.note.flush()
-		self.update_note_model()
-		self.Counts.Updated += 1
-		return True
-
+			return False 
+		return True 
+		
 	@property
 	def Title(self):
 		""":rtype : EvernoteNoteTitle.EvernoteNoteTitle """
@@ -462,7 +466,7 @@ class AnkiNotePrototype:
 	def FullTitle(self): return self.Title.FullTitle
 	
 		
-	def add_note(self):
+	def add_note(self): 
 		self.create_note()
 		if self.note is not None:
 			collection = self.Anki.collection()
@@ -470,9 +474,7 @@ class AnkiNotePrototype:
 				TABLES.EVERNOTE.NOTES, self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')))
 			log(' %s:    ADD: ' % self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') + '    ' +
 				self.Fields[FIELDS.TITLE], 'AddUpdateNote')
-			if self.Fields[FIELDS.TITLE] != db_title:
-				log(' %s:     DB TITLE: ' % re.sub(r'.', ' ', self.Fields[FIELDS.EVERNOTE_GUID].replace(
-					FIELDS.EVERNOTE_GUID_PREFIX, '')) + '    ' + db_title, 'AddUpdateNote')
+			self.check_titles_equal(db_title, self.Fields[FIELDS.TITLE], self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, 'NEW NOTE TITLE '))
 			try:
 				collection.addNote(self.note)
 			except:
