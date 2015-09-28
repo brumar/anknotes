@@ -178,16 +178,15 @@ class EvernoteImporter:
 		col.setMod()
 		col.save()
 		lastImportStr = get_friendly_interval_string(lastImport)
-		if lastImportStr:
-			lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
+		if lastImportStr: lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
 		log("!  > Starting Evernote Import: Page #%d: %-60s%s" % (
 			self.currentPage, settings.generate_evernote_query(), lastImportStr))
-		log(
-			"-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
-			timestamp=False)
+		log("-"*181, timestamp=False)
 		if not auto_paging:
-			if not hasattr(self.evernote, 'noteStore'):
+			note_store_status = self.evernote.initialize_note_store()
+			if not note_store_status == EvernoteAPIStatus.Success:
 				log("    > Note store does not exist. Aborting.")
+				show_tooltip("Could not connect to Evernote servers (Status Code: %s)... Aborting." % note_store_status.name)
 				return False
 			self.evernote.getNoteCount = 0
 
