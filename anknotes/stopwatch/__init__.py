@@ -432,7 +432,7 @@ class Timer(object):
 		show_report("   > %s Complete" % self.info.Action, self.ReportHeader, str_tips, blank_line_before=False)
 
 	def step(self, title=None, val=None):
-		if val is None and title.isdigit():
+		if val is None and (isinstance(title, str) or isinstance(title, unicode)) and  title.isdigit():
 			val = title
 			title = None
 		if self.hasActionInfo and self.isProgressCheck and title:

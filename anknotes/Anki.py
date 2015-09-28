@@ -44,19 +44,16 @@ class Anki:
 			self.notebook_data = {}
 		if not notebookGuid in self.notebook_data:
 			# log_error("Unexpected error: Notebook GUID '%s' could not be found in notebook data: %s" % (notebookGuid, str(self.notebook_data)))
-			notebook = ankDB().first(
-				"SELECT name, stack FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTEBOOKS, notebookGuid))
-			if not notebook:
-				log_error(
-					"   get_deck_name_from_evernote_notebook FATAL ERROR: UNABLE TO FIND NOTEBOOK '%s'. " % notebookGuid)
+			notebook = EvernoteNotebook(fetch_guid=notebookGuid)
+			if not notebook.success:
+				log_error("   get_deck_name_from_evernote_notebook FATAL ERROR: UNABLE TO FIND NOTEBOOK '%s'. " % notebookGuid)
 				return None
 			# log("Getting notebook info: %s" % str(notebook))
-			notebook_name, notebook_stack = notebook
-			self.notebook_data[notebookGuid] = {"stack": notebook_stack, "name": notebook_name}
+			self.notebook_data[notebookGuid] = notebook
 		notebook = self.notebook_data[notebookGuid]
-		if notebook['stack']:
-			deck += u'::' + notebook['stack']
-		deck += "::" + notebook['name']
+		if notebook.Stack:
+			deck += u'::' + notebook.Stack
+		deck += "::" + notebook.Name
 		deck = deck.replace(": ", "::")
 		if deck[:2] == '::':
 			deck = deck[2:]
@@ -86,7 +83,7 @@ class Anki:
 		count_update = 0
 		tmr = stopwatch.Timer(len(evernote_notes), 100, label='AddEvernoteNotes', display_initial_info=False)
 		if tmr.willReportProgress:
-			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.counts.max, ['TO', 'IN'][update]), tmr.label, append_newline=False)
+			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.counts.max.val, ['TO', 'IN'][update]), tmr.label, append_newline=False)
 		for ankiNote in evernote_notes:
 			try:
 				title = ankiNote.Title.FullTitle

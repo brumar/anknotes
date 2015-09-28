@@ -81,8 +81,13 @@ class EvernoteNoteFetcher(object):
 			self.tagNames = []
 			self.tagGuids = []
 			return 
-		if not tag_names: tag_names = self.tagNames if self.tagNames else self.result.Note.TagNames if self.result.Note else self.whole_note.tagNames if self.whole_note else None 
-		if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else self.result.Note.TagGuids if self.result.Note else self.whole_note.tagGuids if self.whole_note else None
+		if not tag_names: 
+			if self.tagNames: tag_names = self.tagNames
+			if not tag_names and self.result.Note: tag_names = self.result.Note.TagNames 
+			if not tag_names and self.whole_note: tag_names = self.whole_note.tagNames 
+			if not tag_names: tag_names = None 
+		# if not tag_names: tag_names = self.tagNames if self.tagNames else (self.result.Note.TagNames if self.result.Note else (self.whole_note.tagNames if self.whole_note else None))
+		if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else (self.result.Note.TagGuids if self.result.Note else (self.whole_note.tagGuids if self.whole_note else None))
 		self.tagGuids, self.tagNames = self.evernote.get_matching_tag_data(tag_guids, tag_names)
 		
 	def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
