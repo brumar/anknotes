@@ -662,14 +662,15 @@ class EvernoteMetadataProgress:
 	def Summary(self): return JoinList(self.SummaryList, ['\n', ' | '], 31)
 
 	@property
-	def QueryMax(self): return 250
+	def QueryLimit(self): return EVERNOTE.IMPORT.QUERY_LIMIT
+	
 	@property
-	def Offset(self): return (self.Page - 1) * self.QueryMax
+	def Offset(self): return (self.Page - 1) * self.QueryLimit
 
 	@property
 	def TotalPages(self):
 		if self.Total is -1: return -1
-		p = float(self.Total) / self.QueryMax
+		p = float(self.Total) / self.QueryLimit
 		return int(p) + (1 if p > int(p) else 0)
 
 	@property

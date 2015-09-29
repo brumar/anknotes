@@ -34,8 +34,8 @@ class AnkiNotePrototype:
 	""":type : list[str]"""
 	ModelName = None
 	""":type : str"""
-	Guid = ""
-	""":type : str"""
+	# Guid = ""
+	# """:type : str"""
 	NotebookGuid = ""
 	""":type : str"""
 	__cloze_count__ = 0
@@ -52,6 +52,10 @@ class AnkiNotePrototype:
 	_unprocessed_see_also_ = ""
 	_log_update_if_unchanged_ = True
 
+	@property
+	def Guid(self):
+		 return get_evernote_guid_from_anki_fields(self.Fields)
+	
 	def __init__(self, anki=None, fields=None, tags=None, base_note=None, notebookGuid=None, count=-1, count_update=0,
 				 max_count=1, counts=None, light_processing=False, enNote=None):
 		"""
@@ -89,14 +93,14 @@ class AnkiNotePrototype:
 			self.Counts.Current = count + 1
 			self.Counts.Max = max_count
 		self.initialize_fields()
-		self.Guid = get_evernote_guid_from_anki_fields(self.Fields)
+		# self.Guid = get_evernote_guid_from_anki_fields(self.Fields)
 		self.NotebookGuid = notebookGuid
 		self.ModelName = None  # MODELS.DEFAULT
 		# self.Title = EvernoteNoteTitle()
 		if not self.NotebookGuid and self.Anki:
 			self.NotebookGuid = self.Anki.get_notebook_guid_from_ankdb(self.Guid)
 		if not self.Guid and (self.light_processing or self.NotebookGuid):
-			log('Guid/Notebook Guid missing for: ' + self.Fields[FIELDS.TITLE])
+			log('Guid/Notebook Guid missing for: ' + self.FullTitle)
 			log(self.Guid)
 			log(self.NotebookGuid)
 			raise ValueError
@@ -252,7 +256,7 @@ class AnkiNotePrototype:
 	def detect_note_model(self):
 
 		# log('Title, self.model_name, tags, self.model_name', 'detectnotemodel')
-		# log(self.Fields[FIELDS.TITLE], 'detectnotemodel')
+		# log(self.FullTitle, 'detectnotemodel')
 		# log(self.ModelName, 'detectnotemodel')
 		if FIELDS.CONTENT in self.Fields and "{{c1::" in self.Fields[FIELDS.CONTENT]:
 			self.ModelName = MODELS.CLOZE
@@ -318,9 +322,7 @@ class AnkiNotePrototype:
 				count_str += '%-4d]' % self.Counts.Max
 				count_str += ' (%2d%%)' % (float(self.Counts.Current) / self.Counts.Max * 100)
 			log_title = '!' if content else ''
-			log_title += 'UPDATING NOTE%s: %-80s: %s' % (count_str, self.Fields[FIELDS.TITLE],
-														 self.Fields[FIELDS.EVERNOTE_GUID].replace(
-															 FIELDS.EVERNOTE_GUID_PREFIX, ''))
+			log_title += 'UPDATING NOTE%s: %-80s: %s' % (count_str, self.FullTitle, self.Guid)
 			log(log_title, 'AddUpdateNote', timestamp=(content is ''),
 				clear=((self.Counts.Current == 1 or self.Counts.Current == 100) and not self.logged))
 			self.logged = True
@@ -394,7 +396,7 @@ class AnkiNotePrototype:
 						self.log_update(field_updates)
 						log_error(
 							"ERROR: UPDATE_NOTE: Note '%s': %s: Unable to set self.note.fields for field '%s'. Ord: %s. Note fields count: %d" % (
-								self.Guid, self.Fields[FIELDS.TITLE], field_to_update, str(fld.get('ord')),
+								self.Guid, self.FullTitle, field_to_update, str(fld.get('ord')),
 								len(self.note.fields)))
 						raise
 		for update in field_updates:
@@ -428,8 +430,8 @@ class AnkiNotePrototype:
 			self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
 		db_title = ankDB().scalar(
 			"SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.OriginalGuid))
-		new_guid = self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
-		new_title = self.Fields[FIELDS.TITLE]
+		new_guid = self.Guid
+		new_title = self.FullTitle
 		self.check_titles_equal(db_title, new_title, new_guid)
 		self.note.flush()
 		self.update_note_model()
@@ -452,6 +454,7 @@ class AnkiNotePrototype:
 			self.log_update(log_str)
 			return False
 		return True
+	
 	@property
 	def Title(self):
 		""":rtype : EvernoteNoteTitle.EvernoteNoteTitle """
@@ -465,29 +468,78 @@ class AnkiNotePrototype:
 	@property
 	def FullTitle(self): return self.Title.FullTitle
 
-
-	def add_note(self):
-		self.create_note()
-		if self.note is not None:
-			collection = self.Anki.collection()
-			db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (
-				TABLES.EVERNOTE.NOTES, self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')))
-			log(' %s:    ADD: ' % self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '') + '    ' +
-				self.Fields[FIELDS.TITLE], 'AddUpdateNote')
-			self.check_titles_equal(db_title, self.Fields[FIELDS.TITLE], self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, 'NEW NOTE TITLE '))
+	def save_anki_fields_decoded(self):
+		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
+		for key, value in enumerate(self.note.fields):
+			log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->DECODING %s for field ' % str(type(value)) + key + ": " + title, 'unicode')
+			self.note.fields[key] = value.decode('utf-8')								
+		return 
+		for name, value in self.Fields.items():			
 			try:
-				collection.addNote(self.note)
+				if isinstance(value, unicode):
+					action='ENCODED'
+					log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->ENCODING UNICODE STRING for field ' + name, 'unicode')
+					self.note[name]=value.encode('utf-8')					
+				else:
+					action='DECODED'
+					log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->DECODING BYTE STRING for field ' + name, 'unicode')
+					self.note[name]=value.decode('utf-8')
+			except UnicodeDecodeError, e:
+				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: UnicodeDecodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
+				action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
+				raise 
+			except UnicodeEncodeError, e:
+				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: UnicodeEncodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
+				action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
+				raise 
 			except Exception, e:
-				log_error("Unable to collection.addNote: \n - Error: %s\n -  GUID: %s\n - Title: %s" % (
-					str(type(e)) + ": " + str(e), self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, ''), db_title))
-				log_dump(self.note.fields, '- FAILED collection.addNote: ')
+				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Type: %s" % (
+				action, repr(e) + ": " + str(e), self.Guid, title, type(value)))
+				log_dump(self.note.fields, '- FAILED save_anki_fields_decoded: ', 'ANP')
 				raise
 				return -1
-			collection.autosave()
-			self.Anki.start_editing()
-			return self.note.id
+			
+	def add_note_try(self, attempt=1):
+		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
+		col = self.Anki.collection()
+		try:
+			col.addNote(self.note)
+			return 1
+		except UnicodeDecodeError, e:						
+			if attempt is 1:
+				self.save_anki_fields_decoded()
+				self.add_note_try(attempt+1)
+			else:
+				log(self.note.fields)
+				log_error("ANKI-->ANP-->ADD NOTE FAILED: UnicodeDecodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
+					repr(e) + ": " + str(e), self.Guid, str_safe(title), str_safe(e.object), type(self.note[FIELDS.TITLE])))						
+				raise 
+		except UnicodeEncodeError, e:
+			log_error("ANKI-->ANP-->ADD NOTE FAILED: UnicodeEncodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
+				repr(e) + ": " + str(e), self.Guid, str_safe(title), str_safe(e.object), type(self.note[FIELDS.TITLE])))			
+			raise 
+		except Exception, e:
+			if attempt > 1: raise 
+			log_error("ANKI-->ANP-->ADD NOTE FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Type: %s" % (
+				repr(e) + ": " + str(e), self.Guid, title, type(self.note[FIELDS.TITLE])))
+			log_dump(self.note.fields, '- FAILED collection.addNote: ', 'ANP')
+			raise
+			return -1
+	
+	def add_note(self):
+		self.create_note()
+		if self.note is None: return -1
+		collection = self.Anki.collection()
+		db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (
+			TABLES.EVERNOTE.NOTES, self.Guid))
+		log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, 'AddUpdateNote')
+		self.check_titles_equal(db_title, self.FullTitle, self.Guid, 'NEW NOTE TITLE UNEQUAL TO DB ENTRY')
+		if self.add_note_try() is not 1: return -1
+		collection.autosave()
+		self.Anki.start_editing()
+		return self.note.id
 
-	def create_note(self):
+	def create_note(self,attempt=1):
 		id_deck = self.Anki.decks().id(self.deck())
 		if not self.ModelName: self.ModelName = MODELS.DEFAULT
 		model = self.Anki.models().byName(self.ModelName)
@@ -495,14 +547,31 @@ class AnkiNotePrototype:
 		self.note = AnkiNote(col, model)
 		self.note.model()['did'] = id_deck
 		self.note.tags = self.Tags
+		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
 		for name, value in self.Fields.items():
-			try: self.note[name] = value #.encode('utf-8')
+			try: 
+				if isinstance(value, unicode):
+					action='ENCODED'
+					log('ANKI-->ANP-->CREATE NOTE-->ENCODING UNICODE STRING for field ' + name, 'unicode')
+					self.note[name]=value.encode('utf-8')					
+				else:
+					action='DECODED'
+					log('ANKI-->ANP-->CREATE NOTE-->DECODING BYTE STRING for field ' + name, 'unicode')
+					self.note[name]=value.decode('utf-8')
 			except UnicodeEncodeError, e:
-				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
-				raise
+				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: UnicodeEncodeError: \n -  Error: %s\n -  GUID: %s\n -  Title: %s\n - Object: %s\n -  Type: %s" % (
+				name, action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
+				try: self.note[name] = value.encode('utf-8')
+				except Exception, e:
+					log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n -  Type: %s" % (
+					name, action,repr(e) + ": " + str(e), self.Guid, title, type(value)))
+					raise	
+				# raise
 			except UnicodeDecodeError, e:
-				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
+				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: UnicodeDecodeError: \n -  Error: %s\n -  GUID: %s\n -  Title: %s\n - Object: %s\n -  Type: %s" % (
+				name, action,repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
 				raise
 			except Exception, e:
-				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
+				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n -  Type: %s" % (
+				name, action,repr(e) + ": " + str(e), self.Guid, title, type(value)))
 				raise

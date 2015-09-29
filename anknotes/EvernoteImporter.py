@@ -56,7 +56,7 @@ class EvernoteImporter:
 		guids = self.ManualGUIDs
 		self.MetadataProgress = EvernoteMetadataProgress(self.currentPage)
 		self.MetadataProgress.Total = len(guids)
-		self.MetadataProgress.Current = min(self.MetadataProgress.Total - self.MetadataProgress.Offset, 250)
+		self.MetadataProgress.Current = min(self.MetadataProgress.Total - self.MetadataProgress.Offset, EVERNOTE.IMPORT.QUERY_LIMIT)
 		result = NotesMetadataList()
 		result.totalNotes = len(guids)
 		result.updateCount = -1
@@ -172,8 +172,8 @@ class EvernoteImporter:
 		col.save()
 		lastImportStr = get_friendly_interval_string(lastImport)
 		if lastImportStr: lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
-		log("!  > Starting Evernote Import: Page #%d: %-60s%s" % (
-			self.currentPage, settings.generate_evernote_query(), lastImportStr))
+		log("!  > Starting Evernote Import:           Page %3s                     Query: %s".ljust(123) % (
+			'#' + str(self.currentPage), settings.generate_evernote_query()) + ' ' + lastImportStr)
 		log("-"*186, timestamp=False)
 		if not auto_paging:
 			note_store_status = self.evernote.initialize_note_store()
@@ -185,10 +185,6 @@ class EvernoteImporter:
 
 	def proceed_find_metadata(self, auto_paging=False):
 		global latestEDAMRateLimit, latestSocketError
-
-
-		# anki_note_ids = self.anki.get_anknotes_note_ids()
-		# anki_evernote_guids = self.anki.get_evernote_guids_from_anki_note_ids(anki_note_ids)
 
 		if self.ManualMetadataMode:
 			self.override_evernote_metadata()

@@ -119,6 +119,7 @@ class EVERNOTE:
 			RESTART.INTERVAL = INTERVAL * 2
 		INTERVAL = PAGING.INTERVAL * 4 / 3
 		METADATA_RESULTS_LIMIT = 10000
+		QUERY_LIMIT = 250 # Max returned by API is 250
 		API_CALLS_LIMIT = 300
 	class UPLOAD:
 		ENABLED = True  # Set False if debugging note creation
