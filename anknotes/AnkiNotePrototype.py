@@ -47,7 +47,7 @@ class AnkiNotePrototype:
 
 	OriginalGuid = None
 	""":type : str"""
-	Changed = False    
+	Changed = False
 	_unprocessed_content_ = ""
 	_unprocessed_see_also_ = ""
 	_log_update_if_unchanged_ = True
@@ -101,7 +101,7 @@ class AnkiNotePrototype:
 			log(self.NotebookGuid)
 			raise ValueError
 		self._deck_parent_ = self.Anki.deck if self.Anki else ''
-		assert tags is not None 
+		assert tags is not None
 		self.Tags = tags
 		self.__cloze_count__ = 0
 		self.process_note()
@@ -201,22 +201,22 @@ class AnkiNotePrototype:
 			# I currently use white text in Evernote to display information that I want to be initially hidden, but visible when desired by selecting the white text.
 			# We will change the white text to a special "occluded" CSS class so it can be visible on the back of cards, and also so we can adjust the color for the front of cards when using night mode
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace('<span style="color: rgb(255, 255, 255);">', '<span class="occluded">')
-			
+
 			################################### Step 4: Automatically Occlude Text in <<Double Angle Brackets>>
 			self.Fields[FIELDS.CONTENT] = re.sub("(?s)(?P<Prefix>&lt;|<) ?(?P=Prefix) ?(?P<PrefixKeep>(?:</div>)?)(?P<OccludedText>.+?)(?P<Suffix>&gt;|>) ?(?P=Suffix) ?", r'&lt;&lt;\g<PrefixKeep><div class="occluded">\g<OccludedText></div>&gt;&gt;', self.Fields[FIELDS.CONTENT])
-			
+
 		def step_5_create_cloze_fields():
 			################################### Step 5: Create Cloze fields from shorthand. Syntax is {Text}. Optionally {#Text} will prevent the Cloze # from incrementing.
 			self.Fields[FIELDS.CONTENT] = re.sub(r'([^{]){([^{].*?)}([^}])', self.evernote_cloze_regex, self.Fields[FIELDS.CONTENT])
 
 		def step_6_process_see_also_links():
 			################################### Step 6: Process "See Also: " Links
-			see_also_match = regex_see_also().search(self.Fields[FIELDS.CONTENT])            
-			if not see_also_match: 
+			see_also_match = regex_see_also().search(self.Fields[FIELDS.CONTENT])
+			if not see_also_match:
 				if self.Fields[FIELDS.CONTENT].find("See Also") > -1:
 					log("No See Also Content Found, but phrase 'See Also' exists in " + self.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
-					raise ValueError                
-				return            
+					raise ValueError
+				return
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0), see_also_match.group('Suffix'))
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace('<div><b><br/></b></div></en-note>', '</en-note>')
 			see_also = see_also_match.group('SeeAlso')
@@ -229,13 +229,13 @@ class AnkiNotePrototype:
 			self.Fields[FIELDS.SEE_ALSO] += see_also
 			if self.light_processing:
 				self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group('Suffix'), self.Fields[FIELDS.SEE_ALSO] + see_also_match.group('Suffix'))
-				return  
+				return
 			self.process_note_see_also()
-			
+
 		if not FIELDS.CONTENT in self.Fields:
 			return
 		self._unprocessed_content_ = self.Fields[FIELDS.CONTENT]
-		self._unprocessed_see_also_ = self.Fields[FIELDS.SEE_ALSO]        
+		self._unprocessed_see_also_ = self.Fields[FIELDS.SEE_ALSO]
 		steps = [0, 1, 6] if self.light_processing else range(0,7)
 		if self.light_processing and not ANKI.NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING:
 			steps.remove(0)
@@ -250,7 +250,7 @@ class AnkiNotePrototype:
 			################################### Note Processing complete.
 
 	def detect_note_model(self):
-		
+
 		# log('Title, self.model_name, tags, self.model_name', 'detectnotemodel')
 		# log(self.Fields[FIELDS.TITLE], 'detectnotemodel')
 		# log(self.ModelName, 'detectnotemodel')
@@ -274,8 +274,8 @@ class AnkiNotePrototype:
 		if not self.ModelName: return None
 		return long(self.Anki.models().byName(self.ModelName)['id'])
 
-	def process_note(self):       
-		self.process_note_content()        
+	def process_note(self):
+		self.process_note_content()
 		if not self.light_processing:
 			self.detect_note_model()
 
@@ -364,7 +364,7 @@ class AnkiNotePrototype:
 	def update_note_fields(self):
 		fields_to_update = [FIELDS.TITLE, FIELDS.CONTENT, FIELDS.SEE_ALSO, FIELDS.UPDATE_SEQUENCE_NUM]
 		fld_content_ord = -1
-		flag_changed = False  
+		flag_changed = False
 		field_updates = []
 		fields_updated = {}
 		for fld in self.note._model['flds']:
@@ -402,7 +402,7 @@ class AnkiNotePrototype:
 		if flag_changed: self.Changed = True
 		return flag_changed
 
-	def update_note(self): 
+	def update_note(self):
 		self.note = self.BaseNote
 		self.logged = False
 		if not self.BaseNote:
@@ -416,10 +416,9 @@ class AnkiNotePrototype:
 		if not (self.Changed or self.update_note_deck()):
 			if self._log_update_if_unchanged_:
 				self.log_update("Not updating Note: The fields, tags, and deck are the same")
-			elif (
-					self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
+			elif (self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
 				self.log_update()
-			return False			
+			return False
 		if not self.Changed:
 			# i.e., the note deck has been changed but the tags and fields have not
 			self.Counts.Updated += 1
@@ -437,23 +436,22 @@ class AnkiNotePrototype:
 		self.Counts.Updated += 1
 		return True
 
-	
+
 	def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
-		do_log_title = False 
+		do_log_title = False
 		if not isinstance(new_title, unicode):
 			try: new_title = unicode(new_title, 'utf-8')
-			except: do_log_title = True 
+			except: do_log_title = True
 		if not isinstance(old_title, unicode):
 			try: old_title = unicode(old_title, 'utf-8')
-			except: do_log_title = True 
+			except: do_log_title = True
 		guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + ('' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
-		if do_log_title or new_title != old_title or new_guid != self.OriginalGuid:
-			log_str = ' %s: %s%s' % (log_title, guid_text, '    ' + new_title + ' vs ' + old_title)
-			log_error(log_str)
+		if do_log_title or new_title != old_title or (self.OriginalGuid and new_guid != self.OriginalGuid):
+			log_str = ' %s: %s%s' % ('*' if do_log_title else ' ' + log_title, guid_text, '    ' + new_title + ' vs ' + old_title)
+			log_error(log_str, crosspost_to_default=False)
 			self.log_update(log_str)
-			return False 
-		return True 
-		
+			return False
+		return True
 	@property
 	def Title(self):
 		""":rtype : EvernoteNoteTitle.EvernoteNoteTitle """
@@ -466,9 +464,9 @@ class AnkiNotePrototype:
 
 	@property
 	def FullTitle(self): return self.Title.FullTitle
-	
-		
-	def add_note(self): 
+
+
+	def add_note(self):
 		self.create_note()
 		if self.note is not None:
 			collection = self.Anki.collection()
@@ -479,10 +477,11 @@ class AnkiNotePrototype:
 			self.check_titles_equal(db_title, self.Fields[FIELDS.TITLE], self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, 'NEW NOTE TITLE '))
 			try:
 				collection.addNote(self.note)
-			except:
-				log_error("Unable to collection.addNote for Note %s:    %s" % (
-					self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, ''), db_title))
+			except Exception, e:
+				log_error("Unable to collection.addNote: \n - Error: %s\n -  GUID: %s\n - Title: %s" % (
+					str(type(e)) + ": " + str(e), self.Fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, ''), db_title))
 				log_dump(self.note.fields, '- FAILED collection.addNote: ')
+				raise
 				return -1
 			collection.autosave()
 			self.Anki.start_editing()
@@ -497,4 +496,13 @@ class AnkiNotePrototype:
 		self.note.model()['did'] = id_deck
 		self.note.tags = self.Tags
 		for name, value in self.Fields.items():
-			self.note[name] = value
+			try: self.note[name] = value #.encode('utf-8')
+			except UnicodeEncodeError, e:
+				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
+				raise
+			except UnicodeDecodeError, e:
+				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
+				raise
+			except Exception, e:
+				log_error('Create Note Error: %s: %s\n - Message: %s' % (str(type(e)), str(type(value)), str(e)))
+				raise

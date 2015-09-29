@@ -15,7 +15,7 @@
 {{#%(See Also)s}}
 <div id='Header-Links'>
 <span class='Field-%(See Also)s'>
-<a href='javascript:;' onclick='scrollToElementVisible("Field-%(See Also)s")' class='header'>See Also</a>: 
+<a href='javascript:;' onclick='scrollToElementVisible("Field-%(See Also)s")' class='header'>See Also</a>:
 </span>
 {{#%(TOC)s}}
 <span class='Field-%(TOC)s'>
@@ -92,13 +92,13 @@
  function generateEvernoteLink(guid_field) {
   guid = guid_field.replace(evernote_guid_prefix, '')
   en_link = 'evernote://view/'+evernote_uid+'/'+evernote_shard+'/'+guid+'/'+guid+'/'
-  return en_link 
+  return en_link
  }
  function setElementDisplay(id,show) {
   el = document.getElementById(id)
   if (el == null) { return; }
   // Assuming if display is not set, it is set to none by CSS
-  if (show === 0) { show = (el.style.display == 'none' || el.style.display == ''); }  
+  if (show === 0) { show = (el.style.display == 'none' || el.style.display == ''); }
   el.style.display = (show ? 'block' : 'none')
  }
  function hideElement(id) {
@@ -110,22 +110,19 @@
  function toggleElement(id) {
   setElementDisplay(id, 0);
  }
- 
+
  function scrollToElement(id, show) {
  setElementDisplay(id, show);
  el = document.getElementById(id)
   if (el == null) { return; }
   window.scroll(0,findPos(el));
- } 
-  
+ }
  function scrollToElementToggle(id) {
   scrollToElement(id, 0);
- } 
- 
+ }
  function scrollToElementVisible(id) {
   scrollToElement(id, true);
- } 
-
+ }
 //Finds y value of given object
 function findPos(obj) {
     var curtop = 0;

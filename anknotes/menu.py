@@ -12,7 +12,7 @@ from anknotes.shared import *
 from anknotes.constants import *
 
 # Anknotes Main Imports
-import anknotes.Controller 
+import anknotes.Controller
 # from anknotes.Controller import Controller
 
 # Anki Imports
@@ -71,14 +71,14 @@ def anknotes_setup_menu():
 	add_menu_items(menu_items)
 
 def auto_reload_wrapper(function): return lambda: auto_reload_modules(function)
-	
+
 def auto_reload_modules(function):
 	if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
-		anknotes.shared = reload(anknotes.shared)				
+		anknotes.shared = reload(anknotes.shared)
 		if not anknotes.Controller: importlib.import_module('anknotes.Controller')
 		reload(anknotes.Controller)
 	function()
-	
+
 def add_menu_items(menu_items, parent=None):
 	if not parent: parent = mw.form.menubar
 	for title, action in menu_items:
@@ -91,14 +91,14 @@ def add_menu_items(menu_items, parent=None):
 		else:
 			checkable = False
 			if isinstance(action, dict):
-				options = action				
+				options = action
 				action = options['action']
 				if 'checkable' in options:
 					checkable = options['checkable']
 			# if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
 			action = auto_reload_wrapper(action)
 			menu_action = QAction(_(title), mw, checkable=checkable)
-			parent.addAction(menu_action)			
+			parent.addAction(menu_action)
 			parent.connect(menu_action, SIGNAL("triggered()"),  action)
 			if checkable:
 				anknotes_checkable_menu_items[title] = menu_action
@@ -173,7 +173,7 @@ Once the command line tool is done running, you will get a summary of the result
 	returnedData = find_deleted_notes.do_find_deleted_notes()
 	if returnedData is False:
 		showInfo("An error occurred while executing the script. Please ensure you created the TOC note and saved it as instructed in the previous dialog.")
-		return 
+		return
 	lines = returnedData['Summary']
 	info = tableify_lines(lines, '#|Type|Info')
 	# info = '<table><tr class=tr0><td class=t1>#</td><td class=t2>Type</td><td class=t3></td></tr>%s</table>' % '\n'.join(lines)
@@ -183,7 +183,7 @@ Once the command line tool is done running, you will get a summary of the result
 	anki_dels = returnedData['AnkiOrphans']
 	anki_dels_count = len(anki_dels)
 	missing_evernote_notes = returnedData['MissingEvernoteNotes']
-	missing_evernote_notes_count = len(missing_evernote_notes)   
+	missing_evernote_notes_count = len(missing_evernote_notes)
 	showInfo(info, richText=True, minWidth=600)
 	db_changed = False
 	if anknotes_dels_count > 0:
@@ -227,18 +227,18 @@ Anki will be unresponsive until the validation tool completes. This will take at
 	stdoutdata = re.sub(' +', ' ', stdoutdata)
 	info = ("ERROR: {%s}<HR>" % stderrdata) if stderrdata else ''
 	allowUpload = True
-	if showAlerts:        
+	if showAlerts:
 		log('vpn stdout: ' + FILES.SCRIPTS.VALIDATION + '\n' +  stdoutdata)
 		tds = [[str(count), '<a href="%s">VIEW %s VALIDATIONS LOG</a>' % (fn, key.upper())] for key, fn, count in [
 			[key, get_log_full_path('MakeNoteQueue\\' + key, as_url_link=True), int(re.search(r'CHECKING +(\d{1,3}) +' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
-			for key in ['Pending', 'Successful', 'Failed']] if count > 0]        
+			for key in ['Pending', 'Successful', 'Failed']] if count > 0]
 		if not tds:
 			show_tooltip("No notes found in the validation queue.")
-			allowUpload = False 
+			allowUpload = False
 		else:
 			info += tableify_lines(tds, '#|Results')
 			successful = int(re.search(r'CHECKING +(\d{1,3}) +' + 'Successful'.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))
-			allowUpload = (uploadAfterValidation and successful > 0) 
+			allowUpload = (uploadAfterValidation and successful > 0)
 			allowUpload = allowUpload & showInfo("Completed: %s<BR>%s" % (
 			'Press Okay to begin uploading %d successfully validated note(s) to the Evernote Servers' % successful if (uploadAfterValidation and successful > 0) else '',
 			info), cancelButton=(successful > 0), richText=True)
@@ -269,7 +269,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 	if isinstance(steps, int): steps = [steps]
 	multipleSteps = (len(steps) > 1)
 	if showAlerts is None: showAlerts = not multipleSteps
-	remaining_steps=steps	
+	remaining_steps=steps
 	if 1 in steps:
 		# Should be unnecessary once See Also algorithms are finalized
 		log(" > See Also: Step 1:  Process Un Added See Also Notes")
@@ -291,10 +291,10 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 		controller.anki.extract_links_from_toc()
 	if 6 in steps:
 		log(" > See Also: Step 6:  Insert TOC/Outline Links Into Anki Notes' See Also Field")
-		controller.anki.insert_toc_into_see_also()    
+		controller.anki.insert_toc_into_see_also()
 	if 7 in steps:
 		log(" > See Also: Step 7:  Update See Also Footer In Evernote Notes")
-		from anknotes import detect_see_also_changes 
+		from anknotes import detect_see_also_changes
 		detect_see_also_changes.main()
 	if 8 in steps:
 		if validationComplete:

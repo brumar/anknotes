@@ -33,22 +33,22 @@ class notes:
 			""": type : notes.version.see_also_match """
 			__regex_original__ = None
 			""": type : notes.version.see_also_match """
-			
-			@property 
+
+			@property
 			def regex_original(self):
 				if self.original is None: return None
 				if self.__regex_original__ is None:
 					self.__regex_original__ = notes.version.see_also_match(self.original)
 				return self.__regex_original__
-			
-			@property 
+
+			@property
 			def regex_processed(self):
 				if self.processed is None: return None
 				if self.__regex_processed__ is None:
 					self.__regex_processed__ = notes.version.see_also_match(self.processed)
 				return self.__regex_processed__
-				
-			@property 
+
+			@property
 			def regex_updated(self):
 				if self.updated is None: return None
 				if self.__regex_updated__ is None:
@@ -74,11 +74,11 @@ class notes:
 			@property
 			def final(self):
 				return str_process_full(self.updated)
-				
+
 			@property
 			def original(self):
 				return self.__original__
-				
+
 			def useProcessed(self):
 				self.updated = self.processed
 
@@ -146,7 +146,7 @@ class notes:
 				self.__content__ = content
 				self.__match_attempted__ = 0
 				self.__matchobject__ = None
-				""":type : anknotes._re.__Match """       
+				""":type : anknotes._re.__Match """
 		content = pstrings()
 		see_also = pstrings()
 	old = version()
@@ -168,10 +168,10 @@ def str_process(strr):
 
 def str_process_full(strr):
 	return clean_evernote_css(strr)
-	
+
 def main(evernote=None, anki=None):
 	# @clockit
-	def print_results(log_folder='Diff\\SeeAlso',full=False, final=False):        
+	def print_results(log_folder='Diff\\SeeAlso',full=False, final=False):
 		if final:
 			oldResults=n.old.content.final
 			newResults=n.new.content.final
@@ -193,10 +193,10 @@ def main(evernote=None, anki=None):
 	# @clockit
 	def process_note():
 		n.old.content = notes.version.pstrings(enNote.Content)
-		if not n.old.content.regex_original.successful_match:            
-			if n.new.see_also.original == "":                 
+		if not n.old.content.regex_original.successful_match:
+			if n.new.see_also.original == "":
 				n.new.content =  notes.version.pstrings(n.old.content.original)
-				return False 
+				return False
 			n.new.content = notes.version.pstrings(n.old.content.original.replace('</en-note>', '<div><span><br/></span></div>' + n.new.see_also.original + '\n</en-note>'))
 			n.new.see_also.updated = str_process(n.new.content.original)
 			n.old.see_also.updated = str_process(n.old.content.original)
@@ -204,18 +204,18 @@ def main(evernote=None, anki=None):
 			n.match_type = 'V1'
 		else:
 			n.old.see_also = notes.version.pstrings(n.old.content.regex_original.main)
-			n.match_type = 'V2'            
+			n.match_type = 'V2'
 			if n.old.see_also.regex_processed.successful_match:
 				assert True or str_process(n.old.content.regex_original.main) is n.old.content.regex_processed.main
 				n.old.content.updated = n.old.content.original.replace(n.old.content.regex_original.main, str_process(n.old.content.regex_original.main))
 				n.old.see_also.useProcessed()
-				n.match_type += 'V3'             
+				n.match_type += 'V3'
 			n.new.see_also.regex_original.subject = n.new.see_also.original + '</en-note>'
 			if not n.new.see_also.regex_original.successful_match:
 				log.plain(enNote.Guid + '\n' + ', '.join(enNote.TagNames) + '\n' + n.new.see_also.original.content, 'SeeAlsoNewMatchFail\\' + enNote.FullTitle, extension='htm', clear=True)
-				see_also_replace_old = n.old.content.original.match.processed.see_also.processed.content 
+				see_also_replace_old = n.old.content.original.match.processed.see_also.processed.content
 				n.old.see_also.updated = n.old.content.regex_updated.see_also
-				n.new.see_also.updated = n.new.see_also.processed 
+				n.new.see_also.updated = n.new.see_also.processed
 				n.match_type + 'V4'
 			else:
 				assert (n.old.content.regex_processed.see_also_content == notes.version.see_also_match(str_process(n.old.content.regex_original.main)).see_also_content)
@@ -232,7 +232,7 @@ def main(evernote=None, anki=None):
 	# count_queued = 0
 	tmr = stopwatch.Timer(len(results), 25, 'Updating See Also Notes', label='SeeAlso-Step7', display_initial_info=False)
 	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True)
-	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), tmr.label)	
+	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), tmr.label)
 	notes_updated=[]
 	# number_updated = 0
 	for result in results:
@@ -241,7 +241,7 @@ def main(evernote=None, anki=None):
 		if tmr.step():
 			log.go("Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, enNote.FullTitle if enNote.Status.IsSuccess else '(%s)' % enNote.Guid), do_print=True, print_timestamp=False)
 		flds = ankDB().scalar("SELECT flds FROM notes WHERE flds LIKE '%%%s%s%%'" % (FIELDS.EVERNOTE_GUID_PREFIX, enNote.Guid)).split("\x1f")
-		n.new.see_also = notes.version.pstrings(flds[FIELDS.ORD.SEE_ALSO])            
+		n.new.see_also = notes.version.pstrings(flds[FIELDS.ORD.SEE_ALSO])
 		result = process_note()
 		if result is False:
 			log.go('No match for %s' % enNote.FullTitle, tmr.label + '-NoUpdate')
@@ -249,17 +249,17 @@ def main(evernote=None, anki=None):
 			print_results('NoMatch\\Contents', full=True)
 			continue
 		if n.match_type != 'V1' and str_process(n.old.see_also.updated) == n.new.see_also.updated:
-			log.go('Match but contents are the same for %s' % enNote.FullTitle, tmr.label + '-NoUpdate')			
+			log.go('Match but contents are the same for %s' % enNote.FullTitle, tmr.label + '-NoUpdate')
 			print_results('Same\\SeeAlso')
 			print_results('Same\\Contents', full=True)
 			continue
 		print_results()
-		print_results('Diff\\Contents', final=True)			
-		enNote.Content = n.new.content.final 
+		print_results('Diff\\Contents', final=True)
+		enNote.Content = n.new.content.final
 		if not evernote: evernote = Evernote()
 		whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote), enNote.FullTitle, True)
 		if tmr.reportStatus(status) == False: raise ValueError
-		if tmr.status.IsDelayableError: break 
+		if tmr.status.IsDelayableError: break
 		if tmr.status.IsSuccess: notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))
 	if tmr.is_success and not anki: anki = Anki()
 	tmr.Report(0, anki.update_evernote_notes(notes_updated) if tmr.is_success else 0)
@@ -268,5 +268,5 @@ def main(evernote=None, anki=None):
 	# if tmr.count_queued > 0: log.go("  > %4d queued for validation" % tmr.count_queued, tmr.label, do_print=True)
 	# if tmr.count_error > 0:  log.go("  > %4d error(s) occurred" % tmr.count_error, tmr.label, do_print=True)
 
-	
+
 ## HOCM/MVP

@@ -8,7 +8,7 @@
              'Si/Sx',
              'Sx',
              'Sign',
-             
+
              'MCC\'s',
              'MCC',
              'Inheritance',
@@ -17,7 +17,7 @@
              'Mechanism',
              'MOA',
              'Pathophysiology',
-             
+
              'Indications',
              'Examples',
              'Cause',
@@ -30,7 +30,7 @@
              'Drug S/E',
              'Associated Conditions',
              'A/w',
-             
+
              'Dx',
              'Physical Exam',
              'Labs',
@@ -44,6 +44,6 @@
               'Management',
               'Work Up',
               'Tx'
-              
-              
+
+
             ]

@@ -1,7 +1,7 @@
 /* @import url("_AviAnkiCSS.css"); */
 @import url(https://fonts.googleapis.com/css?family=Roboto:400,300,700,100);
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Default Card Rules
 *******************************************************************************************************/
 
@@ -19,7 +19,7 @@ body {
   color: black;
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Header rectangles, which sit at the top of every single card
 *******************************************************************************************************/
 
@@ -38,7 +38,7 @@ section.header {
 
 section.header div {
   padding: 1em;
-  margin: 0px;  
+  margin: 0px;
   position: relative;
   top: 50%;
   -webkit-transform: translateY(-50%);
@@ -55,7 +55,7 @@ section.header {
   /* border:3px #990000 solid; */
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   ANKNOTES Top-Right call out
 *******************************************************************************************************/
 
@@ -76,16 +76,16 @@ section.header.header-avi h2, section.header.header-bluewhitered h2 {
 color: rgb(138, 16, 16);
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   TITLE Fields
 *******************************************************************************************************/
 
-.card section.header.Field-Title, .card section.header.Field-Title-Prompt { 
+.card section.header.Field-Title, .card section.header.Field-Title-Prompt {
   text-align: center;
   font-family: Tahoma;
   font-weight: bold;
   font-size: 72px;
-  font-variant: small-caps; 
+  font-variant: small-caps;
   padding:10px;
   /* color: #A40F2D; */
 }
@@ -110,10 +110,10 @@ color: rgb(138, 16, 16);
 	 color: rgb(210, 13, 13);
  }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Header bars with custom gradient backgrounds
 *******************************************************************************************************/
- 
+
 section.header
 {
  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
@@ -146,22 +146,22 @@ section.header.header-redorange {
 	border:3px #990000 solid;
 }
 
-section.header.header-bluewhitered, 
+section.header.header-bluewhitered,
 section.header.header-avi {
  color:#004C99;
 }
 
-a:hover section.header.header-bluewhitered, 
+a:hover section.header.header-bluewhitered,
 a:hover section.header.header-avi {
 color: rgb(10, 121, 243);
 }
 
-.card section.header.header-bluewhitered.Field-Title span.link, 
+.card section.header.header-bluewhitered.Field-Title span.link,
 .card section.header.header-avi.Field-Title span.link {
 	border-bottom-color:#004C99;
 }
 
-section.header.header-bluewhitered, 
+section.header.header-bluewhitered,
 section.header.header-avi {
 	/* Background gradient code */
 	background: #3b679e; /* Old browsers */
@@ -198,14 +198,14 @@ section.header.header-avi-bluered {
 	background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
 	background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
 	background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */ 
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */
 	/* z-index: 100; /* the stack order: foreground */
 	/* border-bottom:1px #004C99 solid; */
 	border:3px #004C99 solid;
 }
 
-/******************************************************************************************************* 
-  Headers with Links for See Also, TOC, Outline  
+/*******************************************************************************************************
+  Headers with Links for See Also, TOC, Outline
 *******************************************************************************************************/
 .card #Header-Links {
 	font-size: 14px;
@@ -218,8 +218,8 @@ section.header.header-avi-bluered {
  color: rgb(45, 79, 201);
 }
 
-/******************************************************************************************************* 
-  HTML Link Elements 
+/*******************************************************************************************************
+  HTML Link Elements
 *******************************************************************************************************/
 
 a {
@@ -250,12 +250,10 @@ a:hover {
 
 .card .Field-Outline a, .card #Field-Header-Links #Field-Outline-Link  a .Note_Link,  {
 	color: rgb(105, 170, 53);
-}		
-
+}
 .card .Field-Outline a:hover , .card #Field-Header-Links #Field-Outline-Link  a:hover .Note_Link{
 	color: rgb(135, 187, 93);
-}			
-
+}
 .card #Link-EN-Self a {
   color: rgb(30, 155, 67)
 }
@@ -264,8 +262,8 @@ a:hover {
   color: rgb(107, 226, 143)
 }
 
-/******************************************************************************************************* 
-  TOC/Outline Headers (Automatically generated and placed in TOC/Outline fields when > 1 source note)   
+/*******************************************************************************************************
+  TOC/Outline Headers (Automatically generated and placed in TOC/Outline fields when > 1 source note)
 *******************************************************************************************************/
 
 .card .TOC, .card .Outline {
@@ -281,7 +279,7 @@ a:hover {
 }
 
 .card .TOC .header, .card .Outline .header {
- text-decoration: underline; 
+ text-decoration: underline;
  color: #bf0060;
 }
 
@@ -295,7 +293,7 @@ a:hover {
 
 
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Per-Field Rules
 *******************************************************************************************************/
 
@@ -320,7 +318,7 @@ a:hover {
 	margin-bottom: 10px;
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Extra Field/Tags Rules
 *******************************************************************************************************/
 
@@ -328,11 +326,10 @@ a:hover {
 .card #Tags {
  color: #aaa;
 }
- 
+
 .card #Field-Extra .header,  #Field-Extra-Front .header {
  color: #666;
-} 
-
+}
 .card #Field-Extra .header,  #Field-Extra-Front .header , #Tags .header {
  font-weight: bold;
 }
@@ -341,15 +338,15 @@ a:hover {
 	color: #444;
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Special Span Classes
 *******************************************************************************************************/
 
 .card .occluded {
 	color: #555;
 }
-.card div.occluded {	
-	display: inline-block;	
+.card div.occluded {
+	display: inline-block;
 	margin: 0px; padding: 0px;
 }
 .card div.occluded :first-child {
@@ -364,18 +361,18 @@ a:hover {
 	font-weight: bold;
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Default Visibility Rules
 *******************************************************************************************************/
 
 
 .card 												#Field-Cloze-Content,
-.card 												section.header.Field-Title-Prompt, 
-.card 								#Side-Front 	#Footer-Line, 
+.card 												section.header.Field-Title-Prompt,
+.card 								#Side-Front 	#Footer-Line,
 .card								#Side-Front 	#Field-See_Also,
 .card										 		#Field-TOC,
 .card												#Field-Outline,
-.card 								#Side-Front 	#Field-Extra, 
+.card 								#Side-Front 	#Field-Extra,
 .card 								#Side-Back 	 	#Field-Extra-Front,
 .card #Card-EvernoteReviewCloze  					#Field-Content,
 .card #Card-EvernoteReviewReversed 	#Side-Front		section.header.Field-Title
@@ -385,19 +382,19 @@ a:hover {
 
 .card 					            #Side-Front  	#Header-Links,
 .card #Card-EvernoteReview          #Side-Front  	#Field-Content,
-.card 								#Side-Front 	.occluded  
+.card 								#Side-Front 	.occluded
 {
     visibility: hidden;
 }
- 
-.card #Card-EvernoteReviewCloze  					#Field-Cloze-Content, 
+
+.card #Card-EvernoteReviewCloze  					#Field-Cloze-Content,
 .card #Card-EvernoteReviewReversed	#Side-Front		section.header.Field-Title-Prompt,
 .card								#Side-Back	 	#Field-See_Also
 {
 	display: block;
 }
 
-/******************************************************************************************************* 
+/*******************************************************************************************************
   Rules for Anki-Generated Classes
 *******************************************************************************************************/
 

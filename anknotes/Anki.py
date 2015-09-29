@@ -12,7 +12,7 @@ except ImportError:
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
 from anknotes.shared import *
 from anknotes import stopwatch
-### Evernote Imports 
+### Evernote Imports
 # from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 # from evernote.edam.type.ttypes import NoteSortOrder, Note
 # from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, EDAMNotFoundException
@@ -105,15 +105,14 @@ class Anki:
 			baseNote = None
 			if update:
 				baseNote = self.get_anki_note_from_evernote_guid(ankiNote.Guid)
-				if not baseNote: 
+				if not baseNote:
 					log_error('Updating note %s: COULD NOT FIND BASE NOTE FOR ANKI NOTE ID' % ankiNote.Guid)
 					tmr.reportStatus(EvernoteAPIStatus.MissingDataError)
-					continue 
-				
+					continue
 			if ankiNote.Tags is None:
 				log_error("Could note find tags object for note %s: %s. " % (ankiNote.Guid, ankiNote.FullTitle))
 				tmr.reportStatus(EvernoteAPIStatus.MissingDataError)
-				continue 
+				continue
 			anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
 													count_update=tmr.counts.success, max_count=tmr.counts.max.val)
@@ -133,9 +132,9 @@ class Anki:
 	def get_evernote_model_styles():
 		if MODELS.OPTIONS.IMPORT_STYLES: return '@import url("%s");' % FILES.ANCILLARY.CSS
 		return file(os.path.join(FOLDERS.ANCILLARY, FILES.ANCILLARY.CSS), 'r').read()
-		
-	def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False):        
-		model = mm.byName(modelName)        
+
+	def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False):
+		model = mm.byName(modelName)
 		model_css = self.get_evernote_model_styles()
 		templates = self.get_templates(modelName==MODELS.DEFAULT)
 		if model and modelName is MODELS.DEFAULT:
@@ -143,12 +142,12 @@ class Anki:
 			evernote_account_info = get_evernote_account_ids()
 			if not evernote_account_info.Valid:
 				info = ankDB().first("SELECT uid, shard, COUNT(uid) as c1, COUNT(shard) as c2 from %s GROUP BY uid, shard ORDER BY c1 DESC, c2 DESC LIMIT 1" % TABLES.SEE_ALSO)
-				if info and evernote_account_info.update(info[0], info[1]): forceRebuild = True 
+				if info and evernote_account_info.update(info[0], info[1]): forceRebuild = True
 			if evernote_account_info.Valid:
-				if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front: forceRebuild = True 
-			if model['css'] != model_css: forceRebuild = True 
-			if model['tmpls'][0]['qfmt'] != templates['Front']: forceRebuild = True 
-		if not model or forceRebuild:            
+				if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front: forceRebuild = True
+			if model['css'] != model_css: forceRebuild = True
+			if model['tmpls'][0]['qfmt'] != templates['Front']: forceRebuild = True
+		if not model or forceRebuild:
 			if model:
 				for t in model['tmpls']:
 					t['qfmt'] = templates['Front']
@@ -156,8 +155,7 @@ class Anki:
 				model['css'] = model_css
 				mm.update(model)
 			else:
-				model = mm.new(modelName)        
-
+				model = mm.new(modelName)
 				# Add Field for Evernote GUID:
 				#  Note that this field is first because Anki requires the first field to be unique
 				evernote_guid_field = mm.newField(FIELDS.EVERNOTE_GUID)
@@ -233,7 +231,7 @@ class Anki:
 		self.evernoteModels[modelName] = model['id']
 		return forceRebuild
 
-	def get_templates(self, forceRebuild=False):        
+	def get_templates(self, forceRebuild=False):
 		if not self.templates or forceRebuild:
 			evernote_account_info = get_evernote_account_ids()
 			field_names = {
@@ -251,14 +249,14 @@ class Anki:
 		col = self.collection()
 		mm = col.models
 		self.evernoteModels = {}
-		
+
 		forceRebuild = self.add_evernote_model(mm, MODELS.DEFAULT)
 		self.add_evernote_model(mm, MODELS.REVERSE_ONLY, forceRebuild)
 		self.add_evernote_model(mm, MODELS.REVERSIBLE, forceRebuild)
 		self.add_evernote_model(mm, MODELS.CLOZE, forceRebuild, True)
 
 	def setup_ancillary_files(self):
-		# Copy CSS file from anknotes addon directory to media directory 
+		# Copy CSS file from anknotes addon directory to media directory
 		media_dir = re.sub("(?i)\.(anki2)$", ".media", self.collection().path)
 		if isinstance(media_dir, str):
 			media_dir = unicode(media_dir, sys.getfilesystemencoding())
@@ -373,16 +371,16 @@ class Anki:
 				TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TABLES.EVERNOTE.NOTES))
 		all_guids = [x[0] for x in db.all("SELECT guid FROM %s WHERE tagNames NOT LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, TAGS.TOC))]
 		grouped_results = {}
-		
+
 		toc_titles = {}
 		for row in results:
 			key = row[0]
 			value = row[1]
-			if key not in all_guids: continue 
+			if key not in all_guids: continue
 			toc_titles[value] = row[2]
 			if key not in grouped_results: grouped_results[key] = [row[3], []]
 			grouped_results[key][1].append(value)
-		# log_dump(grouped_results, 'grouped_results', 'insert_toc', timestamp=False)     
+		# log_dump(grouped_results, 'grouped_results', 'insert_toc', timestamp=False)
 		log.banner('INSERT TOCS INTO ANKI NOTES: %d NOTES' % len(grouped_results), 'insert_toc')
 		toc_separator = generate_evernote_span(u' | ', u'Links', u'See Also', bold=False)
 		count = 0
@@ -400,10 +398,10 @@ class Anki:
 				fields = get_dict_from_list(ankiNote.items())
 				see_also_html = fields[FIELDS.SEE_ALSO]
 				content_links = find_evernote_links_as_guids(fields[FIELDS.CONTENT])
-				see_also_links = find_evernote_links_as_guids(see_also_html)                    
+				see_also_links = find_evernote_links_as_guids(see_also_html)
 				new_tocs = set(toc_guids) - set(see_also_links) - set(content_links)
 				log.dump([new_tocs, toc_guids, see_also_links, content_links], 'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + note_title , 'insert_toc_new_tocs', crosspost_to_default=False)
-				new_toc_count = len(new_tocs)				
+				new_toc_count = len(new_tocs)
 				if new_toc_count > 0:
 					see_also_count = len(see_also_links)
 					has_ol = u'<ol' in see_also_html
@@ -420,7 +418,7 @@ class Anki:
 						see_also_new += (toc_delimiter + toc_link) if flat_links else (u'\n<li>%s</li>' % toc_link)
 						toc_delimiter = toc_separator
 					if flat_links:
-						find_div_end = see_also_html.rfind('</div>') 
+						find_div_end = see_also_html.rfind('</div>')
 						if find_div_end > -1:
 							see_also_html = see_also_html[:find_div_end] + see_also_new + '\n' + see_also_html[find_div_end:]
 							see_also_new = ''
@@ -430,11 +428,11 @@ class Anki:
 						see_also_toc_headers['ul'] = see_also_toc_headers['ol'].replace('<ol ', '<ul ')
 
 						if see_also_toc_headers['ul'] in see_also_html:
-							find_ul_end = see_also_html.rfind('</ul>') 
+							find_ul_end = see_also_html.rfind('</ul>')
 							see_also_html = see_also_html[:find_ul_end] + '</ol>' + see_also_html[find_ul_end + 5:]
 							see_also_html = see_also_html.replace(see_also_toc_headers['ul'], see_also_toc_headers['ol'])
 						if see_also_toc_headers['ol'] in see_also_html:
-							find_ol_end = see_also_html.rfind('</ol>') 
+							find_ol_end = see_also_html.rfind('</ol>')
 							see_also_html = see_also_html[:find_ol_end] + see_also_new + '\n' + see_also_html[find_ol_end:]
 							see_also_new = ''
 						else:
@@ -468,7 +466,7 @@ class Anki:
 			for enLink in find_evernote_links(toc_entry['content']):
 				target_evernote_guid = enLink.Guid
 				link_number = 1 + ankDB().scalar("select COUNT(*) from %s WHERE source_evernote_guid = '%s' " % (
-					TABLES.SEE_ALSO, target_evernote_guid))                
+					TABLES.SEE_ALSO, target_evernote_guid))
 				query = """INSERT INTO `%s`(`source_evernote_guid`, `number`, `uid`, `shard`, `target_evernote_guid`, `html`, `title`, `from_toc`, `is_toc`) SELECT '%s', %d, %d, '%s', '%s', '%s', '%s', 1, 1 FROM `%s`  WHERE NOT EXISTS (SELECT * FROM `%s` WHERE `source_evernote_guid`='%s' AND `target_evernote_guid`='%s') LIMIT 1 """ % (
 					TABLES.SEE_ALSO, target_evernote_guid, link_number, enLink.Uid, enLink.Shard, toc_evernote_guid,
 					toc_link_html.replace(u'\'', u'\'\''), toc_link_title.replace(u'\'', u'\'\''), TABLES.SEE_ALSO,

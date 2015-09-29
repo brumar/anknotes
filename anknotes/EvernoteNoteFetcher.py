@@ -37,9 +37,8 @@ class EvernoteNoteFetcher(object):
 
 	def __reset_data__(self):
 		self.tagNames = []
-		self.tagGuids = []     
-		self.whole_note = None    
-		
+		self.tagGuids = []
+		self.whole_note = None
 	def UpdateSequenceNum(self):
 		if self.result.Note:
 			return self.result.Note.UpdateSequenceNum
@@ -77,19 +76,19 @@ class EvernoteNoteFetcher(object):
 		return True
 
 	def setNoteTags(self, tag_names=None, tag_guids=None):
-		if not self.keepEvernoteTags: 
+		if not self.keepEvernoteTags:
 			self.tagNames = []
 			self.tagGuids = []
-			return 
-		if not tag_names: 
+			return
+		if not tag_names:
 			if self.tagNames: tag_names = self.tagNames
-			if not tag_names and self.result.Note: tag_names = self.result.Note.TagNames 
-			if not tag_names and self.whole_note: tag_names = self.whole_note.tagNames 
-			if not tag_names: tag_names = None 
+			if not tag_names and self.result.Note: tag_names = self.result.Note.TagNames
+			if not tag_names and self.whole_note: tag_names = self.whole_note.tagNames
+			if not tag_names: tag_names = None
 		# if not tag_names: tag_names = self.tagNames if self.tagNames else (self.result.Note.TagNames if self.result.Note else (self.whole_note.tagNames if self.whole_note else None))
 		if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else (self.result.Note.TagGuids if self.result.Note else (self.whole_note.tagGuids if self.whole_note else None))
 		self.tagGuids, self.tagNames = self.evernote.get_matching_tag_data(tag_guids, tag_names)
-		
+
 	def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
 		"""
 		Adds note to Anknote DB from an Evernote Note object provided by the Evernote API
@@ -131,17 +130,17 @@ class EvernoteNoteFetcher(object):
 		self.evernote.initialize_note_store()
 		api_action_str = u'trying to retrieve a note. We will save the notes downloaded thus far.'
 		self.api_calls += 1
-		log_api("  > getNote [%3d]" % self.api_calls, "GUID: '%s'" % self.evernote_guid)		
+		log_api("  > getNote [%3d]" % self.api_calls, "GUID: '%s'" % self.evernote_guid)
 		try:
 			self.whole_note = self.evernote.noteStore.getNote(self.evernote.token, self.evernote_guid, True, False,
 															  False, False)
 			""":type : evernote.edam.type.ttypes.Note"""
 		except EDAMSystemException as e:
-			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			self.reportResult(EvernoteAPIStatus.RateLimitError)
 			return False
 		except socket.error, v:
-			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			self.reportResult(EvernoteAPIStatus.SocketError)
 			return False
 		assert self.whole_note.guid == self.evernote_guid
@@ -165,7 +164,7 @@ class EvernoteNoteFetcher(object):
 
 	def getNote(self, evernote_guid=None):
 		self.__reset_data__()
-		if evernote_guid:        
+		if evernote_guid:
 			self.result.Note = None
 			self.evernote_guid = evernote_guid
 			self.__update_sequence_number__ = self.evernote.metadata[

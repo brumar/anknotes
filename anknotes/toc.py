@@ -81,9 +81,9 @@ class TOCHierarchyClass:
 		if self.__isSorted__: return
 		self.sortChildren()
 
-	@property 
+	@property
 	def FullTitle(self): return self.Title.FullTitle if self.Title else ""
-		
+
 	@property
 	def Level(self):
 		return self.Title.Level

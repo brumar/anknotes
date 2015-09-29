@@ -27,7 +27,7 @@ def strip_tags(html):
 	s.feed(html)
 	html = s.get_data()
 	html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
-	return html 
+	return html
 	# s = MLStripper()
 	# s.feed(html)
 	# return s.get_data()
@@ -35,9 +35,7 @@ def strip_tags(html):
 
 def strip_tags_and_new_lines(html):
 	if html is None: return None
-	return re.sub(r'[\r\n]+', ' ', strip_tags(html)) 
-
-
+	return re.sub(r'[\r\n]+', ' ', strip_tags(html))
 __text_escape_phrases__ = u'&|&amp;|\'|&apos;|"|&quot;|>|&gt;|<|&lt;'.split('|')
 
 
@@ -226,31 +224,30 @@ def tableify_lines(rows, columns=None, tr_index_offset=0, return_html=True):
 class EvernoteAccountIDs:
 	uid = SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE
 	shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE
-	
-	@property 
+
+	@property
 	def Valid(self):
 		return self.is_valid()
 
 	def is_valid(self, uid=None, shard=None):
-		if uid is None: uid = self.uid 
-		if shard is None: shard = self.shard 
-		if not uid or not shard: return False 
-		if uid == '0' or uid == SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE or not unicode(uid).isnumeric(): return False 
-		if shard == 's999' or uid == SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE or shard[0] != 's' or not unicode(shard[1:]).isnumeric(): return False 
-		return True 
-	
-	def __init__(self, uid=None, shard=None):        
+		if uid is None: uid = self.uid
+		if shard is None: shard = self.shard
+		if not uid or not shard: return False
+		if uid == '0' or uid == SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE or not unicode(uid).isnumeric(): return False
+		if shard == 's999' or uid == SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE or shard[0] != 's' or not unicode(shard[1:]).isnumeric(): return False
+		return True
+	def __init__(self, uid=None, shard=None):
 		if uid and shard:
-			if self.update(uid, shard): return 
+			if self.update(uid, shard): return
 		try:
 			self.uid = mw.col.conf.get(SETTINGS.EVERNOTE.ACCOUNT.UID, SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE)
 			self.shard = mw.col.conf.get(SETTINGS.EVERNOTE.ACCOUNT.SHARD, SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE)
-			if self.Valid: return 
+			if self.Valid: return
 		except:
 			pass
 		self.uid = SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE
 		self.shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE
-			
+
 	def update(self, uid, shard):
 		if not self.is_valid(uid, shard): return False
 		try:
@@ -260,4 +257,4 @@ class EvernoteAccountIDs:
 			return False
 		self.uid = uid
 		self.shard = shard
-		return self.Valid 
+		return self.Valid

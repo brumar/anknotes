@@ -6,7 +6,7 @@ from sys import stderr
 
 def generateTOCTitle(title):
 	title = EvernoteNoteTitle.titleObjectToString(title).upper()
-	for chr in u'αβδφḃ':    
+	for chr in u'αβδφḃ':
 		title = title.replace(chr.upper(), chr)
 	return title
 

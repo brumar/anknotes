@@ -20,10 +20,10 @@ def anki_profile_path_root():
 def last_anki_profile_name():
 	root = anki_profile_path_root()
 	name = ANKI.PROFILE_NAME
-	if name and os.path.isdir(os.path.join(root, name)): return name 
-	if os.path.isfile(FILES.USER.LAST_PROFILE_LOCATION): 
+	if name and os.path.isdir(os.path.join(root, name)): return name
+	if os.path.isfile(FILES.USER.LAST_PROFILE_LOCATION):
 		name = file(FILES.USER.LAST_PROFILE_LOCATION, 'r').read().strip()
-		if name and os.path.isdir(os.path.join(root, name)): return name 
+		if name and os.path.isdir(os.path.join(root, name)): return name
 	dirs = [x for x in os.listdir(root) if os.path.isdir(os.path.join(root, x)) and x is not 'addons']
 	if not dirs: return ""
 	return dirs[0]
@@ -70,7 +70,7 @@ class ank_DB(object):
 	def __init__(self, path=None, text=None, timeout=0):
 		encpath = path
 		if isinstance(encpath, unicode):
-			encpath = path.encode("utf-8")		
+			encpath = path.encode("utf-8")
 		if path:
 			self._db = sqlite.connect(encpath, timeout=timeout)
 			self._db.row_factory = sqlite.Row
@@ -80,7 +80,7 @@ class ank_DB(object):
 		else:
 			self._db = mw.col.db._db
 			self._path = mw.col.db._path
-			self._db.row_factory = sqlite.Row		
+			self._db.row_factory = sqlite.Row
 		self.echo = os.environ.get("DBECHO")
 		self.mod = False
 
@@ -190,12 +190,12 @@ class ank_DB(object):
 			if_exists = ""
 		self.execute(
 			"""CREATE TABLE %s `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id) );""" % (if_exists, TABLES.SEE_ALSO))
-				
+
 	def Init(self):
 		self.execute(
 			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL UNIQUE, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL, PRIMARY KEY(guid) );""" % TABLES.EVERNOTE.NOTES)
 		self.execute(
-			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL)""" % TABLES.EVERNOTE.NOTES_HISTORY)        
+			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL)""" % TABLES.EVERNOTE.NOTES_HISTORY)
 		self.execute(
 			"""CREATE TABLE IF NOT EXISTS `%s` ( 	`root_title`	TEXT NOT NULL UNIQUE, 	`contents`	TEXT NOT NULL, 	`tagNames`	TEXT NOT NULL, 	`notebookGuid`	TEXT NOT NULL, 	PRIMARY KEY(root_title) );""" % TABLES.AUTO_TOC)
 		self.execute(

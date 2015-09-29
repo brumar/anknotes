@@ -277,8 +277,8 @@ def setup_evernote(self):
 	# Add Horizontal Row Separator
 	form.addRow(gen_qt_hr())
 
-	############################ PAGINATION ##########################    
-	# Evernote Pagination: Current Page                                                                                                   
+	############################ PAGINATION ##########################
+	# Evernote Pagination: Current Page
 	evernote_pagination_current_page_spinner = QSpinBox()
 	evernote_pagination_current_page_spinner.setStyleSheet("QSpinBox { font-weight: bold;  color: rgb(173, 0, 0);  } ")
 	evernote_pagination_current_page_spinner.setPrefix("PAGE: ")
@@ -302,10 +302,10 @@ def setup_evernote(self):
 	# Add Form Row for Evernote Pagination
 	form.addRow("<b>Pagination:</b>", hbox)
 
-	# Add Query Form to Group Box  
+	# Add Query Form to Group Box
 	group.setLayout(form)
 
-	# Add Query Group Box to Main Layout 
+	# Add Query Group Box to Main Layout
 	layout.addWidget(group)
 
 	########################## DECK ##########################
@@ -322,7 +322,7 @@ def setup_evernote(self):
 	default_anki_deck.setText(mw.col.conf.get(SETTINGS.ANKI.DECKS.BASE, SETTINGS.ANKI.DECKS.BASE_DEFAULT_VALUE))
 	default_anki_deck.connect(default_anki_deck, SIGNAL("textEdited(QString)"), update_default_anki_deck)
 
-	# Add Form Row for Default Anki Deck 
+	# Add Form Row for Default Anki Deck
 	hbox = QHBoxLayout()
 	hbox.insertSpacing(0, 33)
 	hbox.addWidget(default_anki_deck)
@@ -336,7 +336,7 @@ def setup_evernote(self):
 		mw.col.conf.get(SETTINGS.ANKI.DECKS.EVERNOTE_NOTEBOOK_INTEGRATION, True))
 	anki_deck_evernote_notebook_integration.stateChanged.connect(update_anki_deck_evernote_notebook_integration)
 
-	# Change Visibility of Deck Options 
+	# Change Visibility of Deck Options
 	update_anki_deck_visibilities()
 
 	# Add Form Row for Evernote Notebook Integration
@@ -361,7 +361,7 @@ def setup_evernote(self):
 									SIGNAL("textEdited(QString)"),
 									update_evernote_tags_to_delete)
 
-	# Delete Tags To Import 
+	# Delete Tags To Import
 	delete_evernote_query_tags = QCheckBox("     Also Delete Search Tags", self)
 	delete_evernote_query_tags.setChecked(mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False))
 	delete_evernote_query_tags.stateChanged.connect(update_delete_evernote_query_tags)
@@ -396,13 +396,13 @@ def setup_evernote(self):
 	hbox.addWidget(update_existing_notes)
 	form.addRow("<b>Note Updating:</b>", hbox)
 
-	# Add Note Update Method Form to Group Box  
+	# Add Note Update Method Form to Group Box
 	group.setLayout(form)
 
-	# Add Note Update Method Group Box to Main Layout 
+	# Add Note Update Method Group Box to Main Layout
 	layout.addWidget(group)
 
-	# Update Visibilities of Query Options 
+	# Update Visibilities of Query Options
 	evernote_query_text_changed()
 	update_evernote_query_visibilities()
 
@@ -585,8 +585,7 @@ def evernote_query_text_changed():
 		evernote_query_use_excluded_tags.setChecked(False)
 	else:
 		evernote_query_use_excluded_tags.setEnabled(True)
-		evernote_query_use_excluded_tags.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_EXCLUDED_TAGS, True))        
-		
+		evernote_query_use_excluded_tags.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_EXCLUDED_TAGS, True))
 	if not tags and not all_inactive:
 		evernote_query_use_tags.setEnabled(False)
 		evernote_query_use_tags.setChecked(False)
@@ -711,7 +710,7 @@ def update_evernote_query_last_updated_value_absolute_time(time_value):
 
 
 def generate_evernote_query():
-	query = ""    
+	query = ""
 	if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_NOTEBOOK, False):
 		query += 'notebook:"%s" ' % mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.NOTEBOOK,
 													SETTINGS.EVERNOTE.QUERY.NOTEBOOK_DEFAULT_VALUE).strip()
@@ -726,13 +725,13 @@ def generate_evernote_query():
 		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS, SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',', ' ').split()
 		for tag in tags:
 			tag = tag.strip()
-			if ' ' in tag: tag = '"%s"' % tag 
+			if ' ' in tag: tag = '"%s"' % tag
 			query += 'tag:%s ' % tag
 	if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_EXCLUDED_TAGS, True):
 		tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.EXCLUDED_TAGS, '').replace(',', ' ').split()
 		for tag in tags:
 			tag = tag.strip()
-			if ' ' in tag: tag = '"%s"' % tag 
+			if ' ' in tag: tag = '"%s"' % tag
 			query += '-tag:%s ' % tag
 	if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_LAST_UPDATED, False):
 		query += " updated:%s " % evernote_query_last_updated_value_get_current_value()

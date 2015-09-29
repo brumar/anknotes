@@ -351,16 +351,16 @@ class EvernoteNotes:
 					# childTitle = enChildNote.FullTitle
 					log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
 						'RootTitles-TOC', timestamp=False)
-					# tocList.generateEntry(childTitle, enChildNote)                    
+					# tocList.generateEntry(childTitle, enChildNote)
 					tocHierarchy.addNote(enChildNote)
 				realTitle = ankDB().scalar(
 					"SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, childGuid))
 				realTitle = realTitle[0:realTitle.index(':')]
 				# realTitleUTF8 = realTitle.encode('utf8')
 				notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]
-				
+
 				real_root_title = generateTOCTitle(realTitle)
-				
+
 				ol = tocHierarchy.GetOrderedList()
 				tocEntry = EvernoteTOCEntry(real_root_title, ol, ',' + ','.join(tags) + ',', notebookGuid)
 				returns.append(tocEntry)
@@ -368,8 +368,7 @@ class EvernoteNotes:
 				# ol = realTitleUTF8
 				# if olsz is None: olsz = ol
 				# olsz += ol
-				# ol = '<OL>\r\n%s</OL>\r\n' 
-
+				# ol = '<OL>\r\n%s</OL>\r\n'
 				# strr = tocHierarchy.__str__()
 				if DEBUG_HTML:
 					ols.append(ol)

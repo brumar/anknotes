@@ -2,7 +2,7 @@
 import sys
 inAnki='anki' in sys.modules
 
-if not inAnki:       
+if not inAnki:
 	from anknotes.shared import *
 	try: from pysqlite2 import dbapi2 as sqlite
 	except ImportError: from sqlite3 import dbapi2 as sqlite

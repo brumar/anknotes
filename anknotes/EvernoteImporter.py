@@ -23,7 +23,7 @@ from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 try: from anknotes import settings
 except: pass
 
-### Evernote Imports 
+### Evernote Imports
 from anknotes.evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec, NoteMetadata, NotesMetadataList
 from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
 from anknotes.evernote.edam.error.ttypes import EDAMSystemException
@@ -90,20 +90,20 @@ class EvernoteImporter:
 			:type: NotesMetadataList
 			"""
 		except EDAMSystemException as e:
-			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			self.MetadataProgress.Status = EvernoteAPIStatus.RateLimitError
 			return False
 		except socket.error, v:
-			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise 
+			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			self.MetadataProgress.Status = EvernoteAPIStatus.SocketError
 			return False
 		self.MetadataProgress.loadResults(result)
 		self.evernote.metadata = self.MetadataProgress.NotesMetadata
-		log(" " * 32 + "- Metadata Results: %s" % self.MetadataProgress.Summary, timestamp=False)
+		log(self.MetadataProgress.Summary, line_padding_header="- Metadata Results: ", line_padding=32, timestamp=False)
 		return True
 
 	def update_in_anki(self, evernote_guids):
-		""" 
+		"""
 		:rtype : EvernoteNoteFetcherResults
 		"""
 		Results = self.evernote.create_evernote_notes(evernote_guids)
@@ -114,7 +114,7 @@ class EvernoteImporter:
 		return Results
 
 	def import_into_anki(self, evernote_guids):
-		""" 
+		"""
 		:rtype : EvernoteNoteFetcherResults
 		"""
 		Results = self.evernote.create_evernote_notes(evernote_guids)
@@ -174,7 +174,7 @@ class EvernoteImporter:
 		if lastImportStr: lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
 		log("!  > Starting Evernote Import: Page #%d: %-60s%s" % (
 			self.currentPage, settings.generate_evernote_query(), lastImportStr))
-		log("-"*181, timestamp=False)
+		log("-"*186, timestamp=False)
 		if not auto_paging:
 			note_store_status = self.evernote.initialize_note_store()
 			if not note_store_status == EvernoteAPIStatus.Success:
@@ -211,7 +211,9 @@ class EvernoteImporter:
 		self.ImportProgress = EvernoteImportProgress(self.anki, self.MetadataProgress)
 		self.ImportProgress.loadAlreadyUpdated(
 		   [] if self.ManualMetadataMode else self.check_note_sync_status(self.ImportProgress.GUIDs.Server.Existing.All))
-		log("                                - " + self.ImportProgress.Summary + "\n", timestamp=False)
+		# log(self.MetadataProgress.Summary, line_padding_header="- Metadata Results: ", line_padding=32, timestamp=False)
+		log(self.ImportProgress.Summary + "\n", line_padding_header="- Note Sync Status: ", line_padding=32, timestamp=False)
+		# log(" " * 32 + "- " + self.ImportProgress.Summary + "\n", timestamp=False)
 
 	def proceed_import_notes(self):
 		self.anki.start_editing()
@@ -227,12 +229,18 @@ class EvernoteImporter:
 		self.anki.stop_editing()
 		self.anki.collection().autosave()
 
+	def save_current_page(self):
+		if self.forceAutoPage: return
+		col = self.anki.collection()
+		col.conf[SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE] = self.currentPage
+		col.setMod()
+		col.save()
 	def proceed_autopage(self):
 		if not self.autoPagingEnabled:
 			return
 		global latestEDAMRateLimit, latestSocketError
-		col = self.anki.collection()
 		status = self.ImportProgress.Status
+		restart = 0
 		if status == EvernoteAPIStatus.RateLimitError:
 			m, s = divmod(latestEDAMRateLimit, 60)
 			show_report("   > Error: Delaying Auto Paging",
@@ -256,45 +264,39 @@ class EvernoteImporter:
 				if self.auto_page_callback:
 					self.auto_page_callback()
 				return True
-			elif col.conf.get(EVERNOTE.IMPORT.PAGING.RESTART.ENABLED, True):
+			elif mw.col.conf.get(EVERNOTE.IMPORT.PAGING.RESTART.ENABLED, True):
 				restart = max(EVERNOTE.IMPORT.PAGING.RESTART.INTERVAL, 60*15)
 				restart_title = "   > Restarting Auto Paging"
-				restart_msg = "All %d notes have been processed and EVERNOTE.IMPORT.PAGING.RESTART.ENABLED is TRUE<BR>" % \
+				restart_msg = "All %d notes have been processed and EVERNOTE.IMPORT.PAGING.RESTART.ENABLED is True<BR>" % \
 							  self.MetadataProgress.Total
 				suffix = "Per EVERNOTE.IMPORT.PAGING.RESTART.INTERVAL, "
 			else:
 				show_report("   > Completed Auto Paging",
-								"All %d notes have been processed and EVERNOTE.IMPORT.PAGING.RESTART.ENABLED is FALSE" %
+								"All %d notes have been processed and EVERNOTE.IMPORT.PAGING.RESTART.ENABLED is False" %
 								self.MetadataProgress.Total, delay=5)
+				self.save_current_page()
 				return True
-		else:  # Paging still in progress
+		else:  # Paging still in progress (else to )
 			self.currentPage = self.MetadataProgress.Page + 1
 			restart_title = "   > Continuing Auto Paging"
-			restart_msg = "Page %d completed<BR>%d notes remain<BR>%d of %d notes have been processed" % (
-				self.MetadataProgress.Page, self.MetadataProgress.Remaining, self.MetadataProgress.Completed,
+			restart_msg = "Page %d completed<BR>%d notes remain over %d page%s<BR>%d of %d notes have been processed" % (
+				self.MetadataProgress.Page, self.MetadataProgress.Remaining, self.MetadataProgress.RemainingPages, 's' if self.MetadataProgress.RemainingPages > 1 else '', self.MetadataProgress.Completed,
 				self.MetadataProgress.Total)
-			restart = 0
+			restart = -1 * max(30, EVERNOTE.IMPORT.PAGING.RESTART.INTERVAL_OVERRIDE)
 			if self.forceAutoPage:
-				suffix = "<BR>Not delaying as the forceAutoPage flag is set"
+				suffix = "<BR>Only delaying {interval} as the forceAutoPage flag is set\n"
 			elif self.ImportProgress.APICallCount < EVERNOTE.IMPORT.PAGING.RESTART.DELAY_MINIMUM_API_CALLS:
-				suffix = "<BR>Not delaying as the API Call Count of %d is less than the minimum of %d set by EVERNOTE.IMPORT.PAGING.RESTART.DELAY_MINIMUM_API_CALLS" % (
+				suffix = "<BR>Only delaying {interval} as the API Call Count of %d is less than the minimum of %d set by EVERNOTE.IMPORT.PAGING.RESTART.DELAY_MINIMUM_API_CALLS\n" % (
 				self.ImportProgress.APICallCount, EVERNOTE.IMPORT.PAGING.RESTART.DELAY_MINIMUM_API_CALLS)
 			else:
-				restart = max(EVERNOTE.IMPORT.PAGING.INTERVAL, 60*10)
+				restart = max(EVERNOTE.IMPORT.PAGING.INTERVAL_SANDBOX,60*5) if EVERNOTE.API.IS_SANDBOXED else max(EVERNOTE.IMPORT.PAGING.INTERVAL, 60*10)
 				suffix = "<BR>Delaying Auto Paging: Per EVERNOTE.IMPORT.PAGING.INTERVAL, "
-
-		if not self.forceAutoPage:
-			col.conf[SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE] = self.currentPage
-			col.setMod()
-			col.save()
-
-		if restart > 0:
-			m, s = divmod(restart, 60)
-			suffix += "will delay for %d:%02d min before continuing\n" % (m, s)
+		self.save_current_page()
+		if restart > 0: suffix += "will delay for {interval} before continuing\n"
+		m, s = divmod(abs(restart), 60)
+		suffix = suffix.format(interval=['%2ds' % s,'%d:%02d min'%(m,s)][m>0])
 		show_report(restart_title, (restart_msg + suffix).split('<BR>'), delay=5)
-		if restart > 0:
-			mw.progress.timer(restart * 1000, lambda: self.proceed(True), False)
-			return False
+		if restart: mw.progress.timer(abs(restart) * 1000, lambda: self.proceed(True), False); return False
 		return self.proceed(True)
 
 	@property

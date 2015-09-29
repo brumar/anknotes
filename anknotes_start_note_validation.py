@@ -1,10 +1,10 @@
 import os
 from anknotes import stopwatch
 import time
-try: 
+try:
 	from lxml import etree
 	eTreeImported=True
-except: 
+except:
 	eTreeImported=False
 if eTreeImported:
 
@@ -13,9 +13,8 @@ if eTreeImported:
 	except ImportError:
 		from sqlite3 import dbapi2 as sqlite
 
-	### Anknotes Module Imports for Stand Alone Scripts 
-	from anknotes import evernote as evernote 
-		
+	### Anknotes Module Imports for Stand Alone Scripts
+	from anknotes import evernote as evernote
 	### Anknotes Shared Imports
 	from anknotes.shared import *
 	from anknotes.error import *
@@ -38,8 +37,8 @@ if eTreeImported:
 	# from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
 	from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
 	# from anknotes.evernote.api.client import EvernoteClient
-	
-	
+
+
 	ankDBSetLocal()
 	db = ankDB()
 	db.Init()
@@ -73,7 +72,7 @@ if eTreeImported:
 		log("------------------------------------------------\n", 'MakeNoteQueue\\'+currentLog, timestamp=False)
 		log(result['contents'], 'MakeNoteQueue\\'+currentLog, timestamp=False)
 		log("------------------------------------------------\n", 'MakeNoteQueue\\'+currentLog, timestamp=False)
-		
+
 	EN = Evernote()
 
 	currentLog = 'Pending'
@@ -86,34 +85,32 @@ if eTreeImported:
 		guid = result['guid']
 		noteContents = result['contents']
 		noteTitle = result['title']
-		line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''        
-
-		success, errors = EN.validateNoteContent(noteContents, noteTitle)        
+		line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
+		success, errors = EN.validateNoteContent(noteContents, noteTitle)
 		validation_status = 1 if success else -1
-		
+
 		line = " SUCCESS! " if success else " FAILURE: "
 		line += '     ' if result['guid'] else ' NEW '
 		# line += ' %-60s ' % (result['title'] + ':')
 		log_dump(errors,  'LXML ERRORS', 'lxml_errors', crosspost_to_default=False)
-		if not success: 
+		if not success:
 			if not isinstance(errors, unicode) and not isinstance(errors, str):
-				errors = '\n    * ' + '\n    * '.join(errors)            
+				errors = '\n    * ' + '\n    * '.join(errors)
 			log(line + errors, 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
 		else:
 			if not isinstance(errors, unicode) and not isinstance(errors, str):
 				errors = '\n'.join(errors)
-		
-		
+
+
 		sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (TABLES.NOTE_VALIDATION_QUEUE, validation_status, escape_text_sql(errors))
 		if guid:
 			sql += "guid = '%s'" % guid
 		else:
 			sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
-		
-		db.execute(sql)
-		
 
-	timerFull.stop()    
+		db.execute(sql)
+
+	timerFull.stop()
 	log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)), 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
 
 	db.commit()

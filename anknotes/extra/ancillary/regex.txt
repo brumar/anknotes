@@ -5,8 +5,8 @@ Converting this file to Python:
 Finding Evernote Links
 	<a href="(?P<URL>evernote:///?view/(?P<uid>[\d]+?)/(?P<shard>s\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P=guid)/?)"(?:[^>]+)?>(?P<Title>.+?)</a>
 	https://www.evernote.com/shard/(?P<shard>s\d+)/[\w\d]+/(?P<uid>\d+)/(?P<guid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})
-	
-	
+
+
 Step 6: Process "See Also: " Links
 	(?<PrefixStrip><div><b><span[^>]*><br/></span></b></div>)?(?:
 	)?(?<SeeAlso>(?<SeeAlsoPrefix><div[^>]*>)(?<SeeAlsoHeader>(?:
