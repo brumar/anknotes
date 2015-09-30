@@ -95,7 +95,7 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0
 	messageBox.setTextFormat(textFormat)
 
 	# message = ' %s %s' % (styleSheet, message)
-	log_plain(message, 'showInfo',  clear=True)
+	# log_plain(message, 'showInfo',  clear=True)
 	messageBox.setWindowIcon(icoEvernoteWeb)
 	messageBox.setWindowIconText("Anknotes")
 	messageBox.setText(message)
@@ -264,7 +264,7 @@ def __get_args__(args, func_kwargs, *args_list, **kwargs_):
 	return results
 def __get_default_listdict_args__(args, kwargs, name):
 	results_expanded = __get_args__(args, kwargs, [name + '*', [list, str, unicode], name , [dict, DictCaseInsensitive]])
-	results_expanded[2] = item_to_list(results_expanded[2], chrs=',')
+	# results_expanded[2] = item_to_list(results_expanded[2], chrs=',')
 	if results_expanded[2] is None: results_expanded[2] = []
 	if results_expanded[3] is None: results_expanded[3] = {}
 	return results_expanded
@@ -278,13 +278,14 @@ def get_kwargs(func_kwargs, *args_list, **kwargs):
 	return process_kwargs(func_kwargs, get_args=lst, **kwargs)
 
 def set_kwargs(func_kwargs, *args, **kwargs):
+	new_args=[]
 	kwargs, name, update_kwargs = get_kwargs(kwargs, ['name', None, 'update_kwargs', None])
-	args, kwargs, list, dict = __get_default_listdict_args__(args, kwargs, 'set')
-	new_args=[];
-	for arg in args: new_args += item_to_list(arg, False)
-	dict.update({key: None for key in list + new_args  })
-	dict.update(kwargs)
-	return DictCaseInsensitive(process_kwargs(func_kwargs, set_dict=dict, name=name, update_kwargs=update_kwargs))
+	args, kwargs, lst, dct = __get_default_listdict_args__(args, kwargs, 'set')
+	if isinstance(lst, list): dct.update({lst[i*2]: lst[i*2+1] for i in range(0, len(lst)/2)}); lst = []				
+	for arg in args: new_args += item_to_lst(arg, False)
+	dct.update({key: None for key in item_to_list(lst, chrs=',') + new_args  })
+	dct.update(kwargs)
+	return DictCaseInsensitive(process_kwargs(func_kwargs, set_dict=dct, name=name, update_kwargs=update_kwargs))
 
 def obj2log_simple(content):
 	if not isinstance(content, str) and not isinstance(content, unicode):

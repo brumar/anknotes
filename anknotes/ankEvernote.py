@@ -121,7 +121,7 @@ class Evernote(object):
 			log("Loading ENML DTD", "lxml", timestamp=False, do_print=True)
 			self.DTD = etree.DTD(FILES.ANCILLARY.ENML_DTD)
 			log("DTD Loaded in %s\n" % str(timerInterval), "lxml", timestamp=False, do_print=True)
-			log(' '*7+' > Note Validation: ENML DTD Loaded in %s' % str(timerInterval))
+			log('    > Note Validation: ENML DTD Loaded in %s' % str(timerInterval))
 			timerInterval.stop()
 			del timerInterval
 

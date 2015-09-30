@@ -404,7 +404,7 @@ class Anki:
 			if not ankiNote:
 				log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False, crosspost_to_default=False)
 				if not logged_missing_anki_note:
-					log_error('ERROR DURING %s: Missing Anki Note(s) for TOC entry. See insert_toc log for more details' % action_title)
+					log_error('%s: Missing Anki Note(s) for TOC entry. See insert_toc log for more details' % action_title)
 					logged_missing_anki_note = True 
 			else:
 				fields = get_dict_from_list(ankiNote.items())
