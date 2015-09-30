@@ -170,6 +170,7 @@ class EvernoteNoteFetcher(object):
 		if evernote_guid:
 			self.result.Note = None
 			self.evernote_guid = evernote_guid
+			self.evernote.evernote_guid = evernote_guid
 			self.__update_sequence_number__ = self.evernote.metadata[
 				self.evernote_guid].updateSequenceNum if not self.use_local_db_only else -1
 		if self.getNoteLocal(): return True
