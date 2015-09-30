@@ -351,7 +351,7 @@ def log_plain(*args, **kwargs):
 
 def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
 	path = os.path.dirname(os.path.abspath(get_log_full_path(filename)))
-	if path is FOLDERS.LOGS or path in FOLDERS.LOGS: return
+	if path is FOLDERS.LOGS or FOLDERS.LOGS not in path: return
 	rm_log_path.errors = []
 	def del_subfolder(arg=None,dirname=None,filenames=None, is_subfolder=True):
 		def rmtree_error(f, p, e):
@@ -476,6 +476,7 @@ def log_sql(content, **kwargs):
 	log(content, 'sql', **kwargs)
 
 def log_error(content, **kwargs):
+	kwargs = set_kwargs(kwargs, ['crosspost_to_default', True])
 	log(content, 'error', **kwargs)
 
 def print_dump(obj):
