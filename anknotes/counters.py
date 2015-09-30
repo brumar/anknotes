@@ -2,12 +2,13 @@ import os
 import sys
 from pprint import pprint
 from addict import Dict
+from anknotes.constants import *
 inAnki='anki' in sys.modules
 
 def print_banner(title):
-	print "-" * max(40, len(title) + 5)
+	print "-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)
 	print title
-	print "-" * max(40, len(title) + 5)
+	print "-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)
 
 
 class DictCaseInsensitive(Dict):
@@ -16,7 +17,7 @@ class DictCaseInsensitive(Dict):
 
 	@staticmethod
 	def make_banner(title):
-		return '\n'.join(["-" * max(40, len(title) + 5), title ,"-" * max(40, len(title) + 5)])
+		return '\n'.join(["-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5), title ,"-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)])
 
 	def __process_kwarg__(self, kwargs, key, default=None, replace_none_type=True):
 		key = self.__key_transform__(key, kwargs.keys())
@@ -157,7 +158,7 @@ class Counter(Dict):
 
 	@staticmethod
 	def make_banner(title):
-		return '\n'.join(["-" * max(40, len(title) + 5), title ,"-" * max(40, len(title) + 5)])
+		return '\n'.join(["-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5), title ,"-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)])
 
 	def __init__(self, *args, **kwargs):
 		self.setCount(0)

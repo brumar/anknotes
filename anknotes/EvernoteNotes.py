@@ -160,7 +160,9 @@ class EvernoteNotes:
 						childBaseTitleStr = enNote.Title.Base.FullTitle
 						if childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]:
 							log_error("Duplicate Child Base Title String. \n%-18s%s\n%-18s%s: %s\n%-18s%s" % ('Root Note Title: ', rootTitleStr, 'Child Note: ', enNote.Guid, childBaseTitleStr, 'Duplicate Note: ', self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr]), crosspost_to_default=False)
-							log("     > WARNING: Duplicate Child Notes: " + enNote.FullTitle)
+							if not hasattr(self, 'loggedDuplicateChildNotesWarning'):
+								log("     > WARNING: Duplicate Child Notes found when processing Root Notes. See error log for more details")
+								self.loggedDuplicateChildNotesWarning = True 
 						self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr] = enNote.Guid
 						self.RootNotesMissing.ChildNotesDict[rootTitleStr][enNote.Guid] = enNote
 				if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict:

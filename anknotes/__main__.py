@@ -32,20 +32,20 @@ def import_timer_toggle():
 	title = "&Enable Auto Import On Profile Load"
 	doAutoImport = mw.col.conf.get(
 		SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX + '_' + title.replace(' ', '_').replace('&', ''), False)
-	if doAutoImport:
-		lastImport = mw.col.conf.get(SETTINGS.EVERNOTE.LAST_IMPORT, None)
-		importDelay = 0
-		if lastImport:
-			td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
-			minimum = timedelta(seconds=max(EVERNOTE.IMPORT.INTERVAL, 20*60))
-			if td < minimum:
-				importDelay = (minimum - td).total_seconds() * 1000
-		if importDelay is 0:
-			menu.import_from_evernote()
-		else:
-			m, s = divmod(importDelay / 1000, 60)
-			log("> Starting Auto Import, Triggered by Profile Load, in %d:%02d min" % (m, s))
-			mw.progress.timer(importDelay, menu.import_from_evernote, False)
+	if not doAutoImport: return 
+	lastImport = mw.col.conf.get(SETTINGS.EVERNOTE.LAST_IMPORT, None)
+	importDelay = 0
+	if lastImport:
+		td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
+		minimum = timedelta(seconds=max(EVERNOTE.IMPORT.INTERVAL, 20*60))
+		if td < minimum:
+			importDelay = (minimum - td).total_seconds() * 1000
+	if importDelay is 0:
+		menu.import_from_evernote()
+	else:
+		m, s = divmod(importDelay / 1000, 60)
+		log("> Starting Auto Import, Triggered by Profile Load, in %d:%02d min" % (m, s))
+		mw.progress.timer(importDelay, menu.import_from_evernote, False)
 
 
 def _findEdited((val, args)):

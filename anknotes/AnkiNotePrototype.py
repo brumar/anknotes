@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.error import HandleUnicodeError
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 ### Anki Imports
@@ -217,9 +218,15 @@ class AnkiNotePrototype:
 			################################### Step 6: Process "See Also: " Links
 			see_also_match = regex_see_also().search(self.Fields[FIELDS.CONTENT])
 			if not see_also_match:
-				if self.Fields[FIELDS.CONTENT].find("See Also") > -1:
-					log("No See Also Content Found, but phrase 'See Also' exists in " + self.FullTitle + " \n" + self.Fields[FIELDS.CONTENT])
-					raise ValueError
+				i_see_also =  self.Fields[FIELDS.CONTENT].find("See Also")
+				if i_see_also > -1:
+					self.loggedSeeAlsoError = self.Guid 
+					i_div = self.Fields[FIELDS.CONTENT].rfind("<div", 0, i_see_also)
+					if i_div is -1: i_div = i_see_also
+					log_error("No See Also Content Found, but phrase 'See Also' exists in " + self.Guid + ": " + self.FullTitle, crosspost_to_default=False)
+					log("No See Also Content Found, but phrase 'See Also' exists: \n" + self.Guid + ": " + self.FullTitle + " \n" + self.Fields[FIELDS.CONTENT][i_div:i_see_also+50] + '\n', 'SeeAlso\\MatchExpected')
+					log(self.Fields[FIELDS.CONTENT], 'SeeAlso\\MatchExpected\\'+self.FullTitle)
+					# raise ValueError
 				return
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0), see_also_match.group('Suffix'))
 			self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace('<div><b><br/></b></div></en-note>', '</en-note>')
@@ -409,22 +416,28 @@ class AnkiNotePrototype:
 		self.logged = False
 		if not self.BaseNote:
 			self.log_update("Not updating Note: Could not find base note")
-			return False
+			return -1
 		self.Changed = False
 		self.update_note_tags()
-		self.update_note_fields()
-		if 'See Also' in self.Fields[FIELDS.CONTENT]:
-			raise ValueError
+		self.update_note_fields()		
+		i_see_also =  self.Fields[FIELDS.CONTENT].find("See Also")
+		if i_see_also > -1:
+			i_div = self.Fields[FIELDS.CONTENT].rfind("<div", 0, i_see_also)
+			if i_div is -1: i_div = i_see_also
+			if not hasattr(self, 'loggedSeeAlsoError') or self.loggedSeeAlsoError != self.Guid:
+				log_error("No See Also Content Found, but phrase 'See Also' exists in " + self.Guid + ": " + self.FullTitle, crosspost_to_default=False)
+			log("No See Also Content Found, but phrase 'See Also' exists: \n" + self.Guid + ": " + self.FullTitle + " \n" + self.Fields[FIELDS.CONTENT][i_div:i_see_also+50] + '\n', 'SeeAlso\\MatchExpectedUpdate')
+			log(self.Fields[FIELDS.CONTENT], 'SeeAlso\\MatchExpectedUpdate\\'+self.FullTitle)
 		if not (self.Changed or self.update_note_deck()):
 			if self._log_update_if_unchanged_:
 				self.log_update("Not updating Note: The fields, tags, and deck are the same")
 			elif (self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
 				self.log_update()
-			return False
+			return 0
 		if not self.Changed:
 			# i.e., the note deck has been changed but the tags and fields have not
 			self.Counts.Updated += 1
-			return True
+			return 1
 		if not self.OriginalGuid:
 			flds = get_dict_from_list(self.BaseNote.items())
 			self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
@@ -436,7 +449,7 @@ class AnkiNotePrototype:
 		self.note.flush()
 		self.update_note_model()
 		self.Counts.Updated += 1
-		return True
+		return 1
 
 
 	def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
@@ -468,70 +481,52 @@ class AnkiNotePrototype:
 	@property
 	def FullTitle(self): return self.Title.FullTitle
 
-	def save_anki_fields_decoded(self):
-		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
-		for key, value in enumerate(self.note.fields):
-			log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->DECODING %s for field ' % str(type(value)) + key + ": " + title, 'unicode')
-			self.note.fields[key] = value.decode('utf-8')								
-		return 
-		for name, value in self.Fields.items():			
-			try:
-				if isinstance(value, unicode):
-					action='ENCODED'
-					log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->ENCODING UNICODE STRING for field ' + name, 'unicode')
-					self.note[name]=value.encode('utf-8')					
-				else:
-					action='DECODED'
-					log('ANKI-->ANP-->SAVE FIELDS (DECODED)-->DECODING BYTE STRING for field ' + name, 'unicode')
-					self.note[name]=value.decode('utf-8')
-			except UnicodeDecodeError, e:
-				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: UnicodeDecodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
-				action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
-				raise 
-			except UnicodeEncodeError, e:
-				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: UnicodeEncodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
-				action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
-				raise 
-			except Exception, e:
-				log_error("ANKI-->ANP-->SAVE FIELDS (DECODED) [%s] FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Type: %s" % (
-				action, repr(e) + ": " + str(e), self.Guid, title, type(value)))
-				log_dump(self.note.fields, '- FAILED save_anki_fields_decoded: ', 'ANP')
-				raise
-				return -1
-			
+	def save_anki_fields_decoded(self, attempt, from_anp_fields=False, do_decode=None):
+		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle		
+		e_return=False 
+		log_header='ANKI-->ANP-->'
+		if from_anp_fields:
+			log_header += 'CREATE ANKI FIELDS' 
+			base_values = self.Fields.items()
+		else:
+			log_header += 'SAVE ANKI FIELDS (DECODED)'
+			base_values = enumerate(self.note.fields)		
+		for key, value in base_values:
+			name = key if from_anp_fields else FIELDS.LIST[key - 1] if key > 0 else FIELDS.EVERNOTE_GUID
+			if isinstance(value, unicode) and not do_decode is True: action='ENCODING'
+			elif isinstance(value, str) and not do_decode is False: action='DECODING'
+			else: action='DOING NOTHING'
+			log('\t - %s for %s field %s' % (action, value.__class__.__name__, name), 'unicode', timestamp=False)
+			if action is not 'DOING NOTHING':				
+				try:
+					new_value = value.encode('utf-8') if action=='ENCODED' else value.decode('utf-8')
+					if from_anp_fields: self.note[key] = new_value 
+					else: self.note.fields[key] = new_value 
+				except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:						
+					e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, value, field=name)
+					if e_return is not 1: raise 
+		if e_return is not False: log_blank('unicode')	
+		return 1
+		
 	def add_note_try(self, attempt=1):
 		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
 		col = self.Anki.collection()
-		try:
+		log_header = 'ANKI-->ANP-->ADD NOTE FAILED'		
+		action = 'DECODING?'		
+		try:			
 			col.addNote(self.note)
-			return 1
-		except UnicodeDecodeError, e:						
-			if attempt is 1:
-				self.save_anki_fields_decoded()
-				self.add_note_try(attempt+1)
-			else:
-				log(self.note.fields)
-				log_error("ANKI-->ANP-->ADD NOTE FAILED: UnicodeDecodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
-					repr(e) + ": " + str(e), self.Guid, str_safe(title), str_safe(e.object), type(self.note[FIELDS.TITLE])))						
-				raise 
-		except UnicodeEncodeError, e:
-			log_error("ANKI-->ANP-->ADD NOTE FAILED: UnicodeEncodeError: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Object: %s\n - Type: %s" % (
-				repr(e) + ": " + str(e), self.Guid, str_safe(title), str_safe(e.object), type(self.note[FIELDS.TITLE])))			
-			raise 
-		except Exception, e:
-			if attempt > 1: raise 
-			log_error("ANKI-->ANP-->ADD NOTE FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n - Type: %s" % (
-				repr(e) + ": " + str(e), self.Guid, title, type(self.note[FIELDS.TITLE])))
-			log_dump(self.note.fields, '- FAILED collection.addNote: ', 'ANP')
-			raise
-			return -1
+		except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:						
+			e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, self.note[FIELDS.TITLE])
+			if e_return is not 1: raise 			
+			self.save_anki_fields_decoded(attempt+1)
+			return self.add_note_try(attempt+1)
+		return 1
 	
 	def add_note(self):
 		self.create_note()
 		if self.note is None: return -1
 		collection = self.Anki.collection()
-		db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (
-			TABLES.EVERNOTE.NOTES, self.Guid))
+		db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.Guid))
 		log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, 'AddUpdateNote')
 		self.check_titles_equal(db_title, self.FullTitle, self.Guid, 'NEW NOTE TITLE UNEQUAL TO DB ENTRY')
 		if self.add_note_try() is not 1: return -1
@@ -548,30 +543,4 @@ class AnkiNotePrototype:
 		self.note.model()['did'] = id_deck
 		self.note.tags = self.Tags
 		title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
-		for name, value in self.Fields.items():
-			try: 
-				if isinstance(value, unicode):
-					action='ENCODED'
-					log('ANKI-->ANP-->CREATE NOTE-->ENCODING UNICODE STRING for field ' + name, 'unicode')
-					self.note[name]=value.encode('utf-8')					
-				else:
-					action='DECODED'
-					log('ANKI-->ANP-->CREATE NOTE-->DECODING BYTE STRING for field ' + name, 'unicode')
-					self.note[name]=value.decode('utf-8')
-			except UnicodeEncodeError, e:
-				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: UnicodeEncodeError: \n -  Error: %s\n -  GUID: %s\n -  Title: %s\n - Object: %s\n -  Type: %s" % (
-				name, action, repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
-				try: self.note[name] = value.encode('utf-8')
-				except Exception, e:
-					log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n -  Type: %s" % (
-					name, action,repr(e) + ": " + str(e), self.Guid, title, type(value)))
-					raise	
-				# raise
-			except UnicodeDecodeError, e:
-				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: UnicodeDecodeError: \n -  Error: %s\n -  GUID: %s\n -  Title: %s\n - Object: %s\n -  Type: %s" % (
-				name, action,repr(e) + ": " + str(e), self.Guid, title, e.object, type(value)))
-				raise
-			except Exception, e:
-				log_error("ANKI-->ANP-->CREATE NOTE-->SAVE NOTE FIELD '%s' (%s) FAILED: \n -  Error: %s\n -   GUID: %s\n -  Title: %s\n -  Type: %s" % (
-				name, action,repr(e) + ": " + str(e), self.Guid, title, type(value)))
-				raise
+		self.save_anki_fields_decoded(attempt, True, True)

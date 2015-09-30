@@ -255,8 +255,9 @@ class Evernote(object):
 				return EvernoteAPIStatus.UserError, None
 		ourNote.content = nBody
 
-		self.initialize_note_store()
-
+		notestore_status = self.initialize_note_store()
+		if not notestore_status.IsSuccess: return notestore_status, None
+		
 		while '' in tagNames: tagNames.remove('')
 		if len(tagNames) > 0:
 			if EVERNOTE.API.IS_SANDBOXED and not '#Sandbox' in tagNames:
@@ -358,14 +359,20 @@ class Evernote(object):
 		self.report_ancillary_data_results(new_tags, new_nbs, 'Manual ', report_blank=True)
 
 	@staticmethod
-	def report_ancillary_data_results(new_tags, new_nbs, title_prefix='', report_blank=False):
+	def report_ancillary_data_results(new_tags, new_nbs, title_prefix='', report_blank=False):		
+		strr = ''
 		if new_tags is 0 and new_nbs is 0:
 			if not report_blank: return
-			strr = 'No new tags or notebooks found'
-		elif new_tags is 0: strr = '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
-		elif new_nbs is 0: strr = '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
-		else: strr = '%d new tag%s and %d new notebook%s found' % (new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
+			strr = 'No new tags or notebooks found'		
+		elif new_tags is None and new_nbs is None: strr = 'Error downloading ancillary data'
+		elif new_tags is None: strr = 'Error downloading tags list, and '
+		elif new_nbs is None: strr = 'Error downloading notebooks list, and '		
+		
+		if new_tags > 0 and new_nbs > 0: strr = '%d new tag%s and %d new notebook%s found' % (new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
+		elif new_nbs > 0: strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
+		elif new_tags > 0: strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
 		show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + strr, do_log=True)
+		
 	def set_notebook_data(self):
 		if not hasattr(self, 'notebook_data') or not self.notebook_data or len(self.notebook_data.keys()) == 0:
 			self.notebook_data = {x['guid']: EvernoteNotebook(x) for x in ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS)}
@@ -403,7 +410,8 @@ class Evernote(object):
 		return True
 
 	def update_notebooks_database(self):
-		self.initialize_note_store()
+		notestore_status = self.initialize_note_store()
+		if not notestore_status.IsSuccess: return None # notestore_status
 		api_action_str = u'trying to update Evernote notebooks.'
 		log_api("listNotebooks")
 		try:
@@ -432,23 +440,23 @@ class Evernote(object):
 		db.commit()
 		# log_dump(ankDB().all("SELECT * FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS), 'sql data', crosspost_to_default=False)
 		return len(self.notebook_data) - old_count
+		
 	def update_tags_database(self, reason_str=''):
 		if hasattr(self, 'LastTagDBUpdate') and datetime.now() - self.LastTagDBUpdate < timedelta(minutes=15):
 			return None
 		self.LastTagDBUpdate = datetime.now()
-		self.initialize_note_store()
+		notestore_status = self.initialize_note_store()
+		if not notestore_status.IsSuccess: return None # notestore_status
 		api_action_str = u'trying to update Evernote tags.'
 		log_api("listTags" + (': ' + reason_str) if reason_str else '')
 		try:
 			tags = self.noteStore.listTags(self.token)
 			""": type : list[evernote.edam.type.ttypes.Tag] """
 		except EDAMSystemException as e:
-			if not HandleEDAMRateLimitError(e, api_action_str): raise
-			if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+			if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			return None
 		except socket.error, v:
-			if not HandleSocketError(v, api_action_str): raise
-			if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+			if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
 			return None
 		data = []
 		self.tag_data = {}

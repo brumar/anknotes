@@ -79,9 +79,11 @@ class Anki:
 		:return: Count of notes successfully added or updated
 		"""
 		count_update = 0
-		tmr = stopwatch.Timer(len(evernote_notes), 100, label='AddEvernoteNotes', display_initial_info=False)
-		if tmr.willReportProgress:
-			log_banner(['ADDING', 'UPDATING'][update] + " %d EVERNOTE NOTES %s ANKI" % (tmr.counts.max.val, ['TO', 'IN'][update]), tmr.label, append_newline=False)
+		action_str = ['ADDING', 'UPDATING'][update]
+		tmr = stopwatch.Timer(len(evernote_notes), 100, infoStr=action_str + " EVERNOTE NOTE(S) %s ANKI" % ['TO', 'IN'][update], label='AddEvernoteNotes')
+		
+		# if tmr.willReportProgress:
+			# log_banner(), tmr.label, append_newline=False)
 		for ankiNote in evernote_notes:
 			try:
 				title = ankiNote.FullTitle
@@ -98,7 +100,7 @@ class Anki:
 			except:
 				log_error("Unable to set field info for: Note '%s': '%s'" % (ankiNote.Title, ankiNote.Guid))
 				log_dump(ankiNote.Content, " NOTE CONTENTS ")
-				log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
+				# log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
 				raise
 			if tmr.step():
 				log(['Adding', 'Updating'][update] + " Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, title), tmr.label)
@@ -117,7 +119,12 @@ class Anki:
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
 													count_update=tmr.counts.success, max_count=tmr.counts.max.val)
 			anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
-			if (update and anki_note_prototype.update_note()) or (not update and anki_note_prototype.add_note() != -1): tmr.reportSuccess()
+			anki_result = anki_note_prototype.update_note() if update else anki_note_prototype.add_note()
+			if anki_result != -1: tmr.reportSuccess(update, True)
+			else: 
+				tmr.reportError(True)
+				log("ANKI ERROR WHILE %s EVERNOTE NOTES: " % action_str + str(anki_result), 'AddEvernoteNotes-Error')
+		tmr.Report()
 		return tmr.counts.success
 
 	def delete_anki_cards(self, evernote_guids):
@@ -381,19 +388,24 @@ class Anki:
 			if key not in grouped_results: grouped_results[key] = [row[3], []]
 			grouped_results[key][1].append(value)
 		# log_dump(grouped_results, 'grouped_results', 'insert_toc', timestamp=False)
-		log.banner('INSERT TOCS INTO ANKI NOTES: %d NOTES' % len(grouped_results), 'insert_toc')
+		action_title = 'INSERT TOCS INTO ANKI NOTES'
+		log.banner(action_title + ': %d NOTES' % len(grouped_results), 'insert_toc')
 		toc_separator = generate_evernote_span(u' | ', u'Links', u'See Also', bold=False)
 		count = 0
 		count_update = 0
 		max_count = len(grouped_results)
 		log.add('           <h1>INSERT TOC LINKS INTO ANKI NOTES: %d TOTAL NOTES</h1> <HR><BR><BR>' % max_count, 'see_also', timestamp=False, clear=True,
 			extension='htm')
+		logged_missing_anki_note=False
 		for source_guid, source_guid_info in sorted(grouped_results.items(), key=lambda s: s[1][0]):
 			toc_guids = source_guid_info[1]
 			note_title = source_guid_info[0]
 			ankiNote = self.get_anki_note_from_evernote_guid(source_guid)
 			if not ankiNote:
-				log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False)
+				log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False, crosspost_to_default=False)
+				if not logged_missing_anki_note:
+					log_error('ERROR DURING %s: Missing Anki Note(s) for TOC entry. See insert_toc log for more details' % action_title)
+					logged_missing_anki_note = True 
 			else:
 				fields = get_dict_from_list(ankiNote.items())
 				see_also_html = fields[FIELDS.SEE_ALSO]

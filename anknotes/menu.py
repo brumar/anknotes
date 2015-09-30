@@ -228,7 +228,6 @@ Anki will be unresponsive until the validation tool completes. This will take at
 	info = ("ERROR: {%s}<HR>" % stderrdata) if stderrdata else ''
 	allowUpload = True
 	if showAlerts:
-		log('vpn stdout: ' + FILES.SCRIPTS.VALIDATION + '\n' +  stdoutdata)
 		tds = [[str(count), '<a href="%s">VIEW %s VALIDATIONS LOG</a>' % (fn, key.upper())] for key, fn, count in [
 			[key, get_log_full_path('MakeNoteQueue\\' + key, as_url_link=True), int(re.search(r'CHECKING +(\d{1,3}) +' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
 			for key in ['Pending', 'Successful', 'Failed']] if count > 0]
@@ -282,7 +281,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 		controller.create_auto_toc()
 	if 4 in steps:
 		if validationComplete:
-			log(" > See Also: Step 4A: Validate and Upload Auto TOC Notes: Upload Validated Notes")
+			log(" > See Also: Step 4B: Validate and Upload Auto TOC Notes: Upload Validated Notes")
 			upload_validated_notes(multipleSteps)
 			validationComplete = False
 		else: steps = [-4]
@@ -298,7 +297,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 		detect_see_also_changes.main()
 	if 8 in steps:
 		if validationComplete:
-			log(" > See Also: Step 8A: Validate and Upload Modified Evernote Notes: Upload Validated Notes")
+			log(" > See Also: Step 8B: Validate and Upload Modified Evernote Notes: Upload Validated Notes")
 			upload_validated_notes(multipleSteps)
 		else: steps = [-8]
 	if 9 in steps:
@@ -307,7 +306,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False):
 
 	do_validation = steps[0]*-1
 	if do_validation>0:
-		log(" > See Also: Step %dB: Validate and Upload %s Notes: Validate Notes" % (do_validation, {4: 'Auto TOC', 8: 'Modified Evernote'}[do_validation]))
+		log(" > See Also: Step %dA: Validate and Upload %s Notes: Validate Notes" % (do_validation, {4: 'Auto TOC', 8: 'Modified Evernote'}[do_validation]))
 		remaining_steps = remaining_steps[remaining_steps.index(do_validation):]
 		validate_pending_notes(showAlerts, callback=lambda: see_also(remaining_steps, False, True))
 

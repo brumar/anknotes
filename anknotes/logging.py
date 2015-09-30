@@ -47,7 +47,7 @@ def counts_as_str(count, max=None):
 	if count == max: return "All  %s" % str(count).center(3)
 	return "Total %s of %s" % (str(count).center(3), str(max).center(3))
 
-def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True, hr_if_empty=False):
+def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True, blank_line_after=True, hr_if_empty=False):
 	if log_lines is None: log_lines = []
 	if header is None: header = []
 	lines = []
@@ -64,10 +64,10 @@ def show_report(title, header=None, log_lines=None, delay=None, log_header_prefi
 	if blank_line_before: log_blank(filename=filename)
 	log(title, filename=filename)
 	if len(lines) == 1 and not lines[0]:
-		if hr_if_empty: log(" " + "-" * 185, timestamp=False, filename=filename)
+		if hr_if_empty: log(" " + "-" * ANKNOTES.FORMATTING.LINE_LENGTH, timestamp=False, filename=filename)
 		return
-	log(" " + "-" * 185 + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True, filename=filename)
-	log_blank(filename=filename)
+	log(" " + "-" * ANKNOTES.FORMATTING.LINE_LENGTH + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'), timestamp=False, replace_newline=True, filename=filename)
+	if blank_line_after: log_blank(filename=filename)
 
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False, minHeight=None, minWidth=400, styleSheet=None, convertNewLines=True):
@@ -140,7 +140,7 @@ def generate_diff(value_original, value):
 	except: raise
 
 
-def PadList(lst, length=25):
+def PadList(lst, length=ANKNOTES.FORMATTING.LIST_PAD):
 	newLst = []
 	for val in lst:
 		if isinstance(val, list): newLst.append(PadList(val, length))
@@ -157,7 +157,7 @@ def JoinList(lst, joiners='\n', pad=0, depth=1):
 		strr += JoinList(val, joiners, pad, depth+1)
 	return strr
 
-def PadLines(content, line_padding=32, line_padding_plus=0, line_padding_header='', pad_char=' ', **kwargs):
+def PadLines(content, line_padding=ANKNOTES.FORMATTING.LINE_PADDING_HEADER, line_padding_plus=0, line_padding_header='', pad_char=' ', **kwargs):
 	if not line_padding and not line_padding_plus and not line_padding_header: return content
 	if not line_padding: line_padding = line_padding_plus; line_padding_plus=True
 	if str(line_padding).isdigit(): line_padding = pad_char * int(line_padding)
@@ -175,9 +175,11 @@ def item_to_list(item, list_from_unknown=True,chrs=''):
 	return item
 def key_transform(keys, key):
 	if keys is None: keys = self.keys()
+	key = key.strip()
 	for k in keys:
 		if k.lower() == key.lower(): return k
 	return key
+	
 def get_kwarg(func_kwargs, key, **kwargs):
 	kwargs['update_kwargs'] = False
 	return process_kwarg(func_kwargs, key, **kwargs)
@@ -227,7 +229,7 @@ def __get_args__(args, func_kwargs, *args_list, **kwargs_):
 			if len(get_name_item) is 1 and isinstance(get_name_item[0], list): get_name_item = get_name_item[0]
 			name = get_name_item[0]
 			types=get_name_item[1]
-			print "Name: %s, Types: %s" % (name, str(types[0]))
+			# print "Name: %s, Types: %s" % (name, str(types[0]))
 			name = name.replace('*', '')
 			types = item_to_list(types)
 			is_none_type = types[0] is None
@@ -366,10 +368,12 @@ def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
 		time.sleep(1)
 		rm_log_path(filename, subfolders_only, retry_errors + 1)
 
-def log_banner(title, filename, length=80, append_newline=True, *args, **kwargs):
-	log("-" * length, filename, clear=True, timestamp=False, *args, **kwargs)
-	log(title.center(length),filename, timestamp=False, *args, **kwargs)
-	log("-" * length, filename, timestamp=False, *args, **kwargs)
+def log_banner(title, filename=None, length=ANKNOTES.FORMATTING.BANNER_MINIMUM, append_newline=True, timestamp=False, chr='-', center=True, clear=True, *args, **kwargs):
+	if length is 0: length = ANKNOTES.FORMATTING.LINE_LENGTH+1
+	if center: title = title.center(length-TIMESTAMP_PAD_LENGTH if timestamp else 0)
+	log(chr * length, filename, clear=clear, timestamp=False, *args, **kwargs)
+	log(title, filename, timestamp=timestamp, *args, **kwargs)
+	log(chr * length, filename, timestamp=False, *args, **kwargs)
 	if append_newline: log_blank(filename, *args, **kwargs)
 
 _log_filename_history = []
@@ -384,7 +388,7 @@ def end_current_log(fn=None):
 	else:
 		_log_filename_history = _log_filename_history[:-1]
 
-def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=''):
+def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix='', **kwargs):
 	global _log_filename_history
 	log_base_name = FILES.LOGS.BASE_NAME
 	filename_suffix = ''
@@ -424,40 +428,58 @@ def encode_log_text(content, encode_text=True, **kwargs):
 	if not encode_text or not isinstance(content, str) and not isinstance(content, unicode): return content
 	try: return content.encode('utf-8')
 	except Exception: return content
-# @clockit
-def log(content=None, filename=None, prefix='', clear=False, extension='log',
-		do_print=False, print_timestamp=False, replace_newline=None,timestamp=True, **kwargs):
-	kwargs = set_kwargs(kwargs, 'line_padding')
-	if content is None: content = ''
-	else:
-		content = obj2log_simple(content)
-		if len(content) == 0: content = '{EMPTY STRING}'
-		if content[0] == "!": content = content[1:]; prefix = '\n'
-	if filename and filename[0] is '+':
-		original_log = filename[1:].upper()
-		summary = " ** %s%s: " % ('' if original_log == 'ERROR' else 'CROSS-POST TO ',  original_log) + content
-		log(summary[:200])
-	full_path = get_log_full_path(filename, extension)
+
+def parse_log_content(content, prefix='', **kwargs):
+	if content is None: return '', prefix 
+	content = obj2log_simple(content)
+	if len(content) == 0: content = '{EMPTY STRING}'
+	if content[0] == "!": content = content[1:]; prefix = '\n'	
+	return content, prefix 
+	
+def process_log_content(content, prefix='', timestamp=None, do_encode=True, **kwargs):	
+	content  = pad_lines_regex(content, timestamp=timestamp, **kwargs)	
 	st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''
+	return prefix + ' ' + st + (encode_log_text(content, **kwargs) if do_encode else content), content
+	
+def crosspost_log(content, filename=None, crosspost_to_default=False, crosspost=None, **kwargs):
+	if crosspost_to_default and filename:
+		summary = " ** %s%s: " % ('' if filename.upper() == 'ERROR' else 'CROSS-POST TO ',  filename.upper()) + content		
+		log(summary[:200], **kwargs)
+	if not crosspost: return 
+	for fn in item_to_list(crosspost): log(content, fn, **kwargs)
+	
+def pad_lines_regex(content, timestamp=None, replace_newline=None, try_decode=True, **kwargs):
 	content = PadLines(content, **kwargs)
-	if timestamp or replace_newline:
-		try: content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content)
-		except UnicodeDecodeError: content = re.sub(r'[\r\n]+', u'\n'+'\t'*6, content.decode('utf-8'))
-	contents = prefix + ' ' + st + encode_log_text(content, **kwargs)
+	if not (timestamp and replace_newline is not False) and not replace_newline: return content 
+	try: return re.sub(r'[\r\n]+', u'\n'+ANKNOTES.FORMATTING.TIMESTAMP_PAD, content)
+	except UnicodeDecodeError: 
+		if not try_decode: raise 
+	return re.sub(r'[\r\n]+', u'\n'+ANKNOTES.FORMATTING.TIMESTAMP_PAD, content.decode('utf-8'))	
+	
+def write_file_contents(content, full_path, clear=False, try_encode=True, do_print=False, print_timestamp=True, print_content=None, **kwargs):
+	if not os.path.exists(os.path.dirname(full_path)): full_path = get_log_full_path(full_path)
 	with open(full_path, 'w+' if clear else 'a+') as fileLog:
-		try: print>> fileLog, contents
-		except UnicodeEncodeError: contents = contents.encode('utf-8'); print>> fileLog, contents
-	if do_print: print contents if print_timestamp else content
+		try: print>> fileLog, content
+		except UnicodeEncodeError: content = content.encode('utf-8'); print>> fileLog, content
+	if do_print: print content if print_timestamp or not print_content else print_content
+	
+# @clockit
+def log(content=None, filename=None, **kwargs):
+	kwargs = set_kwargs(kwargs, 'line_padding, line_padding_plus, line_padding_header', timestamp=True)
+	content, prefix = parse_log_content(content, **kwargs)
+	crosspost_log(content, filename, **kwargs)	
+	full_path = get_log_full_path(filename, **kwargs)	
+	content, print_content = process_log_content(content, prefix, **kwargs)
+	write_file_contents(content, full_path, print_content=print_content, **kwargs)
 
 def log_sql(content, **kwargs):
 	log(content, 'sql', **kwargs)
 
-def log_error(content, crosspost_to_default=True, **kwargs):
-	log(content, ('+' if crosspost_to_default else '') + 'error', **kwargs)
-
+def log_error(content, **kwargs):
+	log(content, 'error', **kwargs)
 
 def print_dump(obj):
-	content = pprint.pformat(obj, indent=4, width=80)
+	content = pprint.pformat(obj, indent=4, width=ANKNOTES.FORMATTING.PPRINT_WIDTH)
 	content = content.replace(', ', ', \n ')
 	content = content.replace('\r', '\r                              ').replace('\n',
 																				'\n                              ')
@@ -465,8 +487,8 @@ def print_dump(obj):
 	print content
 	return content
 
-def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, extension='log', crosspost_to_default=True):
-	content = pprint.pformat(obj, indent=4, width=80)
+def log_dump(obj, title="Object", filename='', timestamp=True, extension='log', crosspost_to_default=True, **kwargs):
+	content = pprint.pformat(obj, indent=4, width=ANKNOTES.FORMATTING.PPRINT_WIDTH)
 	try: content = content.decode('utf-8', 'ignore')
 	except Exception: pass
 	content = content.replace("\\n", '\n').replace('\\r', '\r')
@@ -475,16 +497,11 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
 		log(summary[:200])
 	# filename = 'dump' + ('-%s' % filename if filename else '')
 	full_path = get_log_full_path(filename, extension, prefix='dump')
-	st = ''
-	if timestamp:
-		st = datetime.now().strftime(ANKNOTES.DATE_FORMAT)
-		st = '[%s]: ' % st
+	st = '[%s]: ' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''
 
-	if title[0] == '-':
-		prefix = " **** Dumping %s" % title[1:]
-	else:
-		prefix = " **** Dumping %s" % title
-		if crosspost_to_default: log(prefix)
+	if title[0] == '-': crosspost_to_default = False; title = title[1:] 
+	prefix = " **** Dumping %s" % title
+	if crosspost_to_default: log(prefix)
 
 	content = encode_log_text(content)
 
@@ -492,47 +509,30 @@ def log_dump(obj, title="Object", filename='', clear=False, timestamp=True, exte
 		prefix += '\r\n'
 		content = prefix + content.replace(', ', ', \n ')
 		content = content.replace("': {", "': {\n ")
-		content = content.replace('\r', '\r                              ').replace('\n',
-																					'\n                              ')
+		content = content.replace('\r', '\r' + ' ' * 30).replace('\n', '\n' + ' ' * 30)
 	except:
 		pass
 
 	if not os.path.exists(os.path.dirname(full_path)):
 		os.makedirs(os.path.dirname(full_path))
-	with open(full_path, 'w+' if clear else 'a+') as fileLog:
-		try:
-			print>> fileLog, (u'\n %s%s' % (st, content))
-			return
-		except:
-			pass
-		try:
-			print>> fileLog, (u'\n <1> %s%s' % (st, content.decode('utf-8')))
-			return
-		except:
-			pass
-		try:
-			print>> fileLog, (u'\n <2> %s%s' % (st, content.encode('utf-8')))
-			return
-		except:
-			pass
-		try:
-			print>> fileLog, ('\n <3> %s%s' % (st, content.decode('utf-8')))
-			return
-		except:
-			pass
-		try:
-			print>> fileLog, ('\n <4> %s%s' % (st, content.encode('utf-8')))
-			return
-		except:
-			pass
-		try:
-			print>> fileLog, (u'\n <5> %s%s' % (st, "Error printing content: " + str_safe(content)))
-			return
-		except:
-			pass
-		print>> fileLog, (u'\n <6> %s%s' % (st, "Error printing content: " + content[:10]))
+	try_print(full_path, content, prefix, **kwargs)
 
-
+def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clear=False):			
+	try:
+		print_content = line_prefix + (u' <%d>' % attempt if attempt > 0 else u'') + u' ' + st
+		if attempt is 0: print_content += content
+		elif attempt is 1: print_content += content.decode('utf-8')
+		elif attempt is 2: print_content += content.encode('utf-8')
+		elif attempt is 3: print_content = print_content.encode('utf-8') + content.encode('utf-8')
+		elif attempt is 4: print_content = print_content.decode('utf-8') + content.decode('utf-8')
+		elif attempt is 5: print_content += "Error printing content: " + str_safe(content)
+		elif attempt is 6: print_content += "Error printing content: " + content[:10]
+		elif attempt is 7: print_content += "Unable to print content."
+		with open(full_path, 'w+' if clear else 'a+') as fileLog:
+			print>> fileLog, print_content
+	except:
+		if attempt < 8: try_print(full_path, content, prefix=prefix, line_prefix=line_prefix, attempt=attempt+1, clear=clear)
+		
 def log_api(method, content='', **kwargs):
 	if content: content = ': ' + content
 	log(" API_CALL [%3d]: %10s%s" % (get_api_call_count(), method, content), 'api', **kwargs)

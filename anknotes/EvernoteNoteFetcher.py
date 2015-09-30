@@ -69,7 +69,7 @@ class EvernoteNoteFetcher(object):
 		""":type : sqlite.Row"""
 		if not db_note: return False
 		if not self.use_local_db_only:
-			log(' '*20 + "> getNoteLocal:  GUID: '%s': %-40s" % (self.evernote_guid, db_note['title']), 'api')
+			log(' ' + '-'*14 + ' '*5 + "> getNoteLocal: %s" % db_note['title'], 'api')
 		assert db_note['guid'] == self.evernote_guid
 		self.reportSuccess(EvernoteNotePrototype(db_note=db_note), 1)
 		self.setNoteTags(tag_names=self.result.Note.TagNames)
@@ -127,10 +127,13 @@ class EvernoteNoteFetcher(object):
 		ankDB().commit()
 
 	def getNoteRemoteAPICall(self):
-		self.evernote.initialize_note_store()
+		notestore_status = self.evernote.initialize_note_store()
+		if not notestore_status.IsSuccess: 
+			self.reportResult(notestore_status)
+			return False
 		api_action_str = u'trying to retrieve a note. We will save the notes downloaded thus far.'
 		self.api_calls += 1
-		log_api("  > getNote [%3d]" % self.api_calls, "GUID: '%s'" % self.evernote_guid)
+		log_api("  > getNote [%3d]" % self.api_calls, self.evernote_guid)
 		try:
 			self.whole_note = self.evernote.noteStore.getNote(self.evernote.token, self.evernote_guid, True, False,
 															  False, False)

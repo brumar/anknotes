@@ -558,7 +558,7 @@ class EvernoteImportProgress:
 		]
 
 	@property
-	def Summary(self): return JoinList(self.SummaryList, ' | ', 31)
+	def Summary(self): return JoinList(self.SummaryList, ' | ', ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
 
 	def loadAlreadyUpdated(self, db_guids):
 		self.GUIDs.Server.Existing.UpToDate = db_guids
@@ -659,7 +659,7 @@ class EvernoteMetadataProgress:
 				"Update Count: %d" % self.UpdateCount]]
 
 	@property
-	def Summary(self): return JoinList(self.SummaryList, ['\n', ' | '], 31)
+	def Summary(self): return JoinList(self.SummaryList, ['\n', ' | '], ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
 
 	@property
 	def QueryLimit(self): return EVERNOTE.IMPORT.QUERY_LIMIT

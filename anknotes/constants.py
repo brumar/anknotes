@@ -54,6 +54,16 @@ class ANKNOTES:
 		AUTO_RELOAD_MODULES = True
 	class HIERARCHY:
 		ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
+	class FORMATTING:
+		BANNER_MINIMUM = 80
+		COUNTER_BANNER_MINIMUM = 40
+		LINE_PADDING_HEADER = 31
+		LINE_LENGTH = 185
+		LIST_PAD = 25
+		PROGRESS_SUMMARY_PAD = 31
+		PPRINT_WIDTH = 80
+		TIMESTAMP_PAD = '\t'*6
+		TIMESTAMP_PAD_LENGTH = len(TIMESTAMP_PAD.replace('\t', ' '*4))
 
 class MODELS:
 	class TYPES:
@@ -104,6 +114,7 @@ class TAGS:
 	OUTLINE_TESTABLE = '#Outline.Testable'
 	REVERSIBLE = '#Reversible'
 	REVERSE_ONLY = '#Reversible_Only'
+
 class EVERNOTE:
 	class IMPORT:
 		class PAGING:

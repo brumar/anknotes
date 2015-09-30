@@ -33,7 +33,7 @@ def get_friendly_interval_string(lastImport):
 		lastImportStr = "%d days" % td.days
 	else:
 		hours = round(hours)
-		hours_str = '' if hours == 0 else ('1:%2d hr' % minutes) if hours == 1 else '%d Hours' % hours
+		hours_str = '' if hours == 0 else ('1:%02d hr' % minutes) if hours == 1 else '%d Hours' % hours
 		if days == 1:
 			lastImportStr = "One Day%s" % ('' if hours == 0 else ', ' + hours_str)
 		elif hours > 0:
