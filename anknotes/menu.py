@@ -153,11 +153,12 @@ def find_deleted_notes(automated=False):
 	if not automated:
 		showInfo("""In order for this to work, you must create a 'Table of Contents' Note using the Evernote desktop application. Include all notes that you want to sync with Anki.
 
-Export this note to the following path: '%s'.
+Export this note to the following path: 
+<b>%s</b>
 
 Press Okay to save and close your Anki collection, open the command-line deleted notes detection tool, and then re-open your Anki collection.
 
-Once the command line tool is done running, you will get a summary of the results, and will be prompted to delete Anki Orphan Notes or download Missing Evernote Notes""" % FILES.USER.TABLE_OF_CONTENTS_ENEX,
+Once the command line tool is done running, you will get a summary of the results, and will be prompted to delete Anki Orphan Notes or download Missing Evernote Notes""".replace('\n', '\n<br />') % FILES.USER.TABLE_OF_CONTENTS_ENEX,
 				 richText=True)
 
 	# mw.col.save()
@@ -192,25 +193,19 @@ Once the command line tool is done running, you will get a summary of the result
 			0]
 		if code == 'ANKNOTES_DEL_%d' % anknotes_dels_count:
 			ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, [[x] for x in anknotes_dels])
-			ankDB().executemany("DELETE FROM cards as c, notes as n WHERE c.nid = n.id AND n.flds LIKE '%' | ? | '%'",
-								[[FIELDS.EVERNOTE_GUID_PREFIX + x] for x in anknotes_dels])
+			delete_anki_notes_and_cards_by_guid(anknotes_dels)
 			db_changed = True
 			show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5000, 3000)
 	if anki_dels_count > 0:
 		code = getText("Please enter code 'ANKI_DEL_%d' to delete your orphan Anki note(s)" % anki_dels_count)[0]
 		if code == 'ANKI_DEL_%d' % anki_dels_count:
-			ankDB().executemany("DELETE FROM cards as c, notes as n WHERE c.nid = n.id AND n.flds LIKE '%' | ? | '%'",
-								[[FIELDS.EVERNOTE_GUID_PREFIX + x] for x in anki_dels])
+			delete_anki_notes_and_cards_by_guid(anki_dels)
 			db_changed = True
-			show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5000, 3000)
+			show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5000, 6000)
 	if db_changed:
 		ankDB().commit()
 	if missing_evernote_notes_count > 0:
-		evernote_confirm = "Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (
-		missing_evernote_notes_count,
-		convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES)))
-		ret = showInfo(evernote_confirm, cancelButton=True, richText=True)
-		if ret:
+		if showInfo("Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (missing_evernote_notes_count, convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES))), cancelButton=True, richText=True): 
 			import_from_evernote_manual_metadata(missing_evernote_notes)
 
 

@@ -48,6 +48,10 @@ def ankDB(reset=False):
 def escape_text_sql(title):
 	return title.replace("'", "''")
 
+def delete_anki_notes_and_cards_by_guid(evernote_guids):
+	ankDB().executemany("DELETE FROM cards WHERE nid in (SELECT id FROM notes WHERE flds LIKE '%' || ? || '%'); "
+						+ "DELETE FROM notes WHERE flds LIKE '%' || ? || '%'",
+						[[FIELDS.EVERNOTE_GUID_PREFIX + x, FIELDS.EVERNOTE_GUID_PREFIX + x] for x in evernote_guids])			
 
 def get_evernote_title_from_guid(guid):
 	return ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, guid))
