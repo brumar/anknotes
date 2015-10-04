@@ -532,7 +532,7 @@ class Anki:
                     't':        TABLES.SEE_ALSO, 'child_guid': target_evernote_guid, 'uid': enLink.Uid,
                     'shard':    enLink.Shard, 'toc_guid': toc_evernote_guid, 'l1': 'source', 'l2': 'source',
                     'from_toc': 0, 'is_toc': 0
-                    }
+                }
                 query_count = "select COUNT(*) from {t} WHERE source_evernote_guid = '{%s_guid}'"
                 toc = {
                     'num':      1 + db.scalar((query_count % 'toc').format(**base)),

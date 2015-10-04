@@ -86,7 +86,7 @@ class AnkiNotePrototype:
             self.Fields = {
                 FIELDS.TITLE:         enNote.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'',
                 FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid
-                }
+            }
             self.enNote = enNote
         self.Changed = False
         self.logged = False
