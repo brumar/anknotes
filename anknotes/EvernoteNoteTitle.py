@@ -20,7 +20,7 @@ class EvernoteNoteTitle:
 
     # # Parent = None
     # def __str__(self):
-    # return "%d: %s" % (self.Level(), self.Title)
+    #     return "%d: %s" % (self.Level(), self.Title)
 
     def __repr__(self):
         return "<%s:%s>" % (self.__class__.__name__, self.FullTitle)
@@ -92,13 +92,12 @@ class EvernoteNoteTitle:
         # print "Slicing: %s ~ %d,%d from parts %s" % (self.Title, start, end, str(oldParts))
         assert self.FullTitle and oldParts
         if start is None and end is None:
-            print
-            "Slicing: %s ~ %d,%d from parts %s" % (self.FullTitle, start, end, str(oldParts))
+            print "Slicing: %s ~ %d,%d from parts %s" % (self.FullTitle, start, end, str(oldParts))
         assert start is not None or end is not None
         newParts = oldParts[start:end]
         if len(newParts) == 0:
             log_error("Slice failed for %s-%s of %s" % (str(start), str(end), self.FullTitle))
-        # return None
+            # return None
         assert len(newParts) > 0
         newStr = ': '.join(newParts)
         # print "Slice: Just created new title %s from %s" % (newStr , self.Title)

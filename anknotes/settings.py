@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import sys
+
+inAnki = 'anki' in sys.modules
+
 ### Anknotes Shared Imports
 from anknotes.shared import *
 from anknotes.graphics import *
+
+### Import Anki
+
+
+
 
 ### Anki Imports
 try:
@@ -16,6 +25,11 @@ try:
         QMessageBox, QPixmap
     from aqt import mw
 except:
+    import pdb;
+    import traceback;
+
+    print traceback.format_exc();
+    pdb.set_trace()
     pass
 
 
@@ -557,7 +571,7 @@ def evernote_query_text_changed():
     notebook_active = notebook and evernote_query_use_notebook.isChecked()
     excluded_tags_active = excluded_tags and evernote_query_use_excluded_tags.isChecked()
     all_inactive = not (
-    search_terms_active or note_title_active or notebook_active or excluded_tags_active or evernote_query_use_last_updated.isChecked())
+        search_terms_active or note_title_active or notebook_active or excluded_tags_active or evernote_query_use_last_updated.isChecked())
 
     if not search_terms:
         evernote_query_use_search_terms.setEnabled(False)
@@ -614,7 +628,7 @@ def update_evernote_query_visibilities():
     # is_disabled_updated = not evernote_query_use_last_updated.isEnabled()
 
     override = (
-    not is_tags and not is_excluded_tags and not is_terms and not is_title and not is_notebook and not is_updated)
+        not is_tags and not is_excluded_tags and not is_terms and not is_title and not is_notebook and not is_updated)
     if override:
         is_tags = True
         evernote_query_use_tags.setChecked(True)

@@ -1,11 +1,14 @@
 import re
+# from BeautifulSoup import UnicodeDammit
 import anknotes
+from bs4 import UnicodeDammit
 from anknotes.db import *
 from anknotes.enum import Enum
 from anknotes.html import strip_tags
-from anknotes.logging import PadList, JoinList
+from anknotes.logging import PadList, JoinList, item_to_set, item_to_list
 from anknotes.enums import *
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
+
 
 # from evernote.edam.notestore.ttypes import NoteMetadata, NotesMetadataList
 
@@ -29,7 +32,8 @@ class EvernoteStruct(object):
     __sql_columns__ = "name"
     __sql_table__ = TABLES.EVERNOTE.TAGS
     __sql_where__ = "guid"
-    __attr_order__ = []
+    __attr_order__ = None
+    __additional__attr__ = None
     __title_is_note_title = False
 
     @staticmethod
@@ -45,15 +49,15 @@ class EvernoteStruct(object):
     def sqlUpdateQuery(self):
         columns = self.__attr_order__ if self.__attr_order__ else self.__sql_columns__
         return "INSERT OR REPLACE INTO `%s`(%s) VALUES (%s)" % (
-        self.__sql_table__, '`' + '`,`'.join(columns) + '`', ', '.join(['?'] * len(columns)))
+            self.__sql_table__, '`' + '`,`'.join(columns) + '`', ', '.join(['?'] * len(columns)))
 
     def sqlSelectQuery(self, allColumns=True):
         return "SELECT %s FROM %s WHERE %s = '%s'" % (
-        '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
+            '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
 
     def getFromDB(self, allColumns=True):
         query = "SELECT %s FROM %s WHERE %s = '%s'" % (
-        '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
+            '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
         ankDB().setrowfactory()
         result = ankDB().first(self.sqlSelectQuery(allColumns))
         if result:
@@ -103,7 +107,11 @@ class EvernoteStruct(object):
         if keys or isinstance(keyed_object, dict):
             pass
         elif isinstance(keyed_object, type(re.search('', ''))):
+            regex_attr = 'wholeRegexMatch'
+            self.__additional__attr__.add(regex_attr)
+            whole_match = keyed_object.group(0)
             keyed_object = keyed_object.groupdict()
+            keyed_object[regex_attr] = whole_match
         elif hasattr(keyed_object, 'keys'):
             keys = getattrcallable(keyed_object, 'keys')
         elif hasattr(keyed_object, self.__sql_where__):
@@ -118,8 +126,7 @@ class EvernoteStruct(object):
             if key == "fetch_" + self.__sql_where__:
                 self.Where = keyed_object[key]
                 self.getFromDB()
-            elif key in lst:
-                self.setAttributeByObject(key, keyed_object)
+            elif key in lst: self.setAttributeByObject(key, keyed_object)
         return True
 
     def setFromListByDefaultOrder(self, args):
@@ -127,19 +134,21 @@ class EvernoteStruct(object):
         for i, value in enumerate(args):
             if i > max:
                 raise Exception("Argument #%d for %s (%s) exceeds the default number of attributes for the class." % (
-                i, self.__class__.__name__, str(value)))
+                    i, self.__class__.__name__, str(value)))
             self.setAttribute(self.__attr_order__[i], value)
 
     def _valid_attributes_(self):
-        return set().union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
+        return self.__additional__attr__.union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
 
     def _is_valid_attribute_(self, attribute):
         return (attribute[0].lower() + attribute[1:]) in self._valid_attributes_()
 
     def __init__(self, *args, **kwargs):
-        if isinstance(self.__sql_columns__, str): self.__sql_columns__ = [self.__sql_columns__]
-        if isinstance(self.__attr_order__, str) or isinstance(self.__attr_order__, unicode):
-            self.__attr_order__ = self.__attr_order__.replace('|', ' ').split(' ')
+        if self.__attr_order__ is None: self.__attr_order__ = []
+        if self.__additional__attr__ is None: self.__additional__attr__ = set()
+        self.__sql_columns__ = item_to_list(self.__sql_columns__, chrs=' ,;')
+        self.__attr_order__ = item_to_list(self.__attr_order__, chrs=' ,;')
+        self.__additional__attr__ = item_to_set(self.__additional__attr__, chrs=' ,;')
         args = list(args)
         if args and self.setFromKeyedObject(args[0]): del args[0]
         self.setFromListByDefaultOrder(args)
@@ -164,9 +173,13 @@ class EvernoteLink(EvernoteStruct):
     __uid__ = -1
     Shard = 'x999'
     Guid = ""
+    WholeRegexMatch = ""
     __title__ = None
     """:type: EvernoteNoteTitle.EvernoteNoteTitle """
     __attr_order__ = 'uid|shard|guid|title'
+
+    def __init__(self, *args, **kwargs):
+        return super(self.__class__, self).__init__(*args, **kwargs)
 
     @property
     def HTML(self):
@@ -198,6 +211,19 @@ class EvernoteLink(EvernoteStruct):
     def Uid(self, value):
         self.__uid__ = int(value)
 
+    @property
+    def NoteTitle(self):
+        f = anknotes.EvernoteNoteFetcher.EvernoteNoteFetcher(guid=self.Guid, use_local_db_only=True)
+        if not f.getNote(): return "<Invalid Note>"
+        return f.result.Note.FullTitle
+
+    def __str__(self):
+        return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.FullTitle)
+
+    def __repr__(self):
+        # id = 
+        return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.NoteTitle)
+
 
 class EvernoteTOCEntry(EvernoteStruct):
     RealTitle = ""
@@ -226,12 +252,13 @@ class EvernoteValidationEntry(EvernoteStruct):
     TagNames = ""
     """:type : str"""
     NotebookGuid = ""
+    NoteType = ""
 
     def __init__(self, *args, **kwargs):
         # spr = super(self.__class__ , self)
         # spr.__attr_order__ = self.__attr_order__
         # spr.__init__(*args, **kwargs)
-        self.__attr_order__ = 'guid|title|contents|tagNames|notebookGuid'
+        self.__attr_order__ = 'guid|title|contents|tagNames|notebookGuid|noteType'
         super(self.__class__, self).__init__(*args, **kwargs)
 
 
@@ -265,7 +292,7 @@ class EvernoteAPIStatusOld(AutoNumber):
         return super(self.__class__, self).__getitem__(item)
 
     # def __new__(cls, *args, **kwargs):
-    # """:rtype : EvernoteAPIStatus"""
+    #     """:rtype : EvernoteAPIStatus"""
     #     return type(cls).__new__(*args, **kwargs)
 
     @property
@@ -326,7 +353,7 @@ class EvernoteAPIStatus(AutoNumberedEnum):
     """:type : EvernoteAPIStatus"""
 
     # def __new__(cls, *args, **kwargs):
-    # """:rtype : EvernoteAPIStatus"""
+    #     """:rtype : EvernoteAPIStatus"""
     #     return type(cls).__new__(*args, **kwargs)
 
     @property
@@ -403,7 +430,7 @@ class EvernoteNoteFetcherResults(object):
         if self.Max is 0: return []
         add_update_strs = ['New', "Added to"] if self.ImportType == EvernoteImportType.Add else  ['Existing',
                                                                                                   "%s in" % (
-                                                                                                  'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated')]
+                                                                                                      'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated')]
         add_update_strs[1] += " Anki"
 
         ## Evernote Status
@@ -412,7 +439,7 @@ class EvernoteNoteFetcherResults(object):
         else:
             line = "%3d of %3d" % (self.Count, self.Max)
         lines = [line + " %s Evernote Metadata Results Were Successfully Downloaded%s." % (
-        add_update_strs[0], (' And %s' % add_update_strs[1]) if self.AnkiSuccess else '')]
+            add_update_strs[0], (' And %s' % add_update_strs[1]) if self.AnkiSuccess else '')]
         if self.Status.IsError:
             lines.append("-An error occurred during download (%s)." % str(self.Status))
 
@@ -420,13 +447,13 @@ class EvernoteNoteFetcherResults(object):
         if self.LocalDownloadsOccurred:
             lines.append(
                 "-%3d %s note%s unexpectedly found in the local db and did not require an API call." % (
-                self.Local, add_update_strs[0], 's were' if self.Local > 1 else ' was'))
+                    self.Local, add_update_strs[0], 's were' if self.Local > 1 else ' was'))
             lines.append("-%3d %s note(s) required an API call" % (self.Remote, add_update_strs[0]))
         if not self.ImportType == EvernoteImportType.Add and self.AlreadyUpToDate > 0:
             lines.append(
                 "-%3d existing note%s already up-to-date with Evernote's servers, so %s not retrieved." % (
-                self.AlreadyUpToDate, 's are' if self.Local > 1 else ' is',
-                'they were' if self.Local > 1 else 'it was'))
+                    self.AlreadyUpToDate, 's are' if self.Local > 1 else ' is',
+                    'they were' if self.Local > 1 else 'it was'))
 
         ## Anki Status
         if self.DownloadSuccess:
@@ -436,7 +463,7 @@ class EvernoteNoteFetcherResults(object):
         else:
             line = "%3d of %3d" % (self.Imported, self.Count)
         lines.append(line + " %s Downloaded Evernote Notes Have Been Successfully %s." % (
-        add_update_strs[0], add_update_strs[1]))
+            add_update_strs[0], add_update_strs[1]))
 
         return lines
 
@@ -522,20 +549,14 @@ class EvernoteImportProgress:
 
     @property
     def Adding(self):
-        if not self.GUIDs.Server.New:
-            return 0
         return len(self.GUIDs.Server.New)
 
     @property
     def Updating(self):
-        if not self.GUIDs.Server.Existing.OutOfDate:
-            return 0
         return len(self.GUIDs.Server.Existing.OutOfDate)
 
     @property
     def AlreadyUpToDate(self):
-        if not self.GUIDs.Server.Existing.UpToDate:
-            return 0
         return len(self.GUIDs.Server.Existing.UpToDate)
 
     @property
@@ -575,14 +596,9 @@ class EvernoteImportProgress:
         ]
 
     @property
-    def Summary(self):
-        return JoinList(self.SummaryList, ' | ', ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
+    def Summary(self): return JoinList(self.SummaryList, ' | ', ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
 
     def loadAlreadyUpdated(self, db_guids):
-        if not db_guids:
-            self.GUIDs.Server.Existing.UpToDate = None
-            self.GUIDs.Server.Existing.OutOfDate = None
-            return
         self.GUIDs.Server.Existing.UpToDate = db_guids
         self.GUIDs.Server.Existing.OutOfDate = set(self.GUIDs.Server.Existing.All) - set(
             self.GUIDs.Server.Existing.UpToDate)
@@ -675,22 +691,19 @@ class EvernoteMetadataProgress:
                  "Total Pages: %d" % self.TotalPages,
                  "Returned Notes: %d" % self.Current,
                  "Result Range: %d-%d" % (self.Offset, self.Completed)
-                ],
+                 ],
                 ["Remaining Notes: %d" % self.Remaining,
                  "Remaining Pages: %d" % self.RemainingPages,
                  "Update Count: %d" % self.UpdateCount]]
 
     @property
-    def Summary(self):
-        return JoinList(self.SummaryList, ['\n', ' | '], ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
+    def Summary(self): return JoinList(self.SummaryList, ['\n', ' | '], ANKNOTES.FORMATTING.PROGRESS_SUMMARY_PAD)
 
     @property
-    def QueryLimit(self):
-        return EVERNOTE.IMPORT.QUERY_LIMIT
+    def QueryLimit(self): return EVERNOTE.IMPORT.QUERY_LIMIT
 
     @property
-    def Offset(self):
-        return (self.Page - 1) * self.QueryLimit
+    def Offset(self): return (self.Page - 1) * self.QueryLimit
 
     @property
     def TotalPages(self):
@@ -699,16 +712,13 @@ class EvernoteMetadataProgress:
         return int(p) + (1 if p > int(p) else 0)
 
     @property
-    def RemainingPages(self):
-        return self.TotalPages - self.Page
+    def RemainingPages(self): return self.TotalPages - self.Page
 
     @property
-    def Completed(self):
-        return self.Current + self.Offset
+    def Completed(self): return self.Current + self.Offset
 
     @property
-    def Remaining(self):
-        return self.Total - self.Completed
+    def Remaining(self): return self.Total - self.Completed
 
     def __init__(self, page=1):
         self.Page = int(page)

@@ -4,10 +4,8 @@ from anknotes.constants import SETTINGS
 from anknotes.db import get_evernote_title_from_guid
 from anknotes.logging import log
 
-try:
-    from aqt import mw
-except:
-    pass
+try: from aqt import mw
+except: pass
 
 
 class MLStripper(HTMLParser):
@@ -23,19 +21,17 @@ class MLStripper(HTMLParser):
         return ''.join(self.fed)
 
 
-def strip_tags(html):
+def strip_tags(html, strip_entities=False):
     if html is None: return None
-    html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
+    if not strip_entities: html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
     s = MLStripper()
     s.feed(html)
     html = s.get_data()
-    html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
+    if not strip_entities: html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
     return html
-
-
-# s = MLStripper()
-# s.feed(html)
-# return s.get_data()
+    # s = MLStripper()
+    # s.feed(html)
+    # return s.get_data()
 
 
 def strip_tags_and_new_lines(html):
@@ -75,7 +71,7 @@ def clean_title(title):
     title = unescape_text(title)
     if isinstance(title, str):
         title = unicode(title, 'utf-8')
-    title = title.replace(u'\xa0', ' ')
+    title = re.sub(r'( |\xa0)+', ' ', title)
     return title
 
 
@@ -138,72 +134,72 @@ def generate_evernote_span(title=None, element_type=None, value=None, guid=None,
 
 
 evernote_link_colors = {
-'Levels': {
-'OL': {
-1: {
-'Default': 'rgb(106, 0, 129);',
-'Hover': 'rgb(168, 0, 204);'
-},
-2: {
-'Default': 'rgb(235, 0, 115);',
-'Hover': 'rgb(255, 94, 174);'
-},
-3: {
-'Default': 'rgb(186, 0, 255);',
-'Hover': 'rgb(213, 100, 255);'
-},
-4: {
-'Default': 'rgb(129, 182, 255);',
-'Hover': 'rgb(36, 130, 255);'
-},
-5: {
-'Default': 'rgb(232, 153, 220);',
-'Hover': 'rgb(142, 32, 125);'
-},
-6: {
-'Default': 'rgb(201, 213, 172);',
-'Hover': 'rgb(130, 153, 77);'
-},
-7: {
-'Default': 'rgb(231, 179, 154);',
-'Hover': 'rgb(215, 129, 87);'
-},
-8: {
-'Default': 'rgb(249, 136, 198);',
-'Hover': 'rgb(215, 11, 123);'
-}
-},
-'Headers': {
-'Auto TOC': 'rgb(11, 59, 225);'
-},
-'Modifiers': {
-'Orange': 'rgb(222, 87, 0);',
-'Orange (Light)': 'rgb(250, 122, 0);',
-'Dark Red/Pink': 'rgb(164, 15, 45);',
-'Pink Alternative LVL1:': 'rgb(188, 0, 88);'
-}
-},
-'Titles': {
-'Field Title Prompt': 'rgb(169, 0, 48);'
-},
-'Links': {
-'See Also': {
-'Default': 'rgb(45, 79, 201);',
-'Hover': 'rgb(108, 132, 217);'
-},
-'TOC': {
-'Default': 'rgb(173, 0, 0);',
-'Hover': 'rgb(196, 71, 71);'
-},
-'Outline': {
-'Default': 'rgb(105, 170, 53);',
-'Hover': 'rgb(135, 187, 93);'
-},
-'AnkNotes': {
-'Default': 'rgb(30, 155, 67);',
-'Hover': 'rgb(107, 226, 143);'
-}
-}
+    'Levels': {
+        'OL':        {
+            1: {
+                'Default': 'rgb(106, 0, 129);',
+                'Hover':   'rgb(168, 0, 204);'
+            },
+            2: {
+                'Default': 'rgb(235, 0, 115);',
+                'Hover':   'rgb(255, 94, 174);'
+            },
+            3: {
+                'Default': 'rgb(186, 0, 255);',
+                'Hover':   'rgb(213, 100, 255);'
+            },
+            4: {
+                'Default': 'rgb(129, 182, 255);',
+                'Hover':   'rgb(36, 130, 255);'
+            },
+            5: {
+                'Default': 'rgb(232, 153, 220);',
+                'Hover':   'rgb(142, 32, 125);'
+            },
+            6: {
+                'Default': 'rgb(201, 213, 172);',
+                'Hover':   'rgb(130, 153, 77);'
+            },
+            7: {
+                'Default': 'rgb(231, 179, 154);',
+                'Hover':   'rgb(215, 129, 87);'
+            },
+            8: {
+                'Default': 'rgb(249, 136, 198);',
+                'Hover':   'rgb(215, 11, 123);'
+            }
+        },
+        'Headers':   {
+            'Auto TOC': 'rgb(11, 59, 225);'
+        },
+        'Modifiers': {
+            'Orange':                 'rgb(222, 87, 0);',
+            'Orange (Light)':         'rgb(250, 122, 0);',
+            'Dark Red/Pink':          'rgb(164, 15, 45);',
+            'Pink Alternative LVL1:': 'rgb(188, 0, 88);'
+        }
+    },
+    'Titles': {
+        'Field Title Prompt': 'rgb(169, 0, 48);'
+    },
+    'Links':  {
+        'See Also': {
+            'Default': 'rgb(45, 79, 201);',
+            'Hover':   'rgb(108, 132, 217);'
+        },
+        'TOC':      {
+            'Default': 'rgb(173, 0, 0);',
+            'Hover':   'rgb(196, 71, 71);'
+        },
+        'Outline':  {
+            'Default': 'rgb(105, 170, 53);',
+            'Hover':   'rgb(135, 187, 93);'
+        },
+        'AnkNotes': {
+            'Default': 'rgb(30, 155, 67);',
+            'Hover':   'rgb(107, 226, 143);'
+        }
+    }
 }
 
 evernote_link_colors['Default'] = evernote_link_colors['Links']['Outline']
@@ -224,10 +220,8 @@ def tableify_column(column):
 
 
 def tableify_lines(rows, columns=None, tr_index_offset=0, return_html=True):
-    if columns is None:
-        columns = []
-    elif not isinstance(columns, list):
-        columns = [columns]
+    if columns is None: columns = []
+    elif not isinstance(columns, list): columns = [columns]
     trs = ['<tr class="tr%d%s">%s\n</tr>\n' % (i_row, ' alt' if i_row % 2 is 0 else ' std', ''.join(
         ['\n <td class="td%d%s">%s</td>' % (i_col + 1, ' alt' if i_col % 2 is 0 else ' std', tableify_column(column))
          for i_col, column in enumerate(row if isinstance(row, list) else row.split('|'))])) for i_row, row in

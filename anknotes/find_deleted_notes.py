@@ -37,6 +37,10 @@ def do_find_deleted_notes(all_anki_notes=None):
                FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES + '_possibletoc')
     anki_mismatch = 0
     is_toc_or_outline = []
+    all_anki_notes = ankDB().all("SELECT n.sfld, n.flds FROM notes n WHERE n.flds LIKE ? || '%'",
+                                 FIELDS.EVERNOTE_GUID_PREFIX)
+    all_anki_notes = {get_evernote_guid_from_anki_fields(flds): clean_title(sfld) for sfld, flds in all_anki_notes}
+    delete_title_mismatches = True
     for line in all_anknotes_notes:
         guid = line['guid']
         title = line['title']
@@ -48,15 +52,17 @@ def do_find_deleted_notes(all_anki_notes=None):
         title = clean_title(title)
         title_safe = str_safe(title)
         find_guids[guid] = title
-        if all_anki_notes:
-            if guid in all_anki_notes:
-                find_title = all_anki_notes[guid][FIELDS.TITLE]
-                find_title_safe = str_safe(find_title)
-                if find_title_safe == title_safe:
-                    del all_anki_notes[guid]
-                else:
-                    log_plain(guid + '::: ' + title, FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES)
-                    anki_mismatch += 1
+        if guid in all_anki_notes:
+            find_title = clean_title(all_anki_notes[guid])
+            find_title_safe = str_safe(find_title)
+            if find_title_safe == title_safe or find_title == title:
+                del all_anki_notes[guid]
+            else:
+                log_plain(guid + '::: ' + title + '\n ' + ' ' * len(guid) + '::: ' + find_title,
+                          FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES)
+                log_plain(repr(find_title) + '\n ' + repr(title), FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES + '-2')
+                anki_mismatch += 1
+                if delete_title_mismatches: del all_anki_notes[guid]
     mismatch = 0
     missing_evernote_notes = []
     for enLink in find_evernote_links(enTableOfContents):
@@ -65,23 +71,23 @@ def do_find_deleted_notes(all_anki_notes=None):
         title_safe = str_safe(title)
 
         if guid in find_guids:
-            find_title = find_guids[guid]
+            find_title = clean_title(find_guids[guid])
             find_title_safe = str_safe(find_title)
-            if find_title_safe == title_safe:
+            if find_title_safe == title_safe or find_title == title:
                 del find_guids[guid]
             else:
-                log_plain(guid + '::: ' + title, FILES.LOGS.FDN.ANKNOTES_TITLE_MISMATCHES)
+                log_plain(guid + '::: ' + title + '\n ' + ' ' * len(guid) + '::: ' + find_title,
+                          FILES.LOGS.FDN.ANKNOTES_TITLE_MISMATCHES)
+                if delete_title_mismatches: del find_guids[guid]
                 mismatch += 1
         else:
             log_plain(guid + '::: ' + title, FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES)
             missing_evernote_notes.append(guid)
 
-    anki_dels = []
-    anknotes_dels = []
-    if all_anki_notes:
-        for guid, fields in all_anki_notes.items():
-            log_plain(guid + '::: ' + fields[FIELDS.TITLE], FILES.LOGS.FDN.ANKI_ORPHANS)
-            anki_dels.append(guid)
+    anki_dels, anknotes_dels = [], []
+    for guid, title in all_anki_notes.items():
+        log_plain(guid + '::: ' + title, FILES.LOGS.FDN.ANKI_ORPHANS)
+        anki_dels.append(guid)
     for guid, title in find_guids.items():
         log_plain(guid + '::: ' + title, FILES.LOGS.FDN.ANKNOTES_ORPHANS)
         anknotes_dels.append(guid)
@@ -93,7 +99,7 @@ def do_find_deleted_notes(all_anki_notes=None):
          FILES.LOGS.FDN.ANKNOTES_ORPHANS,
          "(not present in Evernote)"
 
-        ],
+         ],
 
         ["Orphan Anki Note(s)",
 
@@ -101,7 +107,7 @@ def do_find_deleted_notes(all_anki_notes=None):
          FILES.LOGS.FDN.ANKI_ORPHANS,
          "(not present in Anknotes DB)"
 
-        ],
+         ],
 
         ["Unimported Evernote Note(s)",
 
@@ -109,21 +115,21 @@ def do_find_deleted_notes(all_anki_notes=None):
          FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES,
          "(not present in Anknotes DB"
 
-        ],
+         ],
 
         ["Anknotes DB Title Mismatches",
 
          mismatch,
          FILES.LOGS.FDN.ANKNOTES_TITLE_MISMATCHES
 
-        ],
+         ],
 
         ["Anki Title Mismatches",
 
          anki_mismatch,
          FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES
 
-        ]
+         ]
     ]
     results = [
         [
@@ -136,6 +142,6 @@ def do_find_deleted_notes(all_anki_notes=None):
     # showInfo(str(results))
 
     return {
-    "Summary": results, "AnknotesOrphans": anknotes_dels, "AnkiOrphans": anki_dels,
-    "MissingEvernoteNotes": missing_evernote_notes
+        "Summary":              results, "AnknotesOrphans": anknotes_dels, "AnkiOrphans": anki_dels,
+        "MissingEvernoteNotes": missing_evernote_notes
     }

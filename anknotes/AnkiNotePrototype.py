@@ -83,8 +83,10 @@ class AnkiNotePrototype:
         self.Fields = fields
         self.BaseNote = base_note
         if enNote and light_processing and not fields:
-            self.Fields = {FIELDS.TITLE: enNote.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'',
-                           FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid}
+            self.Fields = {
+                FIELDS.TITLE:         enNote.FullTitle, FIELDS.CONTENT: enNote.Content, FIELDS.SEE_ALSO: u'',
+                FIELDS.EVERNOTE_GUID: FIELDS.EVERNOTE_GUID_PREFIX + enNote.Guid
+                }
             self.enNote = enNote
         self.Changed = False
         self.logged = False
@@ -118,7 +120,7 @@ class AnkiNotePrototype:
         for field in FIELDS.LIST:
             if not field in self.Fields:
                 self.Fields[field] = self.originalFields[field] if self.BaseNote else u''
-            # self.Title = EvernoteNoteTitle(self.Fields)
+                # self.Title = EvernoteNoteTitle(self.Fields)
 
     def deck(self):
         deck = self._deck_parent_
@@ -143,23 +145,33 @@ class AnkiNotePrototype:
             self.__cloze_count__ = 1
         return "%s{{c%d::%s}}%s" % (match.group(1), self.__cloze_count__, matchText, match.group(3))
 
+    def regex_occlude_match(self, match):
+        matchText = match.group(0)
+        if 'class="Occluded"' in matchText or "class='Occluded'" in matchText: return matchText
+        return r'&lt;&lt;' + match.group('PrefixKeep') + ' <div class="occluded">' + match.group(
+            'OccludedText') + '</div>&gt;&gt;'
+
     def process_note_see_also(self):
-        if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields:
-            return
-        ankDB().execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
+        if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields: return
+        db = ankDB()
+        db.execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
         link_num = 0
         for enLink in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
+            if not check_evernote_guid_is_valid(enLink.Guid): self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(
+                enLink, self.Fields[FIELDS.SEE_ALSO]); continue
             link_num += 1
-            title_text = enLink.FullTitle
-            is_toc = 1 if (title_text == "TOC") else 0
-            is_outline = 1 if (title_text is "O" or title_text is "Outline") else 0
-            ankDB().execute(
-                "INSERT INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', 0, %d, %d)" % (
-                TABLES.SEE_ALSO, self.Guid, link_num, enLink.Uid, enLink.Shard,
-                enLink.Guid, enLink.HTML, title_text, is_toc, is_outline))
+            title_text = enLink.FullTitle.replace(u'\'', u'\'\'')
+            from_toc = 1 if ',%s,' % TAGS.TOC in self.Tags else 0
+            is_toc = 1 if (title_text == "TOC" or title_text == "TABLE OF CONTENTS") else 0
+            is_outline = 1 if (title_text == "O" or title_text == "Outline") else 0
+            db.execute(
+                "INSERT OR REPLACE INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', %d, %d, %d)" % (
+                    TABLES.SEE_ALSO, self.Guid, link_num, enLink.Uid, enLink.Shard,
+                    enLink.Guid, enLink.HTML, title_text, from_toc, is_toc, is_outline))
+        if link_num is 0: self.Fields[FIELDS.SEE_ALSO] = ""
+        db.commit()
 
     def process_note_content(self):
-
         def step_0_remove_evernote_css_attributes():
             ################################### Step 0: Correct weird Evernote formatting
             self.Fields[FIELDS.CONTENT] = clean_evernote_css(self.Fields[FIELDS.CONTENT])
@@ -175,8 +187,9 @@ class AnkiNotePrototype:
             self.Fields[FIELDS.CONTENT] = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
                                                  r'evernote://view/\2/\1/\3/\3/', self.Fields[FIELDS.CONTENT])
 
-            if self.light_processing:
-                self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace("evernote://", "evernote:///")
+            # If we are converting back to Evernote format 
+            if self.light_processing: self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace("evernote://",
+                                                                                                        "evernote:///")
 
         def step_2_modify_image_links():
             ################################### Step 2: Modify Image Links
@@ -184,26 +197,28 @@ class AnkiNotePrototype:
             # As a work around, this code will convert any link to an image on Dropbox, to an embedded <img> tag.
             # This code modifies the Dropbox link so it links to a raw image file rather than an interstitial web page
             # Step 2.1: Modify HTML links to Dropbox images
-            dropbox_image_url_base_regex = r'(?P<URL>https://www.dropbox.com/s/[\w\d]+/.+\.(jpg|png|jpeg|gif|bmp))'
+            dropbox_image_url_base_regex = r'(?P<URLPrefix>[^"''])(?P<URL>https://www.dropbox.com/s/[\w\d]+/.+\.(jpg|png|jpeg|gif|bmp))'
             dropbox_image_url_html_link_regex = dropbox_image_url_base_regex + r'(?P<QueryString>(?:\?dl=(?:0|1))?)'
-            dropbox_image_src_subst = r'<a href="\g<URL>\g<QueryString>"><img src="\g<URL>?raw=1" alt="Dropbox Link %s Automatically Generated by Anknotes" /></a>'
-            self.Fields[FIELDS.CONTENT] = re.sub(
-                r'<a href="%s"[^>]*>(?P<Title>.+?)</a>' % dropbox_image_url_html_link_regex,
-                dropbox_image_src_subst % "'\g<Title>'", self.Fields[FIELDS.CONTENT])
+            dropbox_image_url_suffix = r'(?P<URLSuffix>[^"''])'
+            dropbox_image_src_subst = r'\g<URLPrefix><a href="\g<URL>\g<QueryString>"><img src="\g<URL>?raw=1" alt="Dropbox Link %s Automatically Generated by Anknotes" /></a>\g<URLSuffix>'
+            self.Fields[FIELDS.CONTENT] = re.sub(r'<a href="%s"[^>]*>(?P<Title>.+?)</a>' % (
+                dropbox_image_url_html_link_regex + dropbox_image_url_suffix),
+                                                 dropbox_image_src_subst % "'\g<Title>'", self.Fields[FIELDS.CONTENT])
 
             # Step 2.2: Modify Plain-text links to Dropbox images
             try:
-                dropbox_image_url_regex = dropbox_image_url_base_regex + r'(?P<QueryString>\?dl=(?:0|1))(?P<Suffix>"?[^">])'
+                dropbox_image_url_regex = dropbox_image_url_base_regex + r'(?P<QueryString>\?dl=(?:0|1))' + dropbox_image_url_suffix
                 self.Fields[FIELDS.CONTENT] = re.sub(dropbox_image_url_regex,
-                                                     (dropbox_image_src_subst % "From Plain-Text Link") + r'\g<Suffix>',
+                                                     r'\g<URLPrefix>' + dropbox_image_src_subst % "From Plain-Text Link" + r'\g<URLSuffix>',
                                                      self.Fields[FIELDS.CONTENT])
             except:
                 log_error("\nERROR processing note, Step 2.2.  Content: %s" % self.Fields[FIELDS.CONTENT])
 
-            # Step 2.3: Modify HTML links with the inner text of exactly "(Image Link)"
-            self.Fields[FIELDS.CONTENT] = re.sub(r'<a href="(?P<URL>.+?)"[^>]*>(?P<Title>\(Image Link.*\))</a>',
-                                                 r'''<img src="\g<URL>" alt="'\g<Title>' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>">\g<Title></a>''',
-                                                 self.Fields[FIELDS.CONTENT])
+            # Step 2.3: Modify HTML links with the inner text of exactly "(Image Link*)"
+            self.Fields[FIELDS.CONTENT] = re.sub(
+                r'<a href=["''](?P<URL>.+?)["''][^>]*>(?P<Title>\(Image Link[^<]*\))</a>',
+                r'''<img src="\g<URL>" alt="'\g<Title>' Automatically Generated by Anknotes" /> <BR><a href="\g<URL>">\g<Title></a>''',
+                self.Fields[FIELDS.CONTENT])
 
         def step_3_occlude_text():
             ################################### Step 3: Change white text to transparent
@@ -215,8 +230,7 @@ class AnkiNotePrototype:
             ################################### Step 4: Automatically Occlude Text in <<Double Angle Brackets>>
             self.Fields[FIELDS.CONTENT] = re.sub(
                 "(?s)(?P<Prefix>&lt;|<) ?(?P=Prefix) ?(?P<PrefixKeep>(?:</div>)?)(?P<OccludedText>.+?)(?P<Suffix>&gt;|>) ?(?P=Suffix) ?",
-                r'&lt;&lt;\g<PrefixKeep><div class="occluded">\g<OccludedText></div>&gt;&gt;',
-                self.Fields[FIELDS.CONTENT])
+                self.regex_occlude_match, self.Fields[FIELDS.CONTENT])
 
         def step_5_create_cloze_fields():
             ################################### Step 5: Create Cloze fields from shorthand. Syntax is {Text}. Optionally {#Text} will prevent the Cloze # from incrementing.
@@ -239,7 +253,7 @@ class AnkiNotePrototype:
                         "No See Also Content Found, but phrase 'See Also' exists: \n" + self.Guid + ": " + self.FullTitle + " \n" +
                         self.Fields[FIELDS.CONTENT][i_div:i_see_also + 50] + '\n', 'SeeAlso\\MatchExpected')
                     log(self.Fields[FIELDS.CONTENT], 'SeeAlso\\MatchExpected\\' + self.FullTitle)
-                # raise ValueError
+                    # raise ValueError
                 return
             self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0),
                                                                               see_also_match.group('Suffix'))
@@ -275,12 +289,10 @@ class AnkiNotePrototype:
             step_3_occlude_text()
             step_5_create_cloze_fields()
         step_6_process_see_also_links()
-
-    # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents
-    ################################### Note Processing complete.
+        # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents
+        ################################### Note Processing complete.
 
     def detect_note_model(self):
-
         # log('Title, self.model_name, tags, self.model_name', 'detectnotemodel')
         # log(self.FullTitle, 'detectnotemodel')
         # log(self.ModelName, 'detectnotemodel')
@@ -297,8 +309,8 @@ class AnkiNotePrototype:
             if reverse_override:
                 self.ModelName = MODELS.DEFAULT
 
-            # log(self.Tags, 'detectnotemodel')
-            # log(self.ModelName, 'detectnotemodel')
+                # log(self.Tags, 'detectnotemodel')
+                # log(self.ModelName, 'detectnotemodel')
 
     def model_id(self):
         if not self.ModelName: return None
@@ -348,14 +360,15 @@ class AnkiNotePrototype:
                 count_str += '%-4d]' % self.Counts.Max
                 count_str += ' (%2d%%)' % (float(self.Counts.Current) / self.Counts.Max * 100)
             log_title = '!' if content else ''
-            log_title += 'UPDATING NOTE%s: %-80s: %s' % (count_str, self.FullTitle, self.Guid)
+            log_title += 'UPDATING NOTE%s: %-80s %s' % (count_str, self.FullTitle + ':', self.Guid)
             log(log_title, 'AddUpdateNote', timestamp=(content is ''),
                 clear=((self.Counts.Current == 1 or self.Counts.Current == 100) and not self.logged))
             self.logged = True
         if not content: return
         content = obj2log_simple(content)
         content = content.replace('\n', '\n        ')
-        log(' > %s\n' % content, 'AddUpdateNote', timestamp=False)
+        if content.lstrip()[:1] != '>': content = '> ' + content
+        log(' %s\n' % content, 'AddUpdateNote', timestamp=False)
 
     def update_note_tags(self):
         if len(self.Tags) == 0: return False
@@ -422,8 +435,8 @@ class AnkiNotePrototype:
                         self.log_update(field_updates)
                         log_error(
                             "ERROR: UPDATE_NOTE: Note '%s': %s: Unable to set self.note.fields for field '%s'. Ord: %s. Note fields count: %d" % (
-                            self.Guid, self.FullTitle, field_to_update, str(fld.get('ord')),
-                            len(self.note.fields)))
+                                self.Guid, self.FullTitle, field_to_update, str(fld.get('ord')),
+                                len(self.note.fields)))
                         raise
         for update in field_updates:
             self.log_update(update)
@@ -455,7 +468,7 @@ class AnkiNotePrototype:
             if self._log_update_if_unchanged_:
                 self.log_update("Not updating Note: The fields, tags, and deck are the same")
             elif (
-                    self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
+                            self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
                 self.log_update()
             return 0
         if not self.Changed:
@@ -465,34 +478,29 @@ class AnkiNotePrototype:
         if not self.OriginalGuid:
             flds = get_dict_from_list(self.BaseNote.items())
             self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
-        db_title = ankDB().scalar(
-            "SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.OriginalGuid))
+        db_title = get_evernote_title_from_guid(self.OriginalGuid)
         new_guid = self.Guid
         new_title = self.FullTitle
         self.check_titles_equal(db_title, new_title, new_guid)
         self.note.flush()
+        self.log_update("  > Flushing Note")
         self.update_note_model()
         self.Counts.Updated += 1
         return 1
 
-
     def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
         do_log_title = False
         if not isinstance(new_title, unicode):
-            try:
-                new_title = unicode(new_title, 'utf-8')
-            except:
-                do_log_title = True
+            try: new_title = unicode(new_title, 'utf-8')
+            except: do_log_title = True
         if not isinstance(old_title, unicode):
-            try:
-                old_title = unicode(old_title, 'utf-8')
-            except:
-                do_log_title = True
+            try: old_title = unicode(old_title, 'utf-8')
+            except: do_log_title = True
         guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + (
-        '' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
+            '' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
         if do_log_title or new_title != old_title or (self.OriginalGuid and new_guid != self.OriginalGuid):
             log_str = ' %s: %s%s' % (
-            '*' if do_log_title else ' ' + log_title, guid_text, '    ' + new_title + ' vs ' + old_title)
+                '*' if do_log_title else ' ' + log_title, guid_text, '    ' + new_title + ' vs ' + old_title)
             log_error(log_str, crosspost_to_default=False)
             self.log_update(log_str)
             return False
@@ -509,8 +517,7 @@ class AnkiNotePrototype:
         return EvernoteNoteTitle(title)
 
     @property
-    def FullTitle(self):
-        return self.Title.FullTitle
+    def FullTitle(self): return self.Title.FullTitle
 
     def save_anki_fields_decoded(self, attempt, from_anp_fields=False, do_decode=None):
         title = self.db_title if hasattr(self, 'db_title') else self.FullTitle
@@ -524,20 +531,15 @@ class AnkiNotePrototype:
             base_values = enumerate(self.note.fields)
         for key, value in base_values:
             name = key if from_anp_fields else FIELDS.LIST[key - 1] if key > 0 else FIELDS.EVERNOTE_GUID
-            if isinstance(value, unicode) and not do_decode is True:
-                action = 'ENCODING'
-            elif isinstance(value, str) and not do_decode is False:
-                action = 'DECODING'
-            else:
-                action = 'DOING NOTHING'
+            if isinstance(value, unicode) and not do_decode is True: action = 'ENCODING'
+            elif isinstance(value, str) and not do_decode is False: action = 'DECODING'
+            else: action = 'DOING NOTHING'
             log('\t - %s for %s field %s' % (action, value.__class__.__name__, name), 'unicode', timestamp=False)
             if action is not 'DOING NOTHING':
                 try:
                     new_value = value.encode('utf-8') if action == 'ENCODED' else value.decode('utf-8')
-                    if from_anp_fields:
-                        self.note[key] = new_value
-                    else:
-                        self.note.fields[key] = new_value
+                    if from_anp_fields: self.note[key] = new_value
+                    else: self.note.fields[key] = new_value
                 except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:
                     e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, value, field=name)
                     if e_return is not 1: raise
@@ -562,7 +564,7 @@ class AnkiNotePrototype:
         self.create_note()
         if self.note is None: return -1
         collection = self.Anki.collection()
-        db_title = ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, self.Guid))
+        db_title = get_evernote_title_from_guid(self.Guid)
         log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, 'AddUpdateNote')
         self.check_titles_equal(db_title, self.FullTitle, self.Guid, 'NEW NOTE TITLE UNEQUAL TO DB ENTRY')
         if self.add_note_try() is not 1: return -1

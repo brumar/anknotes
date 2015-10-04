@@ -3,112 +3,120 @@ from anknotes import stopwatch
 from anknotes.shared import import_etree
 import time
 
-if import_etree():	
-	try:
-		from pysqlite2 import dbapi2 as sqlite
-	except ImportError:
-		from sqlite3 import dbapi2 as sqlite
-	from anknotes.shared import lxml, etree 
+if import_etree():
+    try:
+        from pysqlite2 import dbapi2 as sqlite
+    except ImportError:
+        from sqlite3 import dbapi2 as sqlite
+    from anknotes.shared import lxml, etree
 
-	### Anknotes Module Imports for Stand Alone Scripts
-	from anknotes import evernote as evernote
-	### Anknotes Shared Imports
-	from anknotes.shared import *
-	from anknotes.error import *
-	from anknotes.toc import TOCHierarchyClass
+    ### Anknotes Module Imports for Stand Alone Scripts
+    from anknotes import evernote as evernote
+    ### Anknotes Shared Imports
+    from anknotes.shared import *
+    from anknotes.error import *
+    from anknotes.toc import TOCHierarchyClass
 
-	### Anknotes Class Imports
-	from anknotes.AnkiNotePrototype import AnkiNotePrototype
-	from anknotes.EvernoteNoteTitle import generateTOCTitle
+    ### Anknotes Class Imports
+    from anknotes.AnkiNotePrototype import AnkiNotePrototype
+    from anknotes.EvernoteNoteTitle import generateTOCTitle
 
-	### Anknotes Main Imports
-	from anknotes.Anki import Anki
-	from anknotes.ankEvernote import Evernote
-	# from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
-	# from anknotes.EvernoteNotes import EvernoteNotes
-	# from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
-	# from anknotes.EvernoteImporter import EvernoteImporter
-	#
-	# ### Evernote Imports
-	# from anknotes.evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
-	# from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
-	from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
-	# from anknotes.evernote.api.client import EvernoteClient
-
-
-	ankDBSetLocal()
-	db = ankDB()
-	db.Init()
-
-	failed_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.NOTE_VALIDATION_QUEUE)
-	pending_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 0" % TABLES.NOTE_VALIDATION_QUEUE)
-	success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.NOTE_VALIDATION_QUEUE)
-
-	currentLog = 'Successful'
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-	log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
-
-	for result in success_queued_items:
-		line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
-		line += result['title']
-		log(line, 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=False)
+    ### Anknotes Main Imports
+    from anknotes.Anki import Anki
+    from anknotes.ankEvernote import Evernote
+    # from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
+    # from anknotes.EvernoteNotes import EvernoteNotes
+    # from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
+    # from anknotes.EvernoteImporter import EvernoteImporter
+    #
+    # ### Evernote Imports
+    # from anknotes.evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
+    # from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNote
+    from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
+    # from anknotes.evernote.api.client import EvernoteClient
 
 
-	currentLog = 'Failed'
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-	log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue\\' + currentLog, clear=False, timestamp=False, do_print=True)
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
+    ankDBSetLocal()
+    db = ankDB()
+    db.Init()
 
+    failed_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.NOTE_VALIDATION_QUEUE)
+    pending_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 0" % TABLES.NOTE_VALIDATION_QUEUE)
+    success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.NOTE_VALIDATION_QUEUE)
 
-	for result in failed_queued_items:
-		line = '%-60s ' % (result['title'] + ':')
-		line += ("       [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW"
-		line += '\n' + result['validation_result']
-		log(line, 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
-		log("------------------------------------------------\n", 'MakeNoteQueue\\'+currentLog, timestamp=False)
-		log(result['contents'], 'MakeNoteQueue\\'+currentLog, timestamp=False)
-		log("------------------------------------------------\n", 'MakeNoteQueue\\'+currentLog, timestamp=False)
+    currentLog = 'Successful'
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue\\' + currentLog,
+        timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True)
 
-	EN = Evernote()
+    for result in success_queued_items:
+        line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
+        line += result['title']
+        log(line, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=False)
 
-	currentLog = 'Pending'
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True, clear=True)
-	log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue\\' + currentLog, clear=False, timestamp=False, do_print=True)
-	log("------------------------------------------------", 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
+    currentLog = 'Failed'
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue\\' + currentLog,
+        clear=False, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True)
 
-	timerFull = stopwatch.Timer()
-	for result in pending_queued_items:
-		guid = result['guid']
-		noteContents = result['contents']
-		noteTitle = result['title']
-		line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
-		success, errors = EN.validateNoteContent(noteContents, noteTitle)
-		validation_status = 1 if success else -1
+    for result in failed_queued_items:
+        line = '%-60s ' % (result['title'] + ':')
+        line += ("       [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW"
+        line += '\n' + result['validation_result']
+        log(line, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
+        log("------------------------------------------------\n", 'MakeNoteQueue\\' + currentLog, timestamp=False)
+        log(result['contents'], 'MakeNoteQueue\\' + currentLog, timestamp=False)
+        log("------------------------------------------------\n", 'MakeNoteQueue\\' + currentLog, timestamp=False)
 
-		line = " SUCCESS! " if success else " FAILURE: "
-		line += '     ' if result['guid'] else ' NEW '
-		# line += ' %-60s ' % (result['title'] + ':')
-		log_dump(errors,  'LXML ERRORS', 'lxml_errors', crosspost_to_default=False)
-		if not success:
-			if not isinstance(errors, unicode) and not isinstance(errors, str):
-				errors = '\n    * ' + '\n    * '.join(errors)
-			log(line + errors, 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
-		else:
-			if not isinstance(errors, unicode) and not isinstance(errors, str):
-				errors = '\n'.join(errors)
+    EN = Evernote()
 
+    currentLog = 'Pending'
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue\\' + currentLog,
+        clear=False, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
+        do_print=True)
 
-		sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (TABLES.NOTE_VALIDATION_QUEUE, validation_status, escape_text_sql(errors))
-		if guid:
-			sql += "guid = '%s'" % guid
-		else:
-			sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
+    timerFull = stopwatch.Timer()
+    for result in pending_queued_items:
+        guid = result['guid']
+        noteContents = result['contents']
+        noteTitle = result['title']
+        line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
+        success, errors = EN.validateNoteContent(noteContents, noteTitle)
+        validation_status = 1 if success else -1
 
-		db.execute(sql)
+        line = " SUCCESS! " if success else " FAILURE: "
+        line += '     ' if result['guid'] else ' NEW '
+        # line += ' %-60s ' % (result['title'] + ':')
+        log_dump(errors, 'LXML ERRORS', 'lxml_errors', crosspost_to_default=False)
+        if not success:
+            if not isinstance(errors, unicode) and not isinstance(errors, str):
+                errors = '\n    * ' + '\n    * '.join(errors)
+            log(line + errors, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
+        else:
+            if not isinstance(errors, unicode) and not isinstance(errors, str):
+                errors = '\n'.join(errors)
 
-	timerFull.stop()
-	log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)), 'MakeNoteQueue\\'+currentLog, timestamp=False, do_print=True)
+        sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (
+            TABLES.NOTE_VALIDATION_QUEUE, validation_status, escape_text_sql(errors))
+        if guid:
+            sql += "guid = '%s'" % guid
+        else:
+            sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
 
-	db.commit()
-	db.close()
+        db.execute(sql)
+
+    timerFull.stop()
+    log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)),
+        'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
+
+    db.commit()
+    db.close()

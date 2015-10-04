@@ -1,13 +1,14 @@
 import os
 from anknotes import stopwatch
 import time
+
 try:
     from lxml import etree
+
     eTreeImported = True
 except:
     eTreeImported = False
 if eTreeImported:
-
     try:
         from pysqlite2 import dbapi2 as sqlite
     except ImportError:
@@ -48,9 +49,12 @@ if eTreeImported:
     success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.MAKE_NOTE_QUEUE)
 
     currentLog = 'Successful'
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue-' + currentLog,
+        timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True)
 
     for result in success_queued_items:
         line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
@@ -58,9 +62,12 @@ if eTreeImported:
         log(line, 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=False)
 
     currentLog = 'Failed'
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue-' + currentLog, clear=False, timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue-' + currentLog,
+        clear=False, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True)
 
     for result in failed_queued_items:
         line = '%-60s ' % (result['title'] + ':')
@@ -74,9 +81,12 @@ if eTreeImported:
     EN = Evernote()
 
     currentLog = 'Pending'
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True, clear=True)
-    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue-' + currentLog, clear=False, timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True, clear=True)
+    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue-' + currentLog,
+        clear=False, timestamp=False, do_print=True)
+    log("------------------------------------------------", 'MakeNoteQueue-' + currentLog, timestamp=False,
+        do_print=True)
 
     timerFull = stopwatch.Timer()
     for result in pending_queued_items:
@@ -97,7 +107,8 @@ if eTreeImported:
         else:
             errors = '\n'.join(errors)
 
-        sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (TABLES.MAKE_NOTE_QUEUE, validation_status, escape_text_sql(errors))
+        sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (
+            TABLES.MAKE_NOTE_QUEUE, validation_status, escape_text_sql(errors))
         if guid:
             sql += "guid = '%s'" % guid
         else:
@@ -106,7 +117,8 @@ if eTreeImported:
         db.execute(sql)
 
     timerFull.stop()
-    log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)), 'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
+    log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)),
+        'MakeNoteQueue-' + currentLog, timestamp=False, do_print=True)
 
     db.commit()
     db.close()

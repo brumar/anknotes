@@ -94,8 +94,7 @@ class EvernoteNotePrototype:
         return self.Title.Depth
 
     @property
-    def FullTitle(self):
-        return self.Title.FullTitle
+    def FullTitle(self): return self.Title.FullTitle
 
     @property
     def Name(self):
@@ -134,4 +133,4 @@ class EvernoteNotePrototype:
     def IsLevel(self, level_check):
         return self.Title.IsLevel(level_check)
 
-    ################## END CLASS Note ################
+        ################## END CLASS Note ################

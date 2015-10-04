@@ -3,13 +3,13 @@
     (?P<SeeAlsoHeaderDiv><div[^>]*>)
     (?P<SeeAlsoHeader>
         (?P<SeeAlsoHeaderPrefix>
-			(?P<SeeAlsoHeaderPrefixOpen>(?:<(?:span|b|font|br)[^>]*>){0,5})
-			(?P<SeeAlsoHeaderStripMe><br />(?:\r|\n|\r\n)?)?
-			(?P<SeeAlsoHeaderPrefixClose>(?:</(?:span|b|font|div)>){0,2})
-			(?P<SeeAlsoHeaderPrefixReopen>(?:<(?:span|b|font|br)[^>]*>){0,1})
+            (?P<SeeAlsoHeaderPrefixOpen>(?:<(?:span|b|font|br)[^>]*>){0,5})
+            (?P<SeeAlsoHeaderStripMe><br />(?:\r|\n|\r\n)?)?
+            (?P<SeeAlsoHeaderPrefixClose>(?:</(?:span|b|font|div)>){0,2})
+            (?P<SeeAlsoHeaderPrefixReopen>(?:<(?:span|b|font|br)[^>]*>){0,1})
         )
-		See.[Aa]lso:?(?:\ |&nbsp;)?
-		(?P<SeeAlsoHeaderSuffix>(?:</(?:span|b|font)>){0,5})
+        See.[Aa]lso:?(?:\ |&nbsp;)?
+        (?P<SeeAlsoHeaderSuffix>(?:</(?:span|b|font)>){0,5})
     )
     (?P<SeeAlsoContent>
         .+  # See Also Contents

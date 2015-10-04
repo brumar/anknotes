@@ -91,11 +91,11 @@ color: rgb(138, 16, 16);
 }
 
 .card section.header a {
-	text-decoration: none;
+    text-decoration: none;
 }
 
 .card  section.header:hover #Field-Title-New span.link, .card  section.header:hover #Field-Title-Prompt-New span.link {
-	border-bottom: none;
+    border-bottom: none;
 }
 
 .card  section.header.Field-Title-Prompt {
@@ -103,11 +103,11 @@ color: rgb(138, 16, 16);
 }
 
 .card  section.header #Field-Title-Prompt-New span.link  {
-	border-bottom-color: #a90030;
+    border-bottom-color: #a90030;
 }
 
 .card a:hover #Field-Title-Prompt-New {
-	 color: rgb(210, 13, 13);
+     color: rgb(210, 13, 13);
  }
 
 /*******************************************************************************************************
@@ -133,17 +133,17 @@ a:hover section.header.header-redorange {
 }
 
 section.header.header-redorange {
-	/* Background gradient code */
-	background: -moz-linear-gradient(left, #ff1a00 0%, #fff200 36%, #fff200 58%, #ff1a00 100%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#ff1a00), color-stop(36%,#fff200), color-stop(58%,#fff200), color-stop(100%,#ff1a00)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* IE10+ */
-	background: linear-gradient(to right, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff1a00', endColorstr='#ff1a00',GradientType=1 ); /* IE6-9 */
-	/* z-index: 100; /* the stack order: foreground */
-	/* border-bottom:1px #990000 solid; */
-	border:3px #990000 solid;
+    /* Background gradient code */
+    background: -moz-linear-gradient(left, #ff1a00 0%, #fff200 36%, #fff200 58%, #ff1a00 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, right top, color-stop(0%,#ff1a00), color-stop(36%,#fff200), color-stop(58%,#fff200), color-stop(100%,#ff1a00)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(left, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* IE10+ */
+    background: linear-gradient(to right, #ff1a00 0%,#fff200 36%,#fff200 58%,#ff1a00 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff1a00', endColorstr='#ff1a00',GradientType=1 ); /* IE6-9 */
+    /* z-index: 100; /* the stack order: foreground */
+    /* border-bottom:1px #990000 solid; */
+    border:3px #990000 solid;
 }
 
 section.header.header-bluewhitered,
@@ -158,23 +158,23 @@ color: rgb(10, 121, 243);
 
 .card section.header.header-bluewhitered.Field-Title span.link,
 .card section.header.header-avi.Field-Title span.link {
-	border-bottom-color:#004C99;
+    border-bottom-color:#004C99;
 }
 
 section.header.header-bluewhitered,
 section.header.header-avi {
-	/* Background gradient code */
-	background: #3b679e; /* Old browsers */
-	background: -moz-linear-gradient(left, #3b679e 0%, #ffffff 38%, #ffffff 59%, #ff1111 100%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#3b679e), color-stop(38%,#ffffff), color-stop(59%,#ffffff), color-stop(100%,#ff1111)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* IE10+ */
-	background: linear-gradient(to right, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#ff1111',GradientType=1 ); /* IE6-9 */
-	/* z-index: 100; /* the stack order: foreground */
-	/* border-bottom:1px #004C99 solid; */
-	border:3px #990000 solid;
+    /* Background gradient code */
+    background: #3b679e; /* Old browsers */
+    background: -moz-linear-gradient(left, #3b679e 0%, #ffffff 38%, #ffffff 59%, #ff1111 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, right top, color-stop(0%,#3b679e), color-stop(38%,#ffffff), color-stop(59%,#ffffff), color-stop(100%,#ff1111)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(left, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* IE10+ */
+    background: linear-gradient(to right, #3b679e 0%,#ffffff 38%,#ffffff 59%,#ff1111 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#ff1111',GradientType=1 ); /* IE6-9 */
+    /* z-index: 100; /* the stack order: foreground */
+    /* border-bottom:1px #004C99 solid; */
+    border:3px #990000 solid;
 }
 
 section.header.header-avi-bluered {
@@ -187,31 +187,31 @@ color: rgb(241, 135, 154);
 
 
 .card  section.header.header-avi-bluered.Field-Title span.link {
-	border-bottom-color:#80A6CC;
+    border-bottom-color:#80A6CC;
 }
 
 section.header.header-avi-bluered {
-	/* Background gradient code */
-	background: -moz-linear-gradient(left, #bf0060 0%, #0060bf 36%, #0060bf 58%, #bf0060 100%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#bf0060), color-stop(36%,#0060bf), color-stop(58%,#0060bf), color-stop(100%,#bf0060)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
-	background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */
-	/* z-index: 100; /* the stack order: foreground */
-	/* border-bottom:1px #004C99 solid; */
-	border:3px #004C99 solid;
+    /* Background gradient code */
+    background: -moz-linear-gradient(left, #bf0060 0%, #0060bf 36%, #0060bf 58%, #bf0060 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, right top, color-stop(0%,#bf0060), color-stop(36%,#0060bf), color-stop(58%,#0060bf), color-stop(100%,#bf0060)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(left, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* IE10+ */
+    background: linear-gradient(to right, #bf0060 0%,#0060bf 36%,#0060bf 58%,#bf0060 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#0060bf', endColorstr='#bf0060',GradientType=1 ); /* IE6-9 */
+    /* z-index: 100; /* the stack order: foreground */
+    /* border-bottom:1px #004C99 solid; */
+    border:3px #004C99 solid;
 }
 
 /*******************************************************************************************************
   Headers with Links for See Also, TOC, Outline
 *******************************************************************************************************/
 .card #Header-Links {
-	font-size: 14px;
-	margin-top: -20px;
-	margin-bottom: 10px;
-	font-weight: bold;
+    font-size: 14px;
+    margin-top: -20px;
+    margin-bottom: 10px;
+    font-weight: bold;
 }
 
 .card #Field-Header-Links #Field-See_Also-Link {
@@ -233,26 +233,26 @@ a:hover {
 }
 
 .card .See_Also a, .card .Field-See_Also a, .card #Field-Header-Links #Field-See_Also-Link a .Note_Link {
-	color: rgb(45, 79, 201);
+    color: rgb(45, 79, 201);
 }
 
 .card .See_Also a:hover, .card .Field-See_Also a:hover, .card #Field-Header-Links #Field-See_Also-Link a:hover .Note_Link  {
-	color: rgb(108, 132, 217);
+    color: rgb(108, 132, 217);
 }
 
 .card .Field-TOC a , .card #Field-Header-Links #Field-TOC-Link  a  .Note_Link{
-	color: rgb(173, 0, 0);
+    color: rgb(173, 0, 0);
 }
 
 .card .Field-TOC a:hover, .card #Field-Header-Links #Field-TOC-Link  a:hover  .Note_Link {
-	color: rgb(196, 71, 71);
+    color: rgb(196, 71, 71);
 }
 
 .card .Field-Outline a, .card #Field-Header-Links #Field-Outline-Link  a .Note_Link,  {
-	color: rgb(105, 170, 53);
+    color: rgb(105, 170, 53);
 }
 .card .Field-Outline a:hover , .card #Field-Header-Links #Field-Outline-Link  a:hover .Note_Link{
-	color: rgb(135, 187, 93);
+    color: rgb(135, 187, 93);
 }
 .card #Link-EN-Self a {
   color: rgb(30, 155, 67)
@@ -307,15 +307,15 @@ a:hover {
 }
 
 .card #Field-See_Also ol {
-	padding-top: 0px;
-	margin-top: 0px;
+    padding-top: 0px;
+    margin-top: 0px;
 }
 
 .card #Field-See_Also hr {
-	padding-top: 0px;
-	padding-bottom: 0px;
-	margin-top: 5px;
-	margin-bottom: 10px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin-top: 5px;
+    margin-bottom: 10px;
 }
 
 /*******************************************************************************************************
@@ -335,7 +335,7 @@ a:hover {
 }
 
 .card #Field-Extra-Front {
-	color: #444;
+    color: #444;
 }
 
 /*******************************************************************************************************
@@ -343,22 +343,22 @@ a:hover {
 *******************************************************************************************************/
 
 .card .occluded {
-	color: #555;
+    color: #555;
 }
 .card div.occluded {
-	display: inline-block;
-	margin: 0px; padding: 0px;
+    display: inline-block;
+    margin: 0px; padding: 0px;
 }
 .card div.occluded :first-child {
-	margin-top: 0px;
+    margin-top: 0px;
 }
 .card div.occluded :last-child {
-	margin-bottom: 0px;
+    margin-bottom: 0px;
 }
 
 .card .See_Also, .card .Field-See_Also, .card .separator {
-	color: rgb(45, 79, 201);
-	font-weight: bold;
+    color: rgb(45, 79, 201);
+    font-weight: bold;
 }
 
 /*******************************************************************************************************
@@ -366,32 +366,32 @@ a:hover {
 *******************************************************************************************************/
 
 
-.card 												#Field-Cloze-Content,
-.card 												section.header.Field-Title-Prompt,
-.card 								#Side-Front 	#Footer-Line,
-.card								#Side-Front 	#Field-See_Also,
-.card										 		#Field-TOC,
-.card												#Field-Outline,
-.card 								#Side-Front 	#Field-Extra,
-.card 								#Side-Back 	 	#Field-Extra-Front,
-.card #Card-EvernoteReviewCloze  					#Field-Content,
-.card #Card-EvernoteReviewReversed 	#Side-Front		section.header.Field-Title
+.card                                                 #Field-Cloze-Content,
+.card                                                 section.header.Field-Title-Prompt,
+.card                                 #Side-Front     #Footer-Line,
+.card                                #Side-Front     #Field-See_Also,
+.card                                                 #Field-TOC,
+.card                                                #Field-Outline,
+.card                                 #Side-Front     #Field-Extra,
+.card                                 #Side-Back          #Field-Extra-Front,
+.card #Card-EvernoteReviewCloze                      #Field-Content,
+.card #Card-EvernoteReviewReversed     #Side-Front        section.header.Field-Title
 {
-	display: none;
+    display: none;
 }
 
-.card 					            #Side-Front  	#Header-Links,
-.card #Card-EvernoteReview          #Side-Front  	#Field-Content,
-.card 								#Side-Front 	.occluded
+.card                                 #Side-Front      #Header-Links,
+.card #Card-EvernoteReview          #Side-Front      #Field-Content,
+.card                                 #Side-Front     .occluded
 {
     visibility: hidden;
 }
 
-.card #Card-EvernoteReviewCloze  					#Field-Cloze-Content,
-.card #Card-EvernoteReviewReversed	#Side-Front		section.header.Field-Title-Prompt,
-.card								#Side-Back	 	#Field-See_Also
+.card #Card-EvernoteReviewCloze                      #Field-Cloze-Content,
+.card #Card-EvernoteReviewReversed    #Side-Front        section.header.Field-Title-Prompt,
+.card                                #Side-Back         #Field-See_Also
 {
-	display: block;
+    display: block;
 }
 
 /*******************************************************************************************************

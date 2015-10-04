@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
-try:
-    from pysqlite2 import dbapi2 as sqlite
-except ImportError:
-    from sqlite3 import dbapi2 as sqlite
+try: from pysqlite2 import dbapi2 as sqlite
+except ImportError: from sqlite3 import dbapi2 as sqlite
 import os
 import re
 import sys
-from datetime import datetime
+from bs4 import UnicodeDammit
+
 ### Check if in Anki
 inAnki = 'anki' in sys.modules
+
 ### Anknotes Imports
+from anknotes.imports import *
 from anknotes.constants import *
 from anknotes.logging import *
+from anknotes.db import *
 from anknotes.html import *
 from anknotes.structs import *
-from anknotes.db import *
 
-### Anki and Evernote Imports
-if inAnki:
-    from aqt import mw
-    from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
-    from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
-        EDAMNotFoundException
+# if inAnki:
+from aqt import mw
+from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
+from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
+    EDAMNotFoundException
 
 
 def get_friendly_interval_string(lastImport):
@@ -62,7 +62,7 @@ class EvernoteQueryLocationType:
 
 def __check_tag_name__(v, tags_to_delete):
     return v not in tags_to_delete and (not hasattr(v, 'Name') or getattr(v, 'Name') not in tags_to_delete) and (
-    not hasattr(v, 'name') or getattr(v, 'name') not in tags_to_delete)
+        not hasattr(v, 'name') or getattr(v, 'name') not in tags_to_delete)
 
 
 def get_tag_names_to_import(tagNames, evernoteQueryTags=None, evernoteTagsToDelete=None, keepEvernoteTags=None,
@@ -114,6 +114,32 @@ def find_evernote_links(content):
         if match:
             ids.update(match.group('uid'), match.group('shard'))
     return [EvernoteLink(m) for m in re.finditer(regex_str, content)]
+
+
+def check_evernote_guid_is_valid(guid):
+    return ankDB().scalar("SELECT COUNT(*) FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, guid)
+
+
+def escape_regex(strr): return re.sub(r"(?sx)(\(|\||\))", r"\\\1", strr)
+
+
+def remove_evernote_link(link, html):
+    html = UnicodeDammit(html, ['utf-8'], is_html=True).unicode_markup
+    link_converted = UnicodeDammit(link.WholeRegexMatch, ['utf-8'], is_html=True).unicode_markup
+    sep = u'<span style="color: rgb(105, 170, 53);"> | </span>'
+    sep_regex = escape_regex(sep)
+    regex_replace = r'<{0}[^>]*>[^<]*{1}[^<]*</{0}>'
+    # html = re.sub(regex_replace.format('li', link.WholeRegexMatch), "", html)
+    # Remove link 
+    html = html.replace(link.WholeRegexMatch, "")
+    # Remove empty li
+    html = re.sub(regex_replace.format('li', '[^<]*'), "", html)
+    # Remove dangling separator 
+    regex_span = regex_replace.format('span', r'[^<]*') + r'[^<]*' + sep_regex
+    html = re.sub(regex_span, "", html)
+    # Remove double separator 
+    html = re.sub(sep_regex + r'[^<]*' + sep_regex, sep_regex, html)
+    return html
 
 
 def get_dict_from_list(lst, keys_to_ignore=list()):

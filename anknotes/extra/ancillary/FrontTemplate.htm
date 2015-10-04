@@ -1,87 +1,91 @@
 <div id='Template-{{Type}}'>
-<div id='Card-{{Card}}'>
-<div id='Deck-{{Deck}}'>
-<div id='Side-Front'>
-<section class="header header-avi Field-%(Title)s-Prompt">
-  <h2>ANKNOTES</h2>
-  <div id='Field-%(Title)s-Prompt-New'>What is the Note's Title???</div>
-</section>
-<section class="header header-avi Field-%(Title)s" id='Header-Field-%(Title)s'>
-  <h2>ANKNOTES</h2>
-  <div id='Field-%(Title)s-New'>{{%(Title)s}}</div>
-</section>
+    <div id='Card-{{Card}}'>
+        <div id='Deck-{{Deck}}'>
+            <div id='Side-Front'>
+                <section class="header header-avi Field-%(Title)s-Prompt">
+                    <h2>ANKNOTES</h2>
 
-<hr id=answer>
-{{#%(See Also)s}}
-<div id='Header-Links'>
+                    <div id='Field-%(Title)s-Prompt-New'>What is the Note's Title???</div>
+                </section>
+                <section class="header header-avi Field-%(Title)s" id='Header-Field-%(Title)s'>
+                    <h2>ANKNOTES</h2>
+
+                    <div id='Field-%(Title)s-New'>{{%(Title)s}}</div>
+                </section>
+
+                <hr id=answer>
+                {{#%(See Also)s}}
+                <div id='Header-Links'>
 <span class='Field-%(See Also)s'>
 <a href='javascript:;' onclick='scrollToElementVisible("Field-%(See Also)s")' class='header'>See Also</a>:
 </span>
-{{#%(TOC)s}}
+                    {{#%(TOC)s}}
 <span class='Field-%(TOC)s'>
 <a href='javascript:;' onclick='scrollToElementToggle("Field-%(TOC)s")' class='header'>[TOC]</a>
 </span>
-{{/%(TOC)s}}
+                    {{/%(TOC)s}}
 
-{{#%(Outline)s}}
-{{#%(TOC)s}}
-<span class='Field-%(See Also)s'> | </span>
-{{/%(TOC)s}}
+                    {{#%(Outline)s}}
+                    {{#%(TOC)s}}
+                    <span class='Field-%(See Also)s'> | </span>
+                    {{/%(TOC)s}}
 <span class='Field-%(Outline)s'>
 <a href='javascript:;' onclick='scrollToElementToggle("Field-%(Outline)s")' class='header'>(Outline)</a>
 </span>
-{{/%(Outline)s}}
-</div>
-{{/%(See Also)s}}
+                    {{/%(Outline)s}}
+                </div>
+                {{/%(See Also)s}}
 
-<div id='Field-%(Content)s'>{{%(Content)s}}</div>
-<div id='Field-Cloze-%(Content)s'>{{cloze:%(Content)s}}</div>
+                <div id='Field-%(Content)s'>{{%(Content)s}}</div>
+                <div id='Field-Cloze-%(Content)s'>{{cloze:%(Content)s}}</div>
 
-{{#%(Extra)s}}
-<div id='Field-%(Extra)s-Front'>
-<HR>
-<span class='header'><u>Note</u>: Additional Information is Available</span></span>
-</div>
-<div id='Field-%(Extra)s'>
-<HR>
-<span class='header'><u>Additional Info</u>: </span></span>
-{{%(Extra)s}}
-<BR><BR>
-</div>
-{{/%(Extra)s}}
+                {{#%(Extra)s}}
+                <div id='Field-%(Extra)s-Front'>
+                    <HR>
+                    <span class='header'><u>Note</u>: Additional Information is Available</span></span>
+                </div>
+                <div id='Field-%(Extra)s'>
+                    <HR>
+                    <span class='header'><u>Additional Info</u>: </span></span>
+                    {{%(Extra)s}}
+                    <BR><BR>
+                </div>
+                {{/%(Extra)s}}
 
-<div id='Footer-Line'>
-<span id='Link-EN-Self'></span>
-{{#Tags}}
-<span id='Tags'><span class='header'><u>Tags</u>: </span>{{Tags}}</span>
-{{/Tags}}
-</div>
+                <div id='Footer-Line'>
+                    <span id='Link-EN-Self'></span>
+                    {{#Tags}}
+                    <span id='Tags'><span class='header'><u>Tags</u>: </span>{{Tags}}</span>
+                    {{/Tags}}
+                </div>
 
-{{#%(See Also)s}}
-<div id='Field-%(See Also)s'>
-<HR>
-{{%(See Also)s}}
-</div>
-{{/%(See Also)s}}
+                {{#%(See Also)s}}
+                <div id='Field-%(See Also)s'>
+                    <HR>
+                    {{%(See Also)s}}
+                </div>
+                {{/%(See Also)s}}
 
-{{#%(TOC)s}}
-<div id='Field-%(TOC)s'>
-<BR><HR>
-{{%(TOC)s}}
-</div>
-{{/%(TOC)s}}
+                {{#%(TOC)s}}
+                <div id='Field-%(TOC)s'>
+                    <BR>
+                    <HR>
+                    {{%(TOC)s}}
+                </div>
+                {{/%(TOC)s}}
 
-{{#%(Outline)s}}
-<div id='Field-%(Outline)s'>
-<BR><HR>
-{{%(Outline)s}}
-</div>
-{{/%(Outline)s}}
+                {{#%(Outline)s}}
+                <div id='Field-%(Outline)s'>
+                    <BR>
+                    <HR>
+                    {{%(Outline)s}}
+                </div>
+                {{/%(Outline)s}}
 
 
-</div>
-</div>
-</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 
@@ -137,5 +141,7 @@ function findPos(obj) {
 document.getElementById('Link-EN-Self').innerHTML = "<a href='" + generateEvernoteLink('{{%(Evernote GUID)s}}') + "'>Open in EN</a> <span class='separator'> | </span>"
 document.getElementById('Field-%(Title)s-New').innerHTML = "<span class='link'>" + document.getElementById('Field-%(Title)s-New').innerHTML + "</span>"
 document.getElementById('Header-Field-%(Title)s').outerHTML = "<a href='" + generateEvernoteLink('{{%(Evernote GUID)s}}') + "'>" + document.getElementById('Header-Field-%(Title)s').outerHTML + "</a>"
+
+
 
 </script>

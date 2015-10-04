@@ -17,7 +17,7 @@ class AutoNumber(Enum):
         obj._id_ = value
         obj._value_ = value
         # if obj.name in obj._member_names_:
-        # raise KeyError
+        #     raise KeyError
         return obj
 
 
@@ -96,7 +96,7 @@ AutoIntEnum = auto_enum('AutoIntEnum', (IntEnum,), {})
 #
 #
 # class APIStatus(AutoIntEnum):
-# Val1=()
+#     Val1=()
 #     """:type : AutoIntEnum"""
 #     Val2=()
 #     """:type : AutoIntEnum"""

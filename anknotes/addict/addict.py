@@ -2,8 +2,8 @@ from inspect import isgenerator
 import re
 import copy
 
-class Dict(dict):
 
+class Dict(dict):
     """
     Dict is a subclass of dict, which allows you to get AND SET(!!)
     items in the dict using the attribute syntax!
@@ -129,7 +129,7 @@ class Dict(dict):
         return dict_keys + obj_attrs
 
     def _ipython_display_(self):
-        print(str(self))    # pragma: no cover
+        print(str(self))  # pragma: no cover
 
     def _repr_html_(self):
         return str(self)
@@ -186,7 +186,6 @@ class Dict(dict):
 
     @classmethod
     def _prune_iter(cls, some_iter, prune_zero=False, prune_empty_list=True):
-
         new_iter = []
         for item in some_iter:
             if item == 0 and prune_zero:
@@ -241,8 +240,8 @@ class Dict(dict):
 
         for k, v in d.items():
             if ((k not in self) or
-                (not isinstance(self[k], dict)) or
-                (not isinstance(v, dict))):
+                    (not isinstance(self[k], dict)) or
+                    (not isinstance(v, dict))):
                 self[k] = v
             else:
                 self[k].update(v)

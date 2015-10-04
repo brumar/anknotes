@@ -6,12 +6,11 @@ import sys
 from datetime import datetime, timedelta
 from StringIO import StringIO
 
-try:
-    from lxml import etree
-
-    eTreeImported = True
-except ImportError:
-    eTreeImported = False
+# try:
+# from lxml import etree
+# eTreeImported = True
+# except ImportError:
+# eTreeImported = False
 
 inAnki = 'anki' in sys.modules
 try:
@@ -35,6 +34,7 @@ if inAnki:
 
     from aqt.utils import openLink, getText, showInfo
 
+
 ### Anki Imports
 # import anki
 # import aqt
@@ -54,18 +54,21 @@ class Evernote(object):
     tag_data = {}
     """:type : dict[str, anknotes.structs.EvernoteTag]"""
     DTD = None
-    hasValidator = None
+    __hasValidator__ = None
     token = None
     client = None
     """:type : EvernoteClient """
 
+    def hasValidator(self):
+        if self.__hasValidator__ is None: self.__hasValidator__ = import_etree()
+        return self.__hasValidator__
+
     def __init__(self):
-        global eTreeImported, dbLocal
         self.tag_data = {}
         self.notebook_data = {}
         self.noteStore = None
         self.getNoteCount = 0
-        self.hasValidator = eTreeImported
+        # self.hasValidator = eTreeImported
         if ankDBIsLocal():
             log("Skipping Evernote client load (DB is Local)", 'client')
             return
@@ -91,8 +94,7 @@ class Evernote(object):
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
             mw.col.conf[SETTINGS.EVERNOTE.AUTH_TOKEN] = auth_token
-        else:
-            client = EvernoteClient(token=auth_token, sandbox=EVERNOTE.API.IS_SANDBOXED)
+        else: client = EvernoteClient(token=auth_token, sandbox=EVERNOTE.API.IS_SANDBOXED)
         self.token = auth_token
         self.client = client
         log("Set up Evernote Client", 'client')
@@ -107,8 +109,7 @@ class Evernote(object):
                 "Client does not exist for some reason. Did we not initialize Evernote Class? Current token: " + str(
                     self.token))
             self.setup_client()
-        try:
-            self.noteStore = self.client.get_note_store()
+        try: self.noteStore = self.client.get_note_store()
         except EDAMSystemException as e:
             if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
             return EvernoteAPIStatus.RateLimitError
@@ -131,15 +132,13 @@ class Evernote(object):
         noteBody = noteBody.replace('"http://xml.evernote.com/pub/enml2.dtd"',
                                     '"%s"' % convert_filename_to_local_link(FILES.ANCILLARY.ENML_DTD))
         parser = etree.XMLParser(dtd_validation=True, attribute_defaults=True)
-        try:
-            root = etree.fromstring(noteBody, parser)
+        try: root = etree.fromstring(noteBody, parser)
         except Exception as e:
             log_str = "XML Loading of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str, False)
             return False, [log_str]
-        try:
-            success = self.DTD.validate(root)
+        try: success = self.DTD.validate(root)
         except Exception as e:
             log_str = "DTD Validation of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
@@ -162,7 +161,7 @@ class Evernote(object):
         """
         return self.validateNoteBody(self.makeNoteBody(content), title)
 
-    def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=None):
+    def updateNote(self, guid, noteTitle, noteBody, tagNames=None, parentNotebook=None, noteType=None, resources=None):
         """
         Update a Note instance with title and body
         Send Note object to user's account
@@ -170,7 +169,8 @@ class Evernote(object):
         :returns Status and Note
         """
         if resources is None: resources = []
-        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
+        return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, noteType=noteType,
+                             resources=resources,
                              guid=guid)
 
     @staticmethod
@@ -188,26 +188,24 @@ class Evernote(object):
 
     @staticmethod
     def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None,
+                               noteType=None,
                                guid=None):
+        if not noteType: noteType = 'Unspecified'
         if resources is None: resources = []
-        sql = "FROM %s WHERE " % TABLES.NOTE_VALIDATION_QUEUE
-        if guid:
-            sql += "guid = '%s'" % guid
-        else:
-            sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
+        sql = "FROM %s WHERE noteType = '%s' AND " % (TABLES.NOTE_VALIDATION_QUEUE, noteType) + (
+            ("guid = '%s'" % guid) if guid else "title = '%s' AND contents = '%s'" % (
+                escape_text_sql(noteTitle), escape_text_sql(noteContents)))
         statuses = ankDB().all('SELECT validation_status ' + sql)
         if len(statuses) > 0:
             if str(statuses[0]['validation_status']) == '1': return EvernoteAPIStatus.Success
             ankDB().execute("DELETE " + sql)
-        # log_sql(sql)
-        # log_sql([ guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook])
         ankDB().execute(
-            "INSERT INTO %s(guid, title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
-            guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook)
+            "INSERT INTO %s(guid, title, contents, tagNames, notebookGuid, noteType) VALUES(?, ?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
+            guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook, noteType)
         return EvernoteAPIStatus.RequestQueued
 
-    def makeNote(self, noteTitle=None, noteContents=None, tagNames=list(), parentNotebook=None, resources=None,
-                 guid=None,
+    def makeNote(self, noteTitle=None, noteContents=None, tagNames=None, parentNotebook=None, resources=None,
+                 noteType=None, guid=None,
                  validated=None, enNote=None):
         """
         Create or Update a Note instance with title and body
@@ -218,18 +216,19 @@ class Evernote(object):
         :rtype : (EvernoteAPIStatus, EvernoteNote)
         :returns Status and Note
         """
+        if tagNames is None: tagNames = []
         if enNote: guid, noteTitle, noteContents, tagNames, parentNotebook = enNote.Guid, enNote.FullTitle, enNote.Content, enNote.Tags, enNote.NotebookGuid or parentNotebook
         if resources is None: resources = []
         callType = "create"
         validation_status = EvernoteAPIStatus.Uninitialized
         if validated is None:
-            if not EVERNOTE.UPLOAD.VALIDATION.ENABLED:
-                validated = True
+            if not EVERNOTE.UPLOAD.VALIDATION.ENABLED: validated = True
             else:
                 validation_status = self.addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames, parentNotebook,
                                                                 resources, guid)
                 if not validation_status.IsSuccess and not self.hasValidator: return validation_status, None
-
+        log('%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle),
+            'validation')
         ourNote = EvernoteNote()
         ourNote.title = noteTitle.encode('utf-8')
         if guid: callType = "update"; ourNote.guid = guid
@@ -251,12 +250,10 @@ class Evernote(object):
 
         ## parentNotebook is optional; if omitted, default notebook is used
         if parentNotebook:
-            if hasattr(parentNotebook, 'guid'):
-                ourNote.notebookGuid = parentNotebook.guid
-            elif hasattr(parentNotebook, 'Guid'):
-                ourNote.notebookGuid = parentNotebook.Guid
-            elif isinstance(parentNotebook, str) or isinstance(parentNotebook, unicode):
-                ourNote.notebookGuid = parentNotebook
+            if hasattr(parentNotebook, 'guid'): ourNote.notebookGuid = parentNotebook.guid
+            elif hasattr(parentNotebook, 'Guid'): ourNote.notebookGuid = parentNotebook.Guid
+            elif isinstance(parentNotebook, str) or isinstance(parentNotebook,
+                                                               unicode): ourNote.notebookGuid = parentNotebook
 
         ## Attempt to create note in Evernote account
 
@@ -274,8 +271,7 @@ class Evernote(object):
             ## Something was wrong with the note data
             ## See EDAMErrorCode enumeration for error code explanation
             ## http://dev.evernote.com/documentation/reference/Errors.html#Enum_EDAMErrorCode
-            print
-            "EDAMUserException:", edue
+            print "EDAMUserException:", edue
             log_error("-" * 50, crosspost_to_default=False)
             log_error("EDAMUserException:  " + str(edue), crosspost='api')
             log_error(str(ourNote.tagNames), crosspost_to_default=False)
@@ -284,8 +280,7 @@ class Evernote(object):
             if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
             return EvernoteAPIStatus.UserError, None
         except EDAMNotFoundException, ednfe:
-            print
-            "EDAMNotFoundException:", ednfe
+            print "EDAMNotFoundException:", ednfe
             log_error("-" * 50, crosspost_to_default=False)
             log_error("EDAMNotFoundException:  " + str(ednfe), crosspost='api')
             if callType is "update":
@@ -296,8 +291,7 @@ class Evernote(object):
             if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
             return EvernoteAPIStatus.NotFoundError, None
         except Exception, e:
-            print
-            "Unknown Exception:", e
+            print "Unknown Exception:", e
             log_error("-" * 50, crosspost_to_default=False)
             log_error("Unknown Exception:  " + str(e))
             log_error(str(ourNote.tagNames), crosspost_to_default=False)
@@ -323,10 +317,7 @@ class Evernote(object):
         if not hasattr(self, 'evernote_guids') or evernote_guids: self.evernote_guids = evernote_guids
         if not use_local_db_only: self.check_ancillary_data_up_to_date()
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
-        if not evernote_guids or len(evernote_guids) == 0:
-            fetcher.results.Status = EvernoteAPIStatus.EmptyRequest
-        else:
-            return fetcher.results
+        if len(evernote_guids) == 0: fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
         if inAnki:
             fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
                                                         SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',',
@@ -335,10 +326,8 @@ class Evernote(object):
                                                        SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
             fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
             fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
-        if self.evernote_guids:
-            for evernote_guid in self.evernote_guids:
-                if not fetcher.getNote(evernote_guid):
-                    return fetcher.results
+        for evernote_guid in self.evernote_guids:
+            if not fetcher.getNote(evernote_guid): return fetcher.results
         return fetcher.results
 
     def check_ancillary_data_up_to_date(self):
@@ -358,20 +347,14 @@ class Evernote(object):
         if new_tags is 0 and new_nbs is 0:
             if not report_blank: return
             strr = 'No new tags or notebooks found'
-        elif new_tags is None and new_nbs is None:
-            strr = 'Error downloading ancillary data'
-        elif new_tags is None:
-            strr = 'Error downloading tags list, and '
-        elif new_nbs is None:
-            strr = 'Error downloading notebooks list, and '
+        elif new_tags is None and new_nbs is None: strr = 'Error downloading ancillary data'
+        elif new_tags is None: strr = 'Error downloading tags list, and '
+        elif new_nbs is None: strr = 'Error downloading notebooks list, and '
 
-        if new_tags > 0 and new_nbs > 0:
-            strr = '%d new tag%s and %d new notebook%s found' % (
+        if new_tags > 0 and new_nbs > 0: strr = '%d new tag%s and %d new notebook%s found' % (
             new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
-        elif new_nbs > 0:
-            strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
-        elif new_tags > 0:
-            strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
+        elif new_nbs > 0: strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
+        elif new_tags > 0: strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
         show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + strr, do_log=True)
 
     def set_notebook_data(self):
@@ -395,19 +378,17 @@ class Evernote(object):
                     "Missing notebook GUID %s for note %s when checking notebook metadata. Notebook was found after updating Anknotes' notebook database." + '' if new_nbs < 1 else ' In total, %d new notebooks were found.' % new_nbs)
                 continue
             log_error("FATAL ERROR: Notebook GUID %s for Note %s: %s does not exist on Evernote servers" % (
-            note.NotebookGuid, note.Guid, note.Title))
+                note.NotebookGuid, note.Guid, note.Title))
             raise EDAMNotFoundException()
         return True
 
     def check_notebooks_up_to_date(self):
-        if not self.evernote_guids:
-            return True
         for evernote_guid in self.evernote_guids:
             note_metadata = self.metadata[evernote_guid]
             notebookGuid = note_metadata.notebookGuid
             if not notebookGuid:
                 log_error("   > Notebook check: Unable to find notebook guid for '%s'. Returned '%s'. Metadata: %s" % (
-                evernote_guid, str(notebookGuid), str(note_metadata)), crosspost_to_default=False)
+                    evernote_guid, str(notebookGuid), str(note_metadata)), crosspost_to_default=False)
             elif notebookGuid not in self.notebook_data:
                 notebook = EvernoteNotebook(fetch_guid=notebookGuid)
                 if not notebook.success:
@@ -493,8 +474,8 @@ class Evernote(object):
         missing_tags = current_tags - all_tags
         if missing_tags:
             log_error("Missing Tag %s(s) were found:\nMissing: %s\n\nCurrent: %s\n\nAll Tags: %s\n\nTag Data: %s" % (
-            'Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags)), ', '.join(sorted(current_tags)),
-            ', '.join(sorted(all_tags)), str(self.tag_data)))
+                'Guids' if from_guids else 'Names', ', '.join(sorted(missing_tags)), ', '.join(sorted(current_tags)),
+                ', '.join(sorted(all_tags)), str(self.tag_data)))
         return missing_tags
 
     def get_matching_tag_data(self, tag_guids=None, tag_names=None):
@@ -505,18 +486,16 @@ class Evernote(object):
         tags_original = tag_guids if from_guids else tag_names
         if self.get_missing_tags(tags_original, from_guids):
             self.update_tags_database("Missing Tag %s(s) Were found when attempting to get matching tag data" % (
-            'Guids' if from_guids else 'Names'))
+                'Guids' if from_guids else 'Names'))
             missing_tags = self.get_missing_tags(tags_original, from_guids)
             if missing_tags:
                 identifier = 'Guid' if from_guids else 'Name'
                 keys = ', '.join(sorted(missing_tags))
                 log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % (identifier, keys))
                 raise EDAMNotFoundException(identifier.lower(), keys)
-        if from_guids:
-            tags_dict = {x: self.tag_data[x] for x in tags_original}
-        else:
-            tags_dict = {[k for k, v in self.tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in
-                         tags_original}
+        if from_guids: tags_dict = {x: self.tag_data[x] for x in tags_original}
+        else: tags_dict = {[k for k, v in self.tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in
+                           tags_original}
         tagNamesToImport = get_tag_names_to_import(tags_dict)
         """:type : dict[string, EvernoteTag]"""
         if tagNamesToImport:
@@ -529,8 +508,6 @@ class Evernote(object):
         return tagGuids, tagNames
 
     def check_tags_up_to_date(self):
-        if not self.evernote_guids:
-            return True # This is if we dont have any notes we cann not find any metadata
         for evernote_guid in self.evernote_guids:
             if evernote_guid not in self.metadata:
                 log_error('Could not find note metadata for Note ''%s''' % evernote_guid)

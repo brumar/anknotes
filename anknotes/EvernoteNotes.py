@@ -127,9 +127,8 @@ class EvernoteNotes:
     def getEnNoteFromDBByGuid(self, guid):
         return EvernoteNotePrototype(db_note=self.getNoteFromDBByGuid(guid))
 
-
     # def addChildNoteHierarchically(self, enChildNotes, enChildNote):
-    # parts = enChildNote.Title.TitleParts
+    #     parts = enChildNote.Title.TitleParts
     #     dict_updated = {}
     #     dict_building = {parts[len(parts)-1]: enChildNote}
     #     print_safe(parts)
@@ -160,8 +159,9 @@ class EvernoteNotes:
                         childBaseTitleStr = enNote.Title.Base.FullTitle
                         if childBaseTitleStr in self.RootNotesMissing.ChildTitlesDict[rootTitleStr]:
                             log_error("Duplicate Child Base Title String. \n%-18s%s\n%-18s%s: %s\n%-18s%s" % (
-                            'Root Note Title: ', rootTitleStr, 'Child Note: ', enNote.Guid, childBaseTitleStr,
-                            'Duplicate Note: ', self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr]),
+                                'Root Note Title: ', rootTitleStr, 'Child Note: ', enNote.Guid, childBaseTitleStr,
+                                'Duplicate Note: ',
+                                self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitleStr]),
                                       crosspost_to_default=False)
                             if not hasattr(self, 'loggedDuplicateChildNotesWarning'):
                                 log(
@@ -185,7 +185,7 @@ class EvernoteNotes:
                         self.RootNotesExisting.TitlesList.append(rootTitleStr)
                 if self.processingFlags.populateChildRootTitles:
                     childNotes = ankDB().execute("SELECT * FROM %s WHERE title LIKE '%s:%%' ORDER BY title ASC" % (
-                    TABLES.EVERNOTE.NOTES, rootTitleStr.replace("'", "''")))
+                        TABLES.EVERNOTE.NOTES, rootTitleStr.replace("'", "''")))
                     child_count = 0
                     for childDbNote in childNotes:
                         child_count += 1
@@ -233,8 +233,8 @@ class EvernoteNotes:
             else:
                 self.RootNotesMissing.TitlesList.append(rootTitle)
                 print_safe(rootNote, ' TOP LEVEL: [%4d::%2d]: [%7s] ' % (count, baseNoteCount, 'is_toc_outline_str'))
-            # for baseGuid, baseTitle in baseTitles:
-            #     pass
+                # for baseGuid, baseTitle in baseTitles:
+                #     pass
 
     def getChildNotes(self):
         self.addDbQuery("title LIKE '%%:%%'", 'title ASC')
@@ -254,12 +254,12 @@ class EvernoteNotes:
         processingFlags.populateMissingRootTitlesDict = True
         self.processingFlags = processingFlags
 
-        log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles-TOC', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles-TOC', timestamp=False)
-        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles-Isolated', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles-Isolated', timestamp=False)
+        log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles\\TOC', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles\\TOC', timestamp=False)
+        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
         self.getChildNotes()
-        log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles-TOC',
+        log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles\\TOC',
             timestamp=False)
         self.RootNotesMissing.TitlesList = sorted(self.RootNotesMissing.TitlesList, key=lambda s: s.lower())
 
@@ -282,14 +282,14 @@ class EvernoteNotes:
         # log(', '.join(self.RootNotesMissing.TitlesList))
         self.getRootNotes()
 
-        log(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles-Missing', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles-Missing', timestamp=False)
-        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles-Isolated', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles-Isolated', timestamp=False)
-        log("Total %d Existing Root Titles" % len(self.RootNotesExisting.TitlesList), 'RootTitles-Missing',
+        log(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles\\Missing', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles\\Missing', timestamp=False)
+        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
+        log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
+        log("Total %d Existing Root Titles" % len(self.RootNotesExisting.TitlesList), 'RootTitles\\Missing',
             timestamp=False)
         self.getChildNotes()
-        log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles-Missing',
+        log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles\\Missing',
             timestamp=False)
         self.RootNotesMissing.TitlesList = sorted(self.RootNotesMissing.TitlesList, key=lambda s: s.lower())
 
@@ -317,9 +317,9 @@ class EvernoteNotes:
             total_child = len(childTitlesDictSortedKeys)
             tags = []
             outline = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
-            escape_text_sql(rootTitleStr.upper()), TAGS.OUTLINE))
+                escape_text_sql(rootTitleStr.upper()), TAGS.OUTLINE))
             currentAutoNote = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
-            escape_text_sql(rootTitleStr.upper()), TAGS.AUTO_TOC))
+                escape_text_sql(rootTitleStr.upper()), TAGS.AUTO_TOC))
             notebookGuids = {}
             childGuid = None
             if total_child is 1 and not outline:
@@ -329,11 +329,11 @@ class EvernoteNotes:
                 enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
                 # tags = enChildNote.Tags
                 log("  > ISOLATED ROOT TITLE: [%-3d]:  %-40s --> %-20s: %s %s" % (
-                count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles-Isolated',
+                    count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles\\Isolated',
                     timestamp=False)
             else:
                 count += 1
-                log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles-TOC',
+                log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles\\TOC',
                     timestamp=False)
                 # tocList = TOCList(rootTitleStr)
                 tocHierarchy = TOCHierarchyClass(rootTitleStr)
@@ -356,11 +356,10 @@ class EvernoteNotes:
                     # childName = enChildNote.Title.Name
                     # childTitle = enChildNote.FullTitle
                     log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
-                        'RootTitles-TOC', timestamp=False)
+                        'RootTitles\\TOC', timestamp=False)
                     # tocList.generateEntry(childTitle, enChildNote)
                     tocHierarchy.addNote(enChildNote)
-                realTitle = ankDB().scalar(
-                    "SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, childGuid))
+                realTitle = get_evernote_title_from_guid(childGuid)
                 realTitle = realTitle[0:realTitle.index(':')]
                 # realTitleUTF8 = realTitle.encode('utf8')
                 notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]
@@ -387,19 +386,16 @@ class EvernoteNotes:
                     file_object.write(olutf8)
                     file_object.close()
 
-                # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
-                # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
+                    # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
+                    # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
         if DEBUG_HTML:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
             fn = 'toc-ols\\toc-index.htm'
             file_object = open(os.path.join(FOLDERS.LOGS, fn), 'w')
-            try:
-                file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
+            try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
             except:
-                try:
-                    file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
-                except:
-                    pass
+                try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
+                except: pass
 
             file_object.close()
 

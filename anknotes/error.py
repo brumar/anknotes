@@ -10,9 +10,9 @@ def HandleSocketError(e, strErrorBase):
     global latestSocketError
     errorcode = e[0]
     friendly_error_msgs = {
-        errno.ECONNREFUSED: "Connection was refused",
+        errno.ECONNREFUSED:  "Connection was refused",
         errno.WSAECONNRESET: "Connection was reset or forcibly closed by the remote host",
-        errno.ETIMEDOUT: "Connection timed out"
+        errno.ETIMEDOUT:     "Connection timed out"
     }
     if errorcode not in errno.errorcode:
         log_error("Unknown socket error (%s) occurred: %s" % (str(errorcode), str(e)))
