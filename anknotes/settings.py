@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import sys
+inAnki = 'anki' in sys.modules 
+
 ### Anknotes Shared Imports
 from anknotes.shared import *
 from anknotes.graphics import *
+
+### Import Anki
+
+
+
 
 ### Anki Imports
 try:
@@ -16,6 +24,7 @@ try:
 		QMessageBox, QPixmap
 	from aqt import mw
 except:
+	import pdb; import traceback; print traceback.format_exc(); pdb.set_trace()
 	pass
 
 

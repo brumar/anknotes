@@ -166,7 +166,7 @@ class ActionInfo(object):
 			return self.setStatus(EvernoteAPIStatus.EmptyRequest)
 		if not self.enabled:
 			log("Not starting - stopwatch.ActionInfo = false ", self.Label)
-			if not automated: showReport(self.ActionLine("Aborted", "Action has been disabled"), blank_line_before=False)
+			if not automated: show_report(self.ActionLine("Aborted", "Action has been disabled"), blank_line_before=False)
 			return self.setStatus(EvernoteAPIStatus.Disabled)
 		log (self.Initiated)
 		if self.willReportProgress:
@@ -230,6 +230,12 @@ class Timer(object):
 	def laps(self):
 		return len(self.__times)
 
+	@property 
+	def max(self): return self.counts.max.val
+	
+	@max.setter 
+	def max(self, value): self.counts.max = value; self.counts.max_allowed = value if self.counts.max_allowed < 1 else self.counts.max_allowed
+		
 	@property
 	def is_success(self):
 		return self.counts.success
@@ -431,10 +437,11 @@ class Timer(object):
 		log_blank(filename='counters')
 		log(self.counts.fullSummary((self.label if self.label else 'Counter') + ': End'), 'counters')
 
-	def step(self, title=None, val=None):
-		if val is None and (isinstance(title, str) or isinstance(title, unicode)) and  title.isdigit():
-			val = title
-			title = None
+	def increment(self, title=None, **kwargs): 
+		self.counts.step(**kwargs)
+		return self.step(title=title, **kwargs)
+	
+	def step(self, title=None, **kwargs):
 		if self.hasActionInfo and self.isProgressCheck and title:
 			fstr = (" %"+str(len('#'+str(self.counts.max.val)))+"s: %s: %s")
 			log( self.info.ActionShortSingle + (" %"+str(len('#'+str(self.counts.max.val)))+"s: %s: %s") % ('#' + str(self.count), self.progress, title), self.label)
@@ -460,15 +467,14 @@ class Timer(object):
 		return self.info.Automated
 
 	def hasActionInfo(self):
-		return self.info is not None and self.counts.max
+		return self.info and self.counts.max
 
 	def __init__(self, max=None, interval=100, info=None, infoStr=None, automated=None, enabled=None, begin=True, label=None, display_initial_info=None, max_allowed=None):
 		"""
 		:type info : ActionInfo
 		"""
 		simple_label = False
-		self.counts = EvernoteCounter()
-		self.counts.max_allowed = -1 if max_allowed is None else max_allowed
+		self.counts = EvernoteCounter()		
 		self.__interval = interval
 		if type(info) == str or type(info) == unicode: info = ActionInfo(info)
 		if infoStr and not info: info = ActionInfo(infoStr)
@@ -479,6 +485,7 @@ class Timer(object):
 		elif label: info.__label = label
 		if max is not None and info and (info.Max is None or info.Max <= 0): info.Max = max
 		self.counts.max = -1 if max is None else max
+		self.counts.max_allowed = self.counts.max if max_allowed is None else max_allowed
 		self.__did_break = True
 		self.__info = info
 		self.__action_initialized = False
@@ -579,6 +586,11 @@ class Timer(object):
 		"""
 		return time.time()
 
+	@property 
+	def str_long(self):
+		return self.__timetostr__(short=False)
+	
+		
 	def __timetostr__(self, total_seconds=None, short = True, pad=True):
 		if total_seconds is None: total_seconds=self.elapsed
 		total_seconds = int(round(total_seconds))
@@ -595,6 +607,8 @@ class Timer(object):
 		"""
 		return self.__timetostr__()
 
+	def __repr__(self):
+		return "<%s%s> %s" % (self.__class__.__name__, '' if not self.label else ':%s' % self.label, self.str_long)
 
 all_clockit_timers = {}
 def clockit(func):

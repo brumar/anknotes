@@ -1,9 +1,11 @@
 import re
+# from BeautifulSoup import UnicodeDammit
 import anknotes
+from bs4 import UnicodeDammit
 from anknotes.db import *
 from anknotes.enum import Enum
 from anknotes.html import strip_tags
-from anknotes.logging import PadList, JoinList
+from anknotes.logging import PadList, JoinList, item_to_set, item_to_list
 from anknotes.enums import *
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
@@ -27,7 +29,8 @@ class EvernoteStruct(object):
 	__sql_columns__ = "name"
 	__sql_table__ = TABLES.EVERNOTE.TAGS
 	__sql_where__ = "guid"
-	__attr_order__ = []
+	__attr_order__ = None
+	__additional__attr__ = None
 	__title_is_note_title = False
 
 	@staticmethod
@@ -99,8 +102,12 @@ class EvernoteStruct(object):
 		lst = self._valid_attributes_()
 		if keys or isinstance(keyed_object, dict):
 			pass
-		elif isinstance(keyed_object, type(re.search('', ''))):
-			keyed_object = keyed_object.groupdict()
+		elif isinstance(keyed_object, type(re.search('', ''))):			
+			regex_attr = 'wholeRegexMatch'
+			self.__additional__attr__.add(regex_attr)
+			whole_match = keyed_object.group(0)
+			keyed_object = keyed_object.groupdict()		
+			keyed_object[regex_attr] = whole_match
 		elif hasattr(keyed_object, 'keys'):
 			keys = getattrcallable(keyed_object, 'keys')
 		elif hasattr(keyed_object, self.__sql_where__):
@@ -126,15 +133,17 @@ class EvernoteStruct(object):
 			self.setAttribute(self.__attr_order__[i], value)
 
 	def _valid_attributes_(self):
-		return set().union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
+		return self.__additional__attr__.union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
 
 	def _is_valid_attribute_(self, attribute):
 		return (attribute[0].lower() + attribute[1:]) in self._valid_attributes_()
 
 	def __init__(self, *args, **kwargs):
-		if isinstance(self.__sql_columns__, str): self.__sql_columns__ = [self.__sql_columns__]
-		if isinstance(self.__attr_order__, str) or isinstance(self.__attr_order__, unicode):
-			self.__attr_order__ = self.__attr_order__.replace('|', ' ').split(' ')
+		if self.__attr_order__ is None: self.__attr_order__ = []
+		if self.__additional__attr__ is None: self.__additional__attr__ = set()
+		self.__sql_columns__ = item_to_list(self.__sql_columns__, chrs=' ,;')
+		self.__attr_order__ = item_to_list(self.__attr_order__, chrs=' ,;')
+		self.__additional__attr__ = item_to_set(self.__additional__attr__, chrs=' ,;')
 		args = list(args)
 		if args and self.setFromKeyedObject(args[0]): del args[0]
 		self.setFromListByDefaultOrder(args)
@@ -157,11 +166,16 @@ class EvernoteTag(EvernoteStruct):
 class EvernoteLink(EvernoteStruct):
 	__uid__ = -1
 	Shard = 'x999'
-	Guid = ""
+	Guid = ""	
+	WholeRegexMatch = ""
 	__title__ = None
 	""":type: EvernoteNoteTitle.EvernoteNoteTitle """
 	__attr_order__ = 'uid|shard|guid|title'
+	
 
+	def __init__(self, *args, **kwargs):
+		return super(self.__class__, self).__init__(*args, **kwargs)
+	
 	@property
 	def HTML(self):
 		return self.Title.HTML
@@ -191,6 +205,19 @@ class EvernoteLink(EvernoteStruct):
 	@Uid.setter
 	def Uid(self, value):
 		self.__uid__ = int(value)
+	
+	@property 
+	def NoteTitle(self):
+		f = anknotes.EvernoteNoteFetcher.EvernoteNoteFetcher(guid=self.Guid, use_local_db_only=True)
+		if not f.getNote(): return "<Invalid Note>"
+		return f.result.Note.FullTitle
+	
+	def __str__(self):
+		return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.FullTitle)
+		
+	def __repr__(self):
+		# id = 
+		return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.NoteTitle)
 
 class EvernoteTOCEntry(EvernoteStruct):
 	RealTitle = ""
@@ -218,12 +245,13 @@ class EvernoteValidationEntry(EvernoteStruct):
 	TagNames = ""
 	""":type : str"""
 	NotebookGuid = ""
+	NoteType=""
 
 	def __init__(self, *args, **kwargs):
 		# spr = super(self.__class__ , self)
 		# spr.__attr_order__ = self.__attr_order__
 		# spr.__init__(*args, **kwargs)
-		self.__attr_order__ = 'guid|title|contents|tagNames|notebookGuid'
+		self.__attr_order__ = 'guid|title|contents|tagNames|notebookGuid|noteType'
 		super(self.__class__, self).__init__(*args, **kwargs)
 
 

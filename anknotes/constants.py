@@ -25,6 +25,7 @@ class FILES:
 		MAIN = DEFAULT_NAME
 		ACTIVE = DEFAULT_NAME
 		USE_CALLER_NAME = False
+		DISABLED = ['sql*']
 	class ANCILLARY:
 		TEMPLATE = os.path.join(FOLDERS.ANCILLARY, 'FrontTemplate.htm')
 		CSS = u'_AviAnkiCSS.css'
@@ -48,6 +49,9 @@ class FILES:
 
 class ANKNOTES:
 	DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+	CACHE_SEARCHES = False 
+	class LXML:
+		ENABLE_IN_ANKI = False 
 	class DEVELOPER_MODE:
 		ENABLED = (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer')))
 		AUTOMATED = ENABLED and (os.path.isfile(os.path.join(FOLDERS.DEVELOPER, 'anknotes.developer.automate')))
@@ -94,7 +98,7 @@ class FIELDS:
 	LIST = [TITLE, CONTENT, SEE_ALSO, EXTRA, TOC, OUTLINE,
 			   UPDATE_SEQUENCE_NUM]
 	class ORD:
-		pass
+		EVERNOTE_GUID = 0
 	ORD.CONTENT = LIST.index(CONTENT) + 1
 	ORD.SEE_ALSO = LIST.index(SEE_ALSO) + 1
 

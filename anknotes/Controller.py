@@ -78,10 +78,10 @@ class Controller:
 		if tmr.actionInitializationFailed: return tmr.status, 0, 0
 		for dbRow in dbRows:
 			entry = EvernoteValidationEntry(dbRow)
-			evernote_guid, rootTitle, contents, tagNames, notebookGuid = entry.items()
+			evernote_guid, rootTitle, contents, tagNames, notebookGuid, noteType = entry.items()
 			tagNames = tagNames.split(',')
 			if not tmr.checkLimits(): break
-			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid, validated=True), rootTitle, evernote_guid)
+			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid, noteType=noteType, validated=True), rootTitle, evernote_guid)
 			if tmr.report_result == False: raise ValueError
 			if tmr.status.IsDelayableError: break
 			if not tmr.status.IsSuccess: continue
@@ -129,6 +129,8 @@ class Controller:
 			return evernote_guid, contents.replace('/guid-pending/', '/%s/' % evernote_guid).replace('/guid-pending/', '/%s/' % evernote_guid)
 
 		update_regex()
+		noteType = 'create-auto_toc'
+		ankDB().execute("DELETE FROM %s WHERE noteType = '%s'" % (TABLES.NOTE_VALIDATION_QUEUE, noteType))
 		NotesDB = EvernoteNotes()
 		NotesDB.baseQuery = ANKNOTES.HIERARCHY.ROOT_TITLES_BASE_QUERY
 		dbRows = NotesDB.populateAllNonCustomRootNotes()
@@ -138,8 +140,8 @@ class Controller:
 		"""
 		info = stopwatch.ActionInfo('Creation of Table of Content Note(s)', row_source='Root Title(s)', enabled=EVERNOTE.UPLOAD.ENABLED)
 		tmr = stopwatch.Timer(len(dbRows), 25, info, max_allowed=EVERNOTE.UPLOAD.MAX)
-		tmr.label = 'create-auto_toc'
-		if tmr.actionInitializationFailed: return tmr.tmr.status, 0, 0
+		tmr.label = noteType
+		if tmr.actionInitializationFailed: return tmr.status, 0, 0
 		for dbRow in dbRows:
 			evernote_guid = None
 			rootTitle, contents, tagNames, notebookGuid = dbRow.items()
@@ -148,7 +150,7 @@ class Controller:
 			evernote_guid, contents = check_old_values()
 			if contents is None: continue
 			if not tmr.checkLimits(): break
-			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid), rootTitle, evernote_guid)
+			whole_note = tmr.autoStep(self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, noteType=noteType, guid=evernote_guid), rootTitle, evernote_guid)
 			if tmr.report_result == False: raise ValueError
 			if tmr.status.IsDelayableError: break
 			if not tmr.status.IsSuccess: continue

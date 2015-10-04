@@ -20,13 +20,13 @@ class MLStripper(HTMLParser):
 		return ''.join(self.fed)
 
 
-def strip_tags(html):
+def strip_tags(html, strip_entities=False):
 	if html is None: return None
-	html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
+	if not strip_entities: html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
 	s = MLStripper()
 	s.feed(html)
 	html = s.get_data()
-	html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
+	if not strip_entities: html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
 	return html
 	# s = MLStripper()
 	# s.feed(html)
@@ -68,7 +68,7 @@ def clean_title(title):
 	title = unescape_text(title)
 	if isinstance(title, str):
 		title = unicode(title, 'utf-8')
-	title = title.replace(u'\xa0', ' ')
+	title = re.sub(r'( |\xa0)+', ' ', title)
 	return title
 
 

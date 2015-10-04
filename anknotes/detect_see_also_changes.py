@@ -212,8 +212,8 @@ def main(evernote=None, anki=None):
 				n.match_type += 'V3'
 			n.new.see_also.regex_original.subject = n.new.see_also.original + '</en-note>'
 			if not n.new.see_also.regex_original.successful_match:
-				log.plain(enNote.Guid + '\n' + ', '.join(enNote.TagNames) + '\n' + n.new.see_also.original.content, 'SeeAlsoNewMatchFail\\' + enNote.FullTitle, extension='htm', clear=True)
-				see_also_replace_old = n.old.content.original.match.processed.see_also.processed.content
+				log.plain(enNote.Guid + '\n' + ', '.join(enNote.TagNames) + '\n' + n.new.see_also.original, 'SeeAlsoNewMatchFail\\' + enNote.FullTitle, extension='htm', clear=True)
+				# see_also_replace_old = n.old.content.original.match.processed.see_also.processed.content
 				n.old.see_also.updated = n.old.content.regex_updated.see_also
 				n.new.see_also.updated = n.new.see_also.processed
 				n.match_type + 'V4'
@@ -227,12 +227,13 @@ def main(evernote=None, anki=None):
 	# SELECT DISTINCT s.target_evernote_guid FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid   ORDER BY n.title ASC
 	# SELECT DISTINCT s.target_evernote_guid, n.* FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid   ORDER BY n.title ASC;
 	# SELECT DISTINCT s.target_evernote_guid, n.* FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%,#TOC,%' AND n.tagNames NOT LIKE '%,#Outline,%'  ORDER BY n.title ASC;
+	noteType = 'SeeAlso-Step7'
+	ankDB().execute("DELETE FROM %s WHERE noteType = '%s'" % (TABLES.NOTE_VALIDATION_QUEUE, noteType))
 	sql = "SELECT DISTINCT s.target_evernote_guid, n.* FROM %s as s, %s as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%%,%s,%%' AND n.tagNames NOT LIKE '%%,%s,%%' ORDER BY n.title ASC;"
 	results = ankDB().all(sql % (TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TAGS.TOC, TAGS.OUTLINE))
 	# count_queued = 0
-	tmr = stopwatch.Timer(len(results), 25, 'Updating See Also Notes', label='SeeAlso-Step7', display_initial_info=False)
-	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True)
-	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), tmr.label)
+	tmr = stopwatch.Timer(len(results), 25, 'Updating See Also Notes', label=noteType, display_initial_info=False)
+	log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True, crosspost=tmr.label)
 	notes_updated=[]
 	# number_updated = 0
 	for result in results:
@@ -256,8 +257,9 @@ def main(evernote=None, anki=None):
 		print_results()
 		print_results('Diff\\Contents', final=True)
 		enNote.Content = n.new.content.final
-		if not evernote: evernote = Evernote()
-		whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote), enNote.FullTitle, True)
+		if not EVERNOTE.UPLOAD.ENABLED: continue
+		if not evernote: evernote = Evernote()		
+		whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote, noteType=noteType), enNote.FullTitle, True)
 		if tmr.reportStatus(status) == False: raise ValueError
 		if tmr.status.IsDelayableError: break
 		if tmr.status.IsSuccess: notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))

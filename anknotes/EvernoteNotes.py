@@ -250,12 +250,12 @@ class EvernoteNotes:
 		processingFlags.populateMissingRootTitlesDict = True
 		self.processingFlags = processingFlags
 
-		log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles-TOC', clear=True, timestamp=False)
-		log("------------------------------------------------", 'RootTitles-TOC', timestamp=False)
-		log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles-Isolated', clear=True, timestamp=False)
-		log("------------------------------------------------", 'RootTitles-Isolated', timestamp=False)
+		log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles\\TOC', clear=True, timestamp=False)
+		log("------------------------------------------------", 'RootTitles\\TOC', timestamp=False)
+		log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
+		log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
 		self.getChildNotes()
-		log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles-TOC',
+		log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles\\TOC',
 			timestamp=False)
 		self.RootNotesMissing.TitlesList = sorted(self.RootNotesMissing.TitlesList, key=lambda s: s.lower())
 
@@ -278,14 +278,14 @@ class EvernoteNotes:
 		# log(', '.join(self.RootNotesMissing.TitlesList))
 		self.getRootNotes()
 
-		log(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles-Missing', clear=True, timestamp=False)
-		log("------------------------------------------------", 'RootTitles-Missing', timestamp=False)
-		log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles-Isolated', clear=True, timestamp=False)
-		log("------------------------------------------------", 'RootTitles-Isolated', timestamp=False)
-		log("Total %d Existing Root Titles" % len(self.RootNotesExisting.TitlesList), 'RootTitles-Missing',
+		log(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles\\Missing', clear=True, timestamp=False)
+		log("------------------------------------------------", 'RootTitles\\Missing', timestamp=False)
+		log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
+		log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
+		log("Total %d Existing Root Titles" % len(self.RootNotesExisting.TitlesList), 'RootTitles\\Missing',
 			timestamp=False)
 		self.getChildNotes()
-		log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles-Missing',
+		log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles\\Missing',
 			timestamp=False)
 		self.RootNotesMissing.TitlesList = sorted(self.RootNotesMissing.TitlesList, key=lambda s: s.lower())
 
@@ -325,11 +325,11 @@ class EvernoteNotes:
 				enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
 				# tags = enChildNote.Tags
 				log("  > ISOLATED ROOT TITLE: [%-3d]:  %-40s --> %-20s: %s %s" % (
-					count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles-Isolated',
+					count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles\\Isolated',
 					timestamp=False)
 			else:
 				count += 1
-				log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles-TOC',
+				log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles\\TOC',
 					timestamp=False)
 				# tocList = TOCList(rootTitleStr)
 				tocHierarchy = TOCHierarchyClass(rootTitleStr)
@@ -352,11 +352,10 @@ class EvernoteNotes:
 					# childName = enChildNote.Title.Name
 					# childTitle = enChildNote.FullTitle
 					log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
-						'RootTitles-TOC', timestamp=False)
+						'RootTitles\\TOC', timestamp=False)
 					# tocList.generateEntry(childTitle, enChildNote)
 					tocHierarchy.addNote(enChildNote)
-				realTitle = ankDB().scalar(
-					"SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, childGuid))
+				realTitle = get_evernote_title_from_guid(childGuid)
 				realTitle = realTitle[0:realTitle.index(':')]
 				# realTitleUTF8 = realTitle.encode('utf8')
 				notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]

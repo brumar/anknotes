@@ -16,3 +16,5 @@ except:
 
 # constants.EVERNOTE.API.IS_SANDBOXED = True 
 # constants.SETTINGS.EVERNOTE.AUTH_TOKEN = 'anknotesEvernoteAuthToken_' + constants.EVERNOTE.API.CONSUMER_KEY + ("_SANDBOX" if constants.EVERNOTE.API.IS_SANDBOXED else "")				
+constants.EVERNOTE.UPLOAD.VALIDATION.AUTOMATED = False 
+constants.EVERNOTE.UPLOAD.ENABLED = False 

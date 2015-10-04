@@ -5,6 +5,20 @@ from addict import Dict
 from anknotes.constants import *
 inAnki='anki' in sys.modules
 
+def item_to_list(item, list_from_unknown=True,chrs=''):
+	if isinstance(item, list): return item
+	if item and (isinstance(item, unicode) or isinstance(item, str)):
+		for c in chrs: item=item.replace(c, '|')
+		return item.split('|')
+	if list_from_unknown: return [item]
+	return item
+
+def item_to_set(item, **kwargs): 
+	if isinstance(item, set): return item 
+	item = item_to_list(item, **kwargs)
+	if not isinstance(item, list): return item 
+	return set(item)
+	
 def print_banner(title):
 	print "-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)
 	print title
@@ -35,11 +49,13 @@ class DictCaseInsensitive(Dict):
 		# if not isinstance(label, unicode) and not isinstance(label, str): raise TypeError("Cannot create counter label from non-string type: " + str(label))
 		# print "kwargs: %s" % (str(kwargs))
 		lbl = self.__process_kwarg__(kwargs, 'label', 'root')
-		parent_lbl = self.__process_kwarg__(kwargs, 'parent_label', '')
+		parent_lbl = self.__process_kwarg__(kwargs, 'parent_label', '')		
+		delete = self.__process_kwarg__(kwargs, 'delete', None)		
 		# print "lbl: %s\nkwargs: %s" % (lbl, str(kwargs))
 		self.__label__ = "root"
 		self.__parent_label__ = ""
-		return super(DictCaseInsensitive, self).__init__(*args, **kwargs)
+		super(DictCaseInsensitive, self).__init__(*args, **kwargs)
+		if delete: self.delete_keys(delete)
 
 	def reset(self, keys_to_keep=None):
 		if keys_to_keep is None: keys_to_keep=self.__my_aggregates__.lower().split("|")
@@ -59,6 +75,14 @@ class DictCaseInsensitive(Dict):
 	@property
 	def full_label(self): return self.parent_label + ('.' if self.parent_label else '') + self.label
 
+	def delete_keys(self, keys_to_delete):
+		keys = self.keys()
+		if not isinstance(keys_to_delete, list): keys_to_delete = item_to_list(keys_to_delete, chrs=' *,')
+		for key in keys_to_delete:
+			key = self.__key_transform__(key)
+			if key in keys: del self[key]
+		
+	
 	def __setattr__(self, key, value):
 		key_adj = self.__key_transform__(key)
 		if key[0:1] + key[-1:] == '__':
@@ -222,8 +246,8 @@ class Counter(Dict):
 			# print 'sum: ' +  key + ': - ' + str(val) + ' ~ ' + str(sum)
 		return sum
 
-	def increment(self, y=1, negate=False):
-		newCount = self.__sub__(y) if negate else self.__add__(y)
+	def increment(self, val=1, negate=False, **kwargs):
+		newCount = self.__sub__(val) if negate else self.__add__(val)
 		# print "Incrementing %s by %d to %d" % (self.full_label, y, newCount)
 		self.setCount(newCount)
 		return newCount
@@ -439,8 +463,3 @@ def test():
 	# Counts.created.queued.step(7)
 	Counts.print_banner("Evernote Counter")
 	# print Counts
-
-# if not inAnki and 'anknotes' not in sys.modules: test()
-
-
-

@@ -6,10 +6,11 @@ import re
 import inspect
 import shutil
 import time
+from fnmatch import fnmatch
 # Anknotes Shared Imports
 from anknotes.constants import *
 from anknotes.graphics import *
-from anknotes.counters import DictCaseInsensitive
+from anknotes.counters import DictCaseInsensitive, item_to_list, item_to_set
 # from anknotes.stopwatch import clockit
 
 # Anki Imports
@@ -33,12 +34,13 @@ def print_safe(strr, prefix=''):
 	print str_safe(strr, prefix)
 
 
-def show_tooltip(text, time_out=7000, delay=None, do_log=False):
-	if do_log: log(text)
+def show_tooltip(text, time_out=7000, delay=None, do_log=False, **kwargs):
+	if do_log: log(text, **kwargs)
 	if delay:
 		try: return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
 		except: pass
 	tooltip(text, time_out)
+	
 def counts_as_str(count, max=None):
 	from anknotes.counters import Counter
 	if isinstance(count, Counter): count = count.val
@@ -46,6 +48,10 @@ def counts_as_str(count, max=None):
 	if max is None or max <= 0: return str(count).center(3)
 	if count == max: return "All  %s" % str(count).center(3)
 	return "Total %s of %s" % (str(count).center(3), str(max).center(3))
+	
+def format_count(format_str, count):
+	if not count > 0: return ' ' * len(format_str % 1)
+	return format_str % count 
 
 def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix = ' '*5, filename=None, blank_line_before=True, blank_line_after=True, hr_if_empty=False):
 	if log_lines is None: log_lines = []
@@ -166,13 +172,6 @@ def PadLines(content, line_padding=ANKNOTES.FORMATTING.LINE_PADDING_HEADER, line
 	if str(line_padding_plus).isdigit(): line_padding_plus = pad_char * int(line_padding_plus)
 	return line_padding + content.replace('\n', '\n' + line_padding + line_padding_plus)
 
-def item_to_list(item, list_from_unknown=True,chrs=''):
-	if isinstance(item, list): return item
-	if item and (isinstance(item, unicode) or isinstance(item, str)):
-		for c in chrs: item=item.replace(c, '|')
-		return item.split('|')
-	if list_from_unknown: return [item]
-	return item
 def key_transform(keys, key):
 	if keys is None: keys = self.keys()
 	key = key.strip()
@@ -297,44 +296,55 @@ def convert_filename_to_local_link(filename):
 
 class Logger(object):
 	base_path = None
+	path_suffix = None
 	caller_info=None
 	default_filename=None
-	def wrap_filename(self, filename=None):
+	defaults={}
+	def wrap_filename(self, filename=None, final_suffix='', **kwargs):
 		if filename is None: filename = self.default_filename
-		if self.base_path is not None:
-			filename = os.path.join(self.base_path, filename if filename else '')
-		return filename
+		if self.base_path is not None: filename = os.path.join(self.base_path, filename if filename else '')
+		if self.path_suffix is not None: 
+			i_asterisk = filename.find('*')
+			if i_asterisk > -1: final_suffix += filename[i_asterisk+1:]; filename=filename[:i_asterisk]
+			filename += self.path_suffix + final_suffix
+		if 'crosspost' in kwargs:
+			fns = []
+			for cp in item_to_list(kwargs['crosspost'], False): fns.append(self.wrap_filename(cp)[0])
+			kwargs['crosspost'] = fns 
+		return filename, kwargs 
 
-	def dump(self, obj, title='', filename=None, *args, **kwargs):
-		filename = self.wrap_filename(filename)
+	def dump(self, obj, title='', filename=None, *args, **kwargs):		
+		filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
 		log_dump(obj=obj, title=title, filename=filename, *args, **kwargs)
 
 	def blank(self, filename=None, *args, **kwargs):
-		filename = self.wrap_filename(filename)
+		filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
 		log_blank(filename=filename, *args, **kwargs)
 
 	def banner(self, title, filename=None, *args, **kwargs):
-		filename = self.wrap_filename(filename)
+		filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))		
 		log_banner(title=title, filename=filename, *args, **kwargs)
 
 	def go(self, content=None, filename=None, wrap_filename=True, *args, **kwargs):
-		if wrap_filename: filename = self.wrap_filename(filename)
+		if wrap_filename: filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs)); 
 		log(content=content, filename=filename, *args, **kwargs)
 
 	def plain(self, content=None, filename=None, *args, **kwargs):
-		filename=self.wrap_filename(filename)
+		filename, kwargs=self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
 		log_plain(content=content, filename=filename, *args, **kwargs)
 
 	log = do = add = go
 
 	def default(self, *args, **kwargs):
-		self.log(wrap_filename=False, *args, **kwargs)
+		self.log(wrap_filename=False, *args, **DictCaseInsensitive(self.defaults, kwargs))
 
-	def __init__(self, base_path=None, default_filename=None, rm_path=False):
+	def __init__(self, base_path=None, default_filename=None, rm_path=False, no_base_path=None, **kwargs):
+		self.defaults = kwargs 
+		if no_base_path and not default_filename: default_filename = no_base_path
 		self.default_filename = default_filename
 		if base_path:
 			self.base_path = base_path
-		else:
+		elif not no_base_path:
 			self.caller_info = caller_name()
 			if self.caller_info:
 				self.base_path = create_log_filename(self.caller_info.Base)
@@ -343,12 +353,12 @@ class Logger(object):
 
 
 
-def log_blank(filename=None, *args, **kwargs):
-	log(timestamp=False, content=None, filename=filename, *args, **kwargs)
+def log_blank(filename=None, *args, **kwargs):	
+	log(filename=filename, *args, **DictCaseInsensitive(kwargs, timestamp=False, content=None))
 
 
 def log_plain(*args, **kwargs):
-	log(timestamp=False, *args, **kwargs)
+	log(*args, **DictCaseInsensitive(kwargs, timestamp=False))
 
 def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
 	path = os.path.dirname(os.path.abspath(get_log_full_path(filename)))
@@ -369,9 +379,11 @@ def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
 		time.sleep(1)
 		rm_log_path(filename, subfolders_only, retry_errors + 1)
 
-def log_banner(title, filename=None, length=ANKNOTES.FORMATTING.BANNER_MINIMUM, append_newline=True, timestamp=False, chr='-', center=True, clear=True, *args, **kwargs):
+def log_banner(title, filename=None, length=ANKNOTES.FORMATTING.BANNER_MINIMUM, append_newline=True, timestamp=False, chr='-', center=True, clear=True, crosspost=None, *args, **kwargs):
+	if crosspost is not None:
+		for cp in item_to_list(crosspost, False): log_banner(title, cp, **DictCaseInsensitive(kwargs, locals(), delete='title crosspost kwargs args filename'))		
 	if length is 0: length = ANKNOTES.FORMATTING.LINE_LENGTH+1
-	if center: title = title.center(length-TIMESTAMP_PAD_LENGTH if timestamp else 0)
+	if center: title = title.center(length-(ANKNOTES.FORMATTING.TIMESTAMP_PAD_LENGTH if timestamp else 0))
 	log(chr * length, filename, clear=clear, timestamp=False, *args, **kwargs)
 	log(title, filename, timestamp=timestamp, *args, **kwargs)
 	log(chr * length, filename, timestamp=False, *args, **kwargs)
@@ -400,52 +412,51 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
 	if filename is None:
 		if FILES.LOGS.USE_CALLER_NAME:
 			caller = caller_name()
-			if caller:
-				filename = caller.Base.replace('.', '\\')
-		if filename is None:
-			filename = _log_filename_history[-1] if _log_filename_history else FILES.LOGS.ACTIVE
+			if caller: filename = caller.Base.replace('.', '\\')
+		if filename is None: filename = _log_filename_history[-1] if _log_filename_history else FILES.LOGS.ACTIVE
 	if not filename:
 		filename = log_base_name
 		if not filename: filename = FILES.LOGS.DEFAULT_NAME
 	else:
-		if filename[0] is '+':
-			filename = filename[1:]
+		if filename[0] is '+': filename = filename[1:]
 		filename = (log_base_name + '-' if log_base_name and log_base_name[-1] != '\\' else '') + filename
 
 	filename += filename_suffix
-	filename += ('.' if filename and filename[-1] is not '.' else '') + extension
+	if filename and filename[-1] == os.path.sep: filename += 'main'
 	filename = re.sub(r'[^\w\-_\.\\]', '_',  filename)
+	if filter(lambda x: fnmatch(filename, x), item_to_list(FILES.LOGS.DISABLED)): return False 
+	filename += ('.' if filename and filename[-1] is not '.' else '') + extension		
 	full_path = os.path.join(FOLDERS.LOGS, filename)
 	if prefix:
 		parent, fn = os.path.split(full_path)
 		if fn != '.' + extension: fn = '-' + fn
 		full_path = os.path.join(parent, prefix + fn)
-	if not os.path.exists(os.path.dirname(full_path)):
-		os.makedirs(os.path.dirname(full_path))
+	if not os.path.exists(os.path.dirname(full_path)): os.makedirs(os.path.dirname(full_path))
 	if as_url_link: return convert_filename_to_local_link(full_path)
 	return full_path
 
 def encode_log_text(content, encode_text=True, **kwargs):
-	if not encode_text or not isinstance(content, str) and not isinstance(content, unicode): return content
+	if not encode_text or not isinstance(content, unicode): return content
 	try: return content.encode('utf-8')
 	except Exception: return content
 
 def parse_log_content(content, prefix='', **kwargs):
 	if content is None: return '', prefix 
-	content = obj2log_simple(content)
+	if not isinstance(content, str) and not isinstance(content, unicode): content = pf(content, pf_replace_newline=False, pf_encode_text=False)
 	if len(content) == 0: content = '{EMPTY STRING}'
 	if content[0] == "!": content = content[1:]; prefix = '\n'	
-	return content, prefix 
+	return content, prefix  
 	
 def process_log_content(content, prefix='', timestamp=None, do_encode=True, **kwargs):	
 	content  = pad_lines_regex(content, timestamp=timestamp, **kwargs)	
 	st = '[%s]:\t' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''
 	return prefix + ' ' + st + (encode_log_text(content, **kwargs) if do_encode else content), content
 	
-def crosspost_log(content, filename=None, crosspost_to_default=False, crosspost=None, **kwargs):
+def crosspost_log(content, filename=None, crosspost_to_default=False, crosspost=None, do_show_tooltip=False, **kwargs):
 	if crosspost_to_default and filename:
 		summary = " ** %s%s: " % ('' if filename.upper() == 'ERROR' else 'CROSS-POST TO ',  filename.upper()) + content		
 		log(summary[:200], **kwargs)
+	if do_show_tooltip: show_tooltip(content)
 	if not crosspost: return 
 	for fn in item_to_list(crosspost): log(content, fn, **kwargs)
 	
@@ -469,27 +480,43 @@ def log(content=None, filename=None, **kwargs):
 	kwargs = set_kwargs(kwargs, 'line_padding, line_padding_plus, line_padding_header', timestamp=True)
 	content, prefix = parse_log_content(content, **kwargs)
 	crosspost_log(content, filename, **kwargs)	
-	full_path = get_log_full_path(filename, **kwargs)	
+	full_path = get_log_full_path(filename, **kwargs)
+	if full_path is False: return 	
 	content, print_content = process_log_content(content, prefix, **kwargs)
 	write_file_contents(content, full_path, print_content=print_content, **kwargs)
 
-def log_sql(content, **kwargs):
-	log(content, 'sql', **kwargs)
+def log_sql(content, a=None, kw=None, **kwargs):
+	table = content.replace('`', '').replace(',', '')
+	i = table.find("FROM")
+	table = table[i+4:].strip()
+	table = table[:table.find(' ')]
+	if a or kw:
+		content = u"SQL: %s" % content 
+		if a: content += u"\n\nArgs: " + pf(a, pf_encode_text=False, pf_decode_text=True)
+		if kw: content += u"\n\nKwargs: " + pf(kw, pf_encode_text=False, pf_decode_text=True)
+	log(content, 'sql\\'+table, **kwargs)
 
 def log_error(content, **kwargs):
 	kwargs = set_kwargs(kwargs, ['crosspost_to_default', True])
 	log(content, 'error', **kwargs)
 
-def print_dump(obj):
+def pf(obj, title='', pf_replace_newline=True, pf_encode_text=True, pf_decode_text=False):	
 	content = pprint.pformat(obj, indent=4, width=ANKNOTES.FORMATTING.PPRINT_WIDTH)
 	content = content.replace(', ', ', \n ')
-	content = content.replace('\r', '\r                              ').replace('\n',
-																				'\n                              ')
-	content = encode_log_text(content)
+	if pf_replace_newline: content = content.replace('\r', '\r' + ' ' * 30).replace('\n','\n' + ' ' * 30)
+	if pf_encode_text: content = encode_log_text(content)	
+	elif pf_decode_text: content = unicode(content, 'utf-8', 'ignore')
+	if title: content=title + ": " + content 
+	return content 
+	
+def print_dump():
+	content = pf(*args,**kwargs)
 	print content
 	return content
 
-def log_dump(obj, title="Object", filename='', timestamp=True, extension='log', crosspost_to_default=True, **kwargs):
+pp=print_dump
+	
+def log_dump(obj, title="Object", filename='', crosspost_to_default=True, **kwargs):
 	content = pprint.pformat(obj, indent=4, width=ANKNOTES.FORMATTING.PPRINT_WIDTH)
 	try: content = content.decode('utf-8', 'ignore')
 	except Exception: pass
@@ -498,11 +525,11 @@ def log_dump(obj, title="Object", filename='', timestamp=True, extension='log', 
 		summary = " ** CROSS-POST TO %s: " % filename[1:] + content
 		log(summary[:200])
 	# filename = 'dump' + ('-%s' % filename if filename else '')
-	full_path = get_log_full_path(filename, extension, prefix='dump')
-	st = '[%s]: ' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''
-
+	full_path = get_log_full_path(filename, prefix='dump', **kwargs)	
+	if full_path is False: return 
+	if not title: title = "<%s>" % obj.__class__.__name__
 	if title[0] == '-': crosspost_to_default = False; title = title[1:] 
-	prefix = " **** Dumping %s" % title
+	prefix = " **** Dumping %s" % title + " to " + os.path.splitext(os.path.basename(full_path))[0].replace('dump-', '')
 	if crosspost_to_default: log(prefix)
 
 	content = encode_log_text(content)
@@ -519,8 +546,9 @@ def log_dump(obj, title="Object", filename='', timestamp=True, extension='log', 
 		os.makedirs(os.path.dirname(full_path))
 	try_print(full_path, content, prefix, **kwargs)
 
-def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clear=False):			
+def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clear=False, timestamp=True, **kwargs):			
 	try:
+		st = '[%s]: ' % datetime.now().strftime(ANKNOTES.DATE_FORMAT) if timestamp else ''
 		print_content = line_prefix + (u' <%d>' % attempt if attempt > 0 else u'') + u' ' + st
 		if attempt is 0: print_content += content
 		elif attempt is 1: print_content += content.decode('utf-8')
@@ -532,8 +560,9 @@ def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clea
 		elif attempt is 7: print_content += "Unable to print content."
 		with open(full_path, 'w+' if clear else 'a+') as fileLog:
 			print>> fileLog, print_content
-	except:
+	except Exception, e:
 		if attempt < 8: try_print(full_path, content, prefix=prefix, line_prefix=line_prefix, attempt=attempt+1, clear=clear)
+		else: log("Try print error to %s: %s" % (os.path.split(full_path)[1], str(e)))
 		
 def log_api(method, content='', **kwargs):
 	if content: content = ': ' + content

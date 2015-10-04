@@ -2,6 +2,7 @@
 ### Python Imports
 import shutil
 import sys
+import re
 
 try:
 	from pysqlite2 import dbapi2 as sqlite
@@ -117,7 +118,7 @@ class Anki:
 				continue
 			anki_note_prototype = AnkiNotePrototype(self, anki_field_info, ankiNote.TagNames, baseNote,
 													notebookGuid=ankiNote.NotebookGuid, count=tmr.count,
-													count_update=tmr.counts.success, max_count=tmr.counts.max.val)
+													count_update=tmr.counts.success, max_count=tmr.max)
 			anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
 			anki_result = anki_note_prototype.update_note() if update else anki_note_prototype.add_note()
 			if anki_result != -1: tmr.reportSuccess(update, True)
@@ -140,11 +141,11 @@ class Anki:
 		if MODELS.OPTIONS.IMPORT_STYLES: return '@import url("%s");' % FILES.ANCILLARY.CSS
 		return file(os.path.join(FOLDERS.ANCILLARY, FILES.ANCILLARY.CSS), 'r').read()
 
-	def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False):
+	def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False, allowForceRebuild=True):
 		model = mm.byName(modelName)
 		model_css = self.get_evernote_model_styles()
 		templates = self.get_templates(modelName==MODELS.DEFAULT)
-		if model and modelName is MODELS.DEFAULT:
+		if model and modelName is MODELS.DEFAULT and allowForceRebuild:
 			front = model['tmpls'][0]['qfmt']
 			evernote_account_info = get_evernote_account_ids()
 			if not evernote_account_info.Valid:
@@ -252,12 +253,12 @@ class Anki:
 			self.templates["Back"] = self.templates["Front"].replace("<div id='Side-Front'>", "<div id='Side-Back'>")
 		return self.templates
 
-	def add_evernote_models(self):
+	def add_evernote_models(self, allowForceRebuild=True):
 		col = self.collection()
 		mm = col.models
 		self.evernoteModels = {}
 
-		forceRebuild = self.add_evernote_model(mm, MODELS.DEFAULT)
+		forceRebuild = self.add_evernote_model(mm, MODELS.DEFAULT, allowForceRebuild=allowForceRebuild)
 		self.add_evernote_model(mm, MODELS.REVERSE_ONLY, forceRebuild)
 		self.add_evernote_model(mm, MODELS.REVERSIBLE, forceRebuild)
 		self.add_evernote_model(mm, MODELS.CLOZE, forceRebuild, True)
@@ -374,126 +375,159 @@ class Anki:
 		db = ankDB()
 		db._db.row_factory = None
 		results = db.all(
-			"SELECT s.source_evernote_guid, s.target_evernote_guid, n.title, n2.title FROM %s as s, %s as n, %s as n2 WHERE s.source_evernote_guid != s.target_evernote_guid AND n.guid = s.target_evernote_guid AND n2.guid = s.source_evernote_guid AND s.from_toc == 1 ORDER BY s.source_evernote_guid ASC, n.title ASC" % (
+			"SELECT s.target_evernote_guid, s.source_evernote_guid, target_note.title, toc_note.title FROM %s as s, %s as target_note, %s as toc_note WHERE s.source_evernote_guid != s.target_evernote_guid AND target_note.guid = s.target_evernote_guid AND toc_note.guid = s.source_evernote_guid AND s.from_toc == 1 AND (target_note.title LIKE '%%Cervicitis%%' OR 1) ORDER BY target_note.title ASC" % (
 				TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TABLES.EVERNOTE.NOTES))
-		all_guids = [x[0] for x in db.all("SELECT guid FROM %s WHERE tagNames NOT LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, TAGS.TOC))]
+		# results_bad = db.all(
+			# "SELECT s.target_evernote_guid, s.source_evernote_guid FROM {t_see} as s WHERE s.source_evernote_guid COUNT(SELECT * FROM {tn} WHERE guid = s.source_evernote_guid) )" % (
+				# TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TABLES.EVERNOTE.NOTES))
+		all_child_guids = db.list("SELECT guid FROM %s WHERE tagNames NOT LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, TAGS.TOC))
+		all_toc_guids = db.list("SELECT guid FROM %s WHERE tagNames LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, TAGS.TOC))
 		grouped_results = {}
-
-		toc_titles = {}
+		# assert [x for x in results if x[0] == 'f78e4dca-3b20-41f2-a4f9-ab6cb4b0c8e3']
+		toc_titles = {}		
 		for row in results:
-			key = row[0]
-			value = row[1]
-			if key not in all_guids: continue
-			toc_titles[value] = row[2]
-			if key not in grouped_results: grouped_results[key] = [row[3], []]
-			grouped_results[key][1].append(value)
-		# log_dump(grouped_results, 'grouped_results', 'insert_toc', timestamp=False)
+			target_guid = row[0]
+			toc_guid = row[1]
+			if toc_guid not in all_toc_guids: continue	
+			if target_guid not in all_toc_guids and target_guid not in all_child_guids: continue 
+			if target_guid not in grouped_results: grouped_results[target_guid] = [row[2], []]
+			toc_titles[toc_guid] = row[3]
+			grouped_results[target_guid][1].append(toc_guid)
+		tmr = stopwatch.Timer(len(grouped_results), label='insert_toc')
 		action_title = 'INSERT TOCS INTO ANKI NOTES'
-		log.banner(action_title + ': %d NOTES' % len(grouped_results), 'insert_toc')
+		log.banner(action_title + ': %d TARGET ANKI NOTES' % tmr.max, tmr.label, crosspost=[tmr.label+'-new', tmr.label+'-invalid'], clear=True)
 		toc_separator = generate_evernote_span(u' | ', u'Links', u'See Also', bold=False)
 		count = 0
 		count_update = 0
-		max_count = len(grouped_results)
-		log.add('           <h1>INSERT TOC LINKS INTO ANKI NOTES: %d TOTAL NOTES</h1> <HR><BR><BR>' % max_count, 'see_also', timestamp=False, clear=True,
+		log.add('           <h1>%s: %d TOTAL NOTES</h1> <HR><BR><BR>' % (action_title, tmr.max), 'see_also', timestamp=False, clear=True,
 			extension='htm')
 		logged_missing_anki_note=False
-		for source_guid, source_guid_info in sorted(grouped_results.items(), key=lambda s: s[1][0]):
-			toc_guids = source_guid_info[1]
-			note_title = source_guid_info[0]
-			ankiNote = self.get_anki_note_from_evernote_guid(source_guid)
+		# sorted_results = sorted(grouped_results.items(), key=lambda s: s[1][0])
+		# log.add(sorted_results)
+		for target_guid, target_guid_info in sorted(grouped_results.items(), key=lambda s: s[1][0]):
+			note_title, toc_guids = target_guid_info
+			ankiNote = self.get_anki_note_from_evernote_guid(target_guid)
 			if not ankiNote:
-				log.dump(toc_guids, 'Missing Anki Note for ' + source_guid, 'insert_toc', timestamp=False, crosspost_to_default=False)
+				log.dump(toc_guids, 'Missing Anki Note for ' + target_guid, tmr.label, timestamp=False, crosspost_to_default=False)
 				if not logged_missing_anki_note:
 					log_error('%s: Missing Anki Note(s) for TOC entry. See insert_toc log for more details' % action_title)
 					logged_missing_anki_note = True 
-			else:
-				fields = get_dict_from_list(ankiNote.items())
-				see_also_html = fields[FIELDS.SEE_ALSO]
-				content_links = find_evernote_links_as_guids(fields[FIELDS.CONTENT])
-				see_also_links = find_evernote_links_as_guids(see_also_html)
-				new_tocs = set(toc_guids) - set(see_also_links) - set(content_links)
-				log.dump([new_tocs, toc_guids, see_also_links, content_links], 'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + note_title , 'insert_toc_new_tocs', crosspost_to_default=False)
-				new_toc_count = len(new_tocs)
-				if new_toc_count > 0:
-					see_also_count = len(see_also_links)
-					has_ol = u'<ol' in see_also_html
-					has_ul = u'<ul' in see_also_html
-					has_list = has_ol or has_ul
-					see_also_new = " "
-					flat_links = (new_toc_count + see_also_count < 3 and not has_list)
-					toc_delimiter = u' ' if see_also_count is 0 else toc_separator
-					for toc_guid in toc_guids:
-						toc_title = toc_titles[toc_guid]
-						if flat_links:
-							toc_title = u'[%s]' % toc_title
-						toc_link = generate_evernote_link(toc_guid, toc_title, value='TOC')
-						see_also_new += (toc_delimiter + toc_link) if flat_links else (u'\n<li>%s</li>' % toc_link)
-						toc_delimiter = toc_separator
+				continue 
+			fields = get_dict_from_list(ankiNote.items())
+			see_also_html = fields[FIELDS.SEE_ALSO]
+			content_links = find_evernote_links_as_guids(fields[FIELDS.CONTENT])
+			see_also_whole_links = find_evernote_links(see_also_html)
+			see_also_links = {x.Guid for x in see_also_whole_links}
+			invalid_see_also_links = {x for x in see_also_links if x not in all_child_guids and x not in all_toc_guids}
+			new_tocs = set(toc_guids) - see_also_links - set(content_links)
+			log.dump([new_tocs, toc_guids, invalid_see_also_links, see_also_links, content_links], 'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + note_title , 'insert_toc_new_tocs', crosspost_to_default=False)
+			new_toc_count = len(new_tocs)
+			invalid_see_also_links_count = len(invalid_see_also_links)
+			if invalid_see_also_links_count > 0:
+				for link in see_also_whole_links:
+					if link.Guid not in invalid_see_also_links: continue 
+					see_also_html = remove_evernote_link(link, see_also_html)
+			see_also_links -= invalid_see_also_links
+			see_also_count = len(see_also_links)
+			
+			if new_toc_count > 0:							
+				has_ol = u'<ol' in see_also_html
+				has_ul = u'<ul' in see_also_html
+				has_list = has_ol or has_ul
+				see_also_new = " "
+				flat_links = (new_toc_count + see_also_count < 3 and not has_list)
+				toc_delimiter = u' ' if see_also_count is 0 else toc_separator
+				for toc_guid in toc_guids:
+					toc_title = toc_titles[toc_guid]
 					if flat_links:
-						find_div_end = see_also_html.rfind('</div>')
-						if find_div_end > -1:
-							see_also_html = see_also_html[:find_div_end] + see_also_new + '\n' + see_also_html[find_div_end:]
-							see_also_new = ''
-					else:
-						see_also_toc_headers = {'ol': u'<br><div style="margin-top:5px;">\n%s</div><ol style="margin-top:3px;">' % generate_evernote_span(
-							'<u>TABLE OF CONTENTS</u>:', 'Levels', 'Auto TOC', escape=False)}
-						see_also_toc_headers['ul'] = see_also_toc_headers['ol'].replace('<ol ', '<ul ')
+						toc_title = u'[%s]' % toc_title
+					toc_link = generate_evernote_link(toc_guid, toc_title, value='TOC')
+					see_also_new += (toc_delimiter + toc_link) if flat_links else (u'\n<li>%s</li>' % toc_link)
+					toc_delimiter = toc_separator
+				if flat_links:
+					find_div_end = see_also_html.rfind('</div>')
+					if find_div_end > -1:
+						see_also_html = see_also_html[:find_div_end] + see_also_new + '\n' + see_also_html[find_div_end:]
+						see_also_new = ''
+				else:
+					see_also_toc_headers = {'ol': u'<br><div style="margin-top:5px;">\n%s</div><ol style="margin-top:3px;">' % generate_evernote_span(
+						'<u>TABLE OF CONTENTS</u>:', 'Levels', 'Auto TOC', escape=False)}
+					see_also_toc_headers['ul'] = see_also_toc_headers['ol'].replace('<ol ', '<ul ')
 
-						if see_also_toc_headers['ul'] in see_also_html:
-							find_ul_end = see_also_html.rfind('</ul>')
-							see_also_html = see_also_html[:find_ul_end] + '</ol>' + see_also_html[find_ul_end + 5:]
-							see_also_html = see_also_html.replace(see_also_toc_headers['ul'], see_also_toc_headers['ol'])
-						if see_also_toc_headers['ol'] in see_also_html:
-							find_ol_end = see_also_html.rfind('</ol>')
-							see_also_html = see_also_html[:find_ol_end] + see_also_new + '\n' + see_also_html[find_ol_end:]
-							see_also_new = ''
-						else:
-							header_type = 'ul' if new_toc_count is 1 else 'ol'
-							see_also_new = see_also_toc_headers[header_type] + u'%s\n</%s>' % (see_also_new, header_type)
-					if see_also_count == 0:
-						see_also_html = generate_evernote_span(u'See Also:', 'Links', 'See Also')
-					see_also_html += see_also_new
-				see_also_html = see_also_html.replace('<ol>', '<ol style="margin-top:3px;">')
-				log.add('<h3>%s</h3><br>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
-															   'TOC') + see_also_html + u'<HR>', 'see_also',
-					timestamp=False, extension='htm')
-				fields[FIELDS.SEE_ALSO] = see_also_html.replace('evernote:///', 'evernote://')
-				anki_note_prototype = AnkiNotePrototype(self, fields, ankiNote.tags, ankiNote, count=count,
-														count_update=count_update, max_count=max_count)
-				anki_note_prototype._log_update_if_unchanged_ = (new_toc_count > 0)
-				if anki_note_prototype.update_note():
-					count_update += 1
-				count += 1
+					if see_also_toc_headers['ul'] in see_also_html:
+						find_ul_end = see_also_html.rfind('</ul>')
+						see_also_html = see_also_html[:find_ul_end] + '</ol>' + see_also_html[find_ul_end + 5:]
+						see_also_html = see_also_html.replace(see_also_toc_headers['ul'], see_also_toc_headers['ol'])
+					if see_also_toc_headers['ol'] in see_also_html:
+						find_ol_end = see_also_html.rfind('</ol>')
+						see_also_html = see_also_html[:find_ol_end] + see_also_new + '\n' + see_also_html[find_ol_end:]
+						see_also_new = ''
+					else:
+						header_type = 'ul' if new_toc_count is 1 else 'ol'
+						see_also_new = see_also_toc_headers[header_type] + u'%s\n</%s>' % (see_also_new, header_type)
+				if see_also_count == 0:
+					see_also_html = generate_evernote_span(u'See Also:', 'Links', 'See Also')
+				see_also_html += see_also_new
+			see_also_html = see_also_html.replace('<ol>', '<ol style="margin-top:3px;">')
+			log.add('<h3>%s</h3><br>' % generate_evernote_span(fields[FIELDS.TITLE], 'Links',
+														   'TOC') + see_also_html + u'<HR>', 'see_also',
+				crosspost='see_also\\' + note_title , timestamp=False, extension='htm')
+			see_also_html = see_also_html.replace('evernote:///', 'evernote://')
+			changed = see_also_html != fields[FIELDS.SEE_ALSO]
+			crosspost=[]
+			if new_toc_count: crosspost.append(tmr.label+'-new')
+			if invalid_see_also_links: crosspost.append(tmr.label+'-invalid')
+			log.go('  %s  |  %2d TOTAL TOC''s  |  %s  |  %s  |    %s%s' % (format_count('%2d NEW TOC''s', new_toc_count), len(toc_guids), format_count('%2d EXISTING LINKS', see_also_count), format_count('%2d INVALID LINKS', invalid_see_also_links_count), ('*' if changed else ' ') * 3, note_title), tmr.label, crosspost=crosspost, timestamp=False)			
+			
+			fields[FIELDS.SEE_ALSO] = see_also_html
+			anki_note_prototype = AnkiNotePrototype(self, fields, ankiNote.tags, ankiNote, count=count,
+													count_update=count_update, max_count=tmr.max)
+			anki_note_prototype._log_update_if_unchanged_ = (changed or new_toc_count + invalid_see_also_links_count > 0)
+			if anki_note_prototype.update_note(): count_update += 1
+			count += 1
 		db._db.row_factory = sqlite.Row
 
 	def extract_links_from_toc(self):
-		query_update_toc_links = "UPDATE %s SET is_toc = 1 WHERE " % TABLES.SEE_ALSO
-		delimiter = ""
-		ankDB().setrowfactory()
-		toc_entries = ankDB().execute("SELECT * FROM %s WHERE tagNames LIKE '%%,#TOC,%%'" % TABLES.EVERNOTE.NOTES)
-		for toc_entry in toc_entries:
-			toc_evernote_guid = toc_entry['guid']
-			toc_link_title = toc_entry['title']
+		db = ankDB()
+		db.setrowfactory()
+		toc_entries = db.all("SELECT * FROM %s WHERE tagNames LIKE '%%,%s,%%' ORDER BY title ASC" % (TABLES.EVERNOTE.NOTES, TAGS.TOC))		
+		db.execute("DELETE FROM %s WHERE from_toc = 1" % TABLES.SEE_ALSO)
+		l = Logger(timestamp=False, crosspost_to_default=False)
+		l.banner('EXTRACTING LINKS FROM %3d TOC ENTRIES' % len(toc_entries), clear=True, crosspost='error')
+		toc_guids = []
+		for i, toc_entry in enumerate(toc_entries):
+			toc_evernote_guid, toc_link_title = toc_entry['guid'], toc_entry['title']
+			toc_guids.append("'%s'" % toc_evernote_guid)
 			toc_link_html = generate_evernote_span(toc_link_title, 'Links', 'TOC')
-			for enLink in find_evernote_links(toc_entry['content']):
+			enLinks = find_evernote_links(toc_entry['content'])
+			for enLink in enLinks:
 				target_evernote_guid = enLink.Guid
-				link_number = 1 + ankDB().scalar("select COUNT(*) from %s WHERE source_evernote_guid = '%s' " % (
-					TABLES.SEE_ALSO, target_evernote_guid))
-				query = """INSERT INTO `%s`(`source_evernote_guid`, `number`, `uid`, `shard`, `target_evernote_guid`, `html`, `title`, `from_toc`, `is_toc`) SELECT '%s', %d, %d, '%s', '%s', '%s', '%s', 1, 1 FROM `%s`  WHERE NOT EXISTS (SELECT * FROM `%s` WHERE `source_evernote_guid`='%s' AND `target_evernote_guid`='%s') LIMIT 1 """ % (
-					TABLES.SEE_ALSO, target_evernote_guid, link_number, enLink.Uid, enLink.Shard, toc_evernote_guid,
-					toc_link_html.replace(u'\'', u'\'\''), toc_link_title.replace(u'\'', u'\'\''), TABLES.SEE_ALSO,
-					TABLES.SEE_ALSO, target_evernote_guid, toc_evernote_guid)
-				log_sql('UPDATE_ANKI_DB: Add See Also Link: SQL Query: ' + query)
-				ankDB().execute(query)
-			query_update_toc_links += delimiter + "target_evernote_guid = '%s'" % toc_evernote_guid
-			delimiter = " OR "
-		ankDB().execute(query_update_toc_links)
-		ankDB().commit()
+				if not check_evernote_guid_is_valid(target_evernote_guid): l.go("Invalid Target GUID for %-50s %s" % (toc_link_title + ':', target_evernote_guid), 'error') ; continue
+				base = {'t': TABLES.SEE_ALSO, 'child_guid': target_evernote_guid, 'uid': enLink.Uid, 'shard': enLink.Shard, 'toc_guid': toc_evernote_guid, 'l1': 'source', 'l2': 'source', 'from_toc': 0, 'is_toc': 0}
+				query_count = "select COUNT(*) from {t} WHERE source_evernote_guid = '{%s_guid}'"
+				toc = {'num': 1 + db.scalar((query_count % 'toc').format(**base)),
+						'html': enLink.HTML.replace(u'\'', u'\'\''),
+						'title': enLink.FullTitle.replace(u'\'', u'\'\''),
+						'l1': 'target',
+						'from_toc': 1
+						}
+				# child = {'num': 1 + db.scalar((query_count % 'child').format(**base)),
+						 # 'html': toc_link_html.replace(u'\'', u'\'\''),
+						 # 'title': toc_link_title.replace(u'\'', u'\'\''),
+						 # 'l2': 'target',
+						 # 'is_toc': 1
+						# }
+				query = u"INSERT OR REPLACE INTO `{t}`(`{l1}_evernote_guid`, `number`, `uid`, `shard`, `{l2}_evernote_guid`, `html`, `title`, `from_toc`, `is_toc`) VALUES('{child_guid}', {num}, {uid}, '{shard}', '{toc_guid}', '{html}', '{title}', {from_toc}, {is_toc})"
+				query_toc = query.format(**DictCaseInsensitive(base, toc))
+				db.execute(query_toc)
+				# db.execute(query.format(**DictCaseInsensitive(base, child)))
+			l.go("\t\t - Added %2d child link(s) from TOC %s" % (len(enLinks), toc_link_title.encode('utf-8')) )
+		db.execute("UPDATE %s SET is_toc = 1 WHERE target_evernote_guid IN (%s)" % (TABLES.SEE_ALSO, ', '.join(toc_guids)))
+		db.commit()
 
 	def insert_toc_and_outline_contents_into_notes(self):
 		linked_notes_fields = {}
-		source_guids = ankDB().list(
-						"select DISTINCT source_evernote_guid from %s WHERE is_toc = 1 ORDER BY source_evernote_guid ASC" % TABLES.SEE_ALSO)
+		source_guids = ankDB().list("select DISTINCT source_evernote_guid from %s WHERE is_toc = 1 OR is_outline = 1 ORDER BY source_evernote_guid ASC" % TABLES.SEE_ALSO)
 		source_guids_count = len(source_guids)
 		i = 0
 		for source_guid in source_guids:
@@ -502,12 +536,8 @@ class Anki:
 			if not note: continue
 			if TAGS.TOC in note.tags: continue
 			for fld in note._model['flds']:
-				if FIELDS.TITLE in fld.get('name'):
-					note_title = note.fields[fld.get('ord')]
-					continue
-			if not note_title:
-				log_error("Could not find note title for %s for insert_toc_and_outline_contents_into_notes" % note.guid)
-				continue
+				if FIELDS.TITLE in fld.get('name'): note_title = note.fields[fld.get('ord')]; continue
+			if not note_title: log_error("Could not find note title for %s for insert_toc_and_outline_contents_into_notes" % note.guid); continue
 			note_toc = ""
 			note_outline = ""
 			toc_header = ""
@@ -515,8 +545,7 @@ class Anki:
 			toc_count = 0
 			outline_count = 0
 			toc_and_outline_links = ankDB().execute(
-				"select target_evernote_guid, is_toc, is_outline from %s WHERE source_evernote_guid = '%s' AND (is_toc = 1 OR is_outline = 1) ORDER BY number ASC" % (
-					TABLES.SEE_ALSO, source_guid))
+				"select target_evernote_guid, is_toc, is_outline from %s WHERE source_evernote_guid = '%s' AND (is_toc = 1 OR is_outline = 1) ORDER BY number ASC" % (TABLES.SEE_ALSO, source_guid))
 			for target_evernote_guid, is_toc, is_outline in toc_and_outline_links:
 				if target_evernote_guid in linked_notes_fields:
 					linked_note_contents = linked_notes_fields[target_evernote_guid][FIELDS.CONTENT]
@@ -526,10 +555,8 @@ class Anki:
 					if not linked_note: continue
 					linked_note_contents = u""
 					for fld in linked_note._model['flds']:
-						if FIELDS.CONTENT in fld.get('name'):
-							linked_note_contents = linked_note.fields[fld.get('ord')]
-						elif FIELDS.TITLE in fld.get('name'):
-							linked_note_title = linked_note.fields[fld.get('ord')]
+						if FIELDS.CONTENT in fld.get('name'): linked_note_contents = linked_note.fields[fld.get('ord')]
+						elif FIELDS.TITLE in fld.get('name'): linked_note_title = linked_note.fields[fld.get('ord')]
 					if linked_note_contents:
 						linked_notes_fields[target_evernote_guid] = {
 							FIELDS.TITLE:   linked_note_title,
@@ -542,39 +569,24 @@ class Anki:
 						log("  > [%3d/%3d]  Found TOC/Outline for Note '%s': %s" % (i, source_guids_count, source_guid, note_title), 'See Also')
 					if is_toc:
 						toc_count += 1
-						if toc_count is 1:
-							toc_header = "<span class='header'>TABLE OF CONTENTS</span>: 1. <span class='header'>%s</span>" % linked_note_title
-						else:
-							toc_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
-								toc_count, linked_note_title)
-							note_toc += "<br><hr>"
-
+						if toc_count is 1: toc_header = "<span class='header'>TABLE OF CONTENTS</span>: 1. <span class='header'>%s</span>" % linked_note_title
+						else: note_toc += "<br><hr>"; toc_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (toc_count, linked_note_title)
 						note_toc += linked_note_contents
 						log("   > Appending TOC #%d contents" % toc_count, 'See Also')
 					else:
 						outline_count += 1
-						if outline_count is 1:
-							outline_header = "<span class='header'>OUTLINE</span>: 1. <span class='header'>%s</span>" % linked_note_title
-						else:
-							outline_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
-								outline_count, linked_note_title)
-							note_outline += "<BR><HR>"
-
+						if outline_count is 1: outline_header = "<span class='header'>OUTLINE</span>: 1. <span class='header'>%s</span>" % linked_note_title
+						else: note_outline += "<BR><HR>";  outline_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (outline_count, linked_note_title)
 						note_outline += linked_note_contents
 						log("   > Appending Outline #%d contents" % outline_count, 'See Also')
-
-			if outline_count + toc_count > 0:
-				if outline_count > 1:
-					note_outline = "<span class='Outline'>%s</span><BR><BR>" % outline_header + note_outline
-				if toc_count > 1:
-					note_toc = "<span class='TOC'>%s</span><BR><BR>" % toc_header + note_toc
-				for fld in note._model['flds']:
-					if FIELDS.TOC in fld.get('name'):
-						note.fields[fld.get('ord')] = note_toc
-					elif FIELDS.OUTLINE in fld.get('name'):
-						note.fields[fld.get('ord')] = note_outline
-				log(" > Flushing Note \r\n", 'See Also')
-				note.flush()
+			if outline_count + toc_count is 0: continue 
+			if outline_count > 1: note_outline = "<span class='Outline'>%s</span><BR><BR>" % outline_header + note_outline
+			if toc_count > 1: note_toc = "<span class='TOC'>%s</span><BR><BR>" % toc_header + note_toc
+			for fld in note._model['flds']:
+				if FIELDS.TOC in fld.get('name'): note.fields[fld.get('ord')] = note_toc
+				elif FIELDS.OUTLINE in fld.get('name'): note.fields[fld.get('ord')] = note_outline
+			log(" > Flushing Note \r\n", 'See Also')
+			note.flush()
 
 	def start_editing(self):
 		self.window().requireReset()

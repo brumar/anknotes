@@ -1,18 +1,24 @@
 ### Python Imports
-from sqlite3 import dbapi2 as sqlite
+try: from pysqlite2 import dbapi2 as sqlite
+except ImportError: from sqlite3 import dbapi2 as sqlite
+from datetime import datetime 
 import time
 import os
+import sys
+inAnki = 'anki' in sys.modules 
 
 ### Anki Shared Imports
 from anknotes.constants import *
+from anknotes.logging import log_sql
 
-try:
+if inAnki:
 	from aqt import mw
-except:
-	pass
+	from anki.utils import ids2str, splitFields
 
 ankNotesDBInstance = None
 dbLocal = False
+
+lastHierarchyUpdate=datetime.now()
 
 def anki_profile_path_root():
 	return os.path.abspath(os.path.join(os.path.dirname(PATH), '..' + os.path.sep))
@@ -49,26 +55,156 @@ def escape_text_sql(title):
 	return title.replace("'", "''")
 
 def delete_anki_notes_and_cards_by_guid(evernote_guids):
-	ankDB().executemany("DELETE FROM cards WHERE nid in (SELECT id FROM notes WHERE flds LIKE '%' || ? || '%'); "
-						+ "DELETE FROM notes WHERE flds LIKE '%' || ? || '%'",
-						[[FIELDS.EVERNOTE_GUID_PREFIX + x, FIELDS.EVERNOTE_GUID_PREFIX + x] for x in evernote_guids])			
+	data=[[FIELDS.EVERNOTE_GUID_PREFIX + x] for x in evernote_guids]
+	db=ankDB()	
+	db.executemany("DELETE FROM cards WHERE nid in (SELECT id FROM notes WHERE flds LIKE  ? || '%')", data)
+	db.executemany("DELETE FROM notes WHERE flds LIKE ? || '%'", data)
 
 def get_evernote_title_from_guid(guid):
 	return ankDB().scalar("SELECT title FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, guid))
 
 
+def get_evernote_title_from_nids(nids):
+	return get_evernote_title_from_guids(nids, 'nid')
+	
+def get_evernote_title_from_guids(guids,column='guid'):
+	return ankDB().list("SELECT title FROM %s WHERE %s IN (%s) ORDER BY title ASC" % (TABLES.EVERNOTE.NOTES, column, ', '.join(["'%s'" % x for x in guids])))	
+
 def get_anki_deck_id_from_note_id(nid):
-	return long(ankDB().scalar("SELECT did FROM cards WHERE nid = ?", nid))
+	return long(ankDB().scalar("SELECT did FROM cards WHERE nid = ? LIMIT 1", nid))
+	
+def get_anki_card_ids_from_evernote_guids(guids,sql=None):
+	pred="n.flds LIKE '%s' || ? || '%%'" % FIELDS.EVERNOTE_GUID_PREFIX
+	if sql is None: sql = "SELECT c.id FROM cards c, notes n WHERE c.nid = n.id AND ({pred})"
+	return execute_sqlite_query(sql, guids, pred=pred)
 
+def get_anki_note_id_from_evernote_guid(guid):
+	return ankDB().scalar("SELECT n.id FROM notes n WHERE n.flds LIKE '%s' || ? || '%%'" % FIELDS.EVERNOTE_GUID_PREFIX, guid)	
+	
+def get_anki_note_ids_from_evernote_guids(guids):
+	return get_anki_card_ids_from_evernote_guids(guids, "SELECT n.id FROM notes n WHERE {pred}")
 
+def get_paired_anki_note_ids_from_evernote_guids(guids):
+	return get_anki_card_ids_from_evernote_guids([[x, x] for x in guids], "SELECT n.id, n.flds FROM notes n WHERE {pred}")
+
+def get_anknotes_root_notes_nids():
+	return get_cached_data(get_anknotes_root_notes_nids, lambda: get_anknotes_root_notes_guids('nid'))
+	
+def get_cached_data(func, data_generator,subkey=''):
+	if not ANKNOTES.CACHE_SEARCHES: return data_generator()
+	if subkey: subkey += '_'
+	if not hasattr(func, subkey + 'data') or getattr(func, subkey + 'update') < lastHierarchyUpdate:
+		setattr(func, subkey + 'data', data_generator())
+		setattr(func, subkey + 'update', datetime.now())
+	return getattr(func, subkey + 'data')
+	
+def get_anknotes_root_notes_guids(column='guid', tag=None):	
+	sql = "SELECT %s FROM %s WHERE UPPER(title) IN {pred}" % (column, TABLES.EVERNOTE.NOTES)
+	data_key=column 
+	if tag: sql += " AND tagNames LIKE '%%,%s,%%'" % tag; data_key += '-' + tag 
+	return get_cached_data(get_anknotes_root_notes_guids, lambda: execute_sqlite_in_query(sql, get_anknotes_potential_root_titles(upper_case=False,encode=False), pred='UPPER(?)'), data_key)	
+	# return 
+	# for query, data in queries: results += db.list(base % query, *data)
+	# return results 
+	# data = ["'%s'" % escape_text_sql(x.upper() for x in get_anknotes_potential_root_titles()]	
+	# return ankDB().list("SELECT guid FROM %s WHERE UPPER(title) IN (%s) AND tagNames LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, ', '.join(root_titles), TAGS.TOC))
+
+def get_anknotes_root_notes_titles():
+	return get_cached_data(get_anknotes_root_notes_titles, lambda: get_evernote_title_from_guids(get_anknotes_root_notes_guids()))	
+
+def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs):
+	global generateTOCTitle
+	from anknotes.EvernoteNoteTitle import generateTOCTitle
+	mapper = lambda x: generateTOCTitle(x)
+	if upper_case: mapper = lambda x,f=mapper: f(x).upper()
+	if encode: mapper = lambda x,f=mapper: f(x).encode('utf-8')
+	data = get_cached_data(get_anknotes_potential_root_titles, lambda: ankDB().list("SELECT DISTINCT SUBSTR(title, 0, INSTR(title, ':')) FROM %s WHERE title LIKE '%%:%%'" % TABLES.EVERNOTE.NOTES))
+	return map(mapper, data)
+	
+# def __get_anknotes_root_notes_titles_query(): 
+	# return '(%s)' % ' OR '.join(["title LIKE '%s'" % (escape_text_sql(x) + ':%') for x in get_anknotes_root_notes_titles()])	
+	
+def __get_anknotes_root_notes_pred(base=None, column='guid', **kwargs): 
+	if base is None: base = "SELECT %(column)s FROM %(table)s WHERE {pred} "
+	base = base	% {'column': column, 'table': TABLES.EVERNOTE.NOTES}
+	pred = "title LIKE ? || ':%'"
+	return execute_sqlite_query(base, get_anknotes_root_notes_titles(), pred=pred)
+	
+	
+def execute_sqlite_in_query(sql, data, in_query=True, **kwargs):
+	return execute_sqlite_query(sql, data, in_query=True, **kwargs)
+	
+def execute_sqlite_query(sql, data, in_query=False, **kwargs):
+	queries = generate_sqlite_in_predicate(data, **kwargs) if in_query else generate_sqlite_predicate(data, **kwargs)
+	results=[]
+	db=ankDB()
+	for query, data in queries: 
+		log_sql('FROM execute_sqlite_query ' + sql.format(pred=query), ['Data [%d]: ' % len(data), data, db.list(sql.format(pred=query), *data)[:3]])
+		results += db.list(sql.format(pred=query), *data)
+	return results 
+	
+def generate_sqlite_predicate(data, pred='?', pred_delim=' OR ', query_base='(%s)', max_round=990):
+	if not query_base: query_base = '%s'	
+	length = len(data)
+	rounds = float(length)/max_round
+	rounds = int(rounds) + 1 if int(rounds) < rounds else 0
+	queries=[]
+	for i in range(0, rounds):
+		start = max_round * i 
+		end = min(length, start+max_round)
+		# log_sql('FROM generate_sqlite_predicate ' + query_base, ['gen sql #%d of %d: %d-%d' % (i, rounds, start, end) , pred_delim, 'Data [%d]: ' % len(data), data[:3]])
+		queries.append([query_base % (pred + (pred_delim + pred) * (end-start-1)), data[start:end]])
+	return queries
+	
+def generate_sqlite_in_predicate(data, pred='?', pred_delim=', ', query_base='(%s)'):
+	return generate_sqlite_predicate(data, pred=pred, query_base=query_base, pred_delim=pred_delim)
+	
+def get_sql_anki_cids_from_evernote_guids(guids):
+	return "c.nid IN " + ids2str(get_anki_note_ids_from_evernote_guids(guids))
+
+def get_anknotes_child_notes_nids(**kwargs):		
+	if 'column' in kwargs: del kwargs['column']
+	return get_anknotes_child_notes(column='nid',**kwargs)
+	
+def get_anknotes_child_notes(column='guid', **kwargs):	
+	return get_cached_data(get_anknotes_child_notes, lambda: __get_anknotes_root_notes_pred(column=column,**kwargs), column)	
+	
+def get_anknotes_orphan_notes_nids(**kwargs):		
+	if 'column' in kwargs: del kwargs['column']
+	return get_anknotes_orphan_notes(column='nid',**kwargs)
+	
+def get_anknotes_orphan_notes(column='guid', **kwargs):	
+	return get_cached_data(get_anknotes_orphan_notes, lambda: __get_anknotes_root_notes_pred("SELECT %(column)s FROM %(table)s WHERE title LIKE '%%:%%' AND NOT {pred}", column=column,**kwargs), column)	
+	
 def get_evernote_guid_from_anki_fields(fields):
-	if not FIELDS.EVERNOTE_GUID in fields: return None
-	return fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
+	if isinstance(fields, dict):
+		if not FIELDS.EVERNOTE_GUID in fields: return None
+		return fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
+	if isinstance(fields, str) or isinstance(fields, unicode):
+		fields = splitFields(fields)
+		return fields[FIELDS.ORD.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
 
+def get_all_local_db_guids(filter=None):
+	if filter is None: filter="1"
+	return ankDB().list("SELECT guid FROM %s WHERE %s ORDER BY title ASC" % (TABLES.EVERNOTE.NOTES, filter))
 
-def get_all_local_db_guids():
-	return [x[0] for x in ankDB().all("SELECT guid FROM %s WHERE 1 ORDER BY title ASC" % TABLES.EVERNOTE.NOTES)]
-
+def get_evernote_model_ids(sql=False):
+	if not hasattr(get_evernote_model_ids, 'model_ids'):
+		from anknotes.Anki import Anki
+		anki = Anki()
+		anki.add_evernote_models(allowForceRebuild=False)
+		get_evernote_model_ids.model_ids = anki.evernoteModels 
+		del anki 
+		del Anki
+	if sql: return 'n.mid IN (%s)' % ', '.join(get_evernote_model_ids.model_ids.values())
+	return get_evernote_model_ids.model_ids
+	
+def update_anknotes_nids():
+	db=ankDB()
+	paired_data = db.all("SELECT n.id, n.flds FROM notes n WHERE " + get_evernote_model_ids(True))
+	paired_data=[[nid, get_evernote_guid_from_anki_fields(flds)] for nid, flds in paired_data]
+	db.executemany('UPDATE %s SET nid = ? WHERE guid = ?' % TABLES.EVERNOTE.NOTES, paired_data)
+	db.commit()
 
 class ank_DB(object):
 	def __init__(self, path=None, text=None, timeout=0):
@@ -92,7 +228,8 @@ class ank_DB(object):
 		self._db.row_factory = sqlite.Row
 
 	def execute(self, sql, *a, **ka):
-		s = sql.strip().lower()
+		log_sql(sql, a, ka)
+		s = sql.strip().lower()		
 		# mark modified?
 		for stmt in "insert", "update", "delete":
 			if s.startswith(stmt):
@@ -114,6 +251,7 @@ class ank_DB(object):
 		return res
 
 	def executemany(self, sql, l):
+		log_sql(sql, l)
 		self.mod = True
 		t = time.time()
 		self._db.executemany(sql, l)
@@ -193,17 +331,17 @@ class ank_DB(object):
 			self.commit()
 			if_exists = ""
 		self.execute(
-			"""CREATE TABLE %s `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id) );""" % (if_exists, TABLES.SEE_ALSO))
+			"""CREATE TABLE %s `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id), unique(source_evernote_guid, target_evernote_guid) );""" % (if_exists, TABLES.SEE_ALSO))
 
 	def Init(self):
 		self.execute(
-			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL UNIQUE, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL, PRIMARY KEY(guid) );""" % TABLES.EVERNOTE.NOTES)
+			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL UNIQUE, `nid`	INTEGER NOT NULL DEFAULT -1, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL, PRIMARY KEY(guid) );""" % TABLES.EVERNOTE.NOTES)
 		self.execute(
 			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL)""" % TABLES.EVERNOTE.NOTES_HISTORY)
 		self.execute(
 			"""CREATE TABLE IF NOT EXISTS `%s` ( 	`root_title`	TEXT NOT NULL UNIQUE, 	`contents`	TEXT NOT NULL, 	`tagNames`	TEXT NOT NULL, 	`notebookGuid`	TEXT NOT NULL, 	PRIMARY KEY(root_title) );""" % TABLES.AUTO_TOC)
 		self.execute(
-			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT, `title` TEXT NOT NULL, `contents` TEXT NOT NULL, `tagNames` TEXT NOT NULL DEFAULT ',,', `notebookGuid` TEXT, `validation_status` INTEGER NOT NULL DEFAULT 0, `validation_result` TEXT);""" % TABLES.NOTE_VALIDATION_QUEUE)
+			"""CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT, `title` TEXT NOT NULL, `contents` TEXT NOT NULL, `tagNames` TEXT NOT NULL DEFAULT ',,', `notebookGuid` TEXT, `validation_status` INTEGER NOT NULL DEFAULT 0, `validation_result` TEXT, `noteType` TEXT);""" % TABLES.NOTE_VALIDATION_QUEUE)
 		self.InitSeeAlso()
 		self.InitTags()
 		self.InitNotebooks()

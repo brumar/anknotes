@@ -6,11 +6,11 @@ import sys
 from datetime import datetime, timedelta
 from StringIO import StringIO
 
-try:
-	from lxml import etree
-	eTreeImported = True
-except ImportError:
-	eTreeImported = False
+# try:
+	# from lxml import etree
+	# eTreeImported = True
+# except ImportError:
+	# eTreeImported = False
 
 inAnki='anki' in sys.modules
 try:
@@ -53,18 +53,21 @@ class Evernote(object):
 	tag_data = {}
 	""":type : dict[str, anknotes.structs.EvernoteTag]"""
 	DTD = None
-	hasValidator = None
+	__hasValidator__ = None
 	token = None
 	client = None
 	""":type : EvernoteClient """
-
+	
+	def hasValidator(self):
+		if self.__hasValidator__ is None: self.__hasValidator__ = import_etree()		
+		return self.__hasValidator__		
+	
 	def __init__(self):
-		global eTreeImported, dbLocal
 		self.tag_data = {}
 		self.notebook_data = {}
 		self.noteStore = None
 		self.getNoteCount = 0
-		self.hasValidator = eTreeImported
+		# self.hasValidator = eTreeImported
 		if ankDBIsLocal():
 			log("Skipping Evernote client load (DB is Local)", 'client')
 			return
@@ -153,7 +156,7 @@ class Evernote(object):
 		"""
 		return self.validateNoteBody(self.makeNoteBody(content), title)
 
-	def updateNote(self, guid, noteTitle, noteBody, tagNames=list(), parentNotebook=None, resources=None):
+	def updateNote(self, guid, noteTitle, noteBody, tagNames=None, parentNotebook=None, noteType=None, resources=None):
 		"""
 		Update a Note instance with title and body
 		Send Note object to user's account
@@ -161,7 +164,7 @@ class Evernote(object):
 		:returns Status and Note
 		"""
 		if resources is None: resources = []
-		return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, resources=resources,
+		return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, noteType=noteType, resources=resources,
 							 guid=guid)
 
 	@staticmethod
@@ -178,26 +181,21 @@ class Evernote(object):
 		return nBody
 
 	@staticmethod
-	def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None,
+	def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None, noteType=None,
 							   guid=None):
+		if not noteType: noteType = 'Unspecified'
 		if resources is None: resources = []
-		sql = "FROM %s WHERE " % TABLES.NOTE_VALIDATION_QUEUE
-		if guid:
-			sql += "guid = '%s'" % guid
-		else:
-			sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
+		sql = "FROM %s WHERE noteType = '%s' AND " % (TABLES.NOTE_VALIDATION_QUEUE, noteType)  + (("guid = '%s'" % guid) if guid else "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents)))
 		statuses = ankDB().all('SELECT validation_status ' + sql)
 		if len(statuses) > 0:
 			if str(statuses[0]['validation_status']) == '1': return EvernoteAPIStatus.Success
 			ankDB().execute("DELETE " + sql)
-		# log_sql(sql)
-		# log_sql([ guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook])
 		ankDB().execute(
-			"INSERT INTO %s(guid, title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
-			guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook)
+			"INSERT INTO %s(guid, title, contents, tagNames, notebookGuid, noteType) VALUES(?, ?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
+			guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook, noteType)
 		return EvernoteAPIStatus.RequestQueued
 
-	def makeNote(self, noteTitle=None, noteContents=None, tagNames=list(), parentNotebook=None, resources=None, guid=None,
+	def makeNote(self, noteTitle=None, noteContents=None, tagNames=None, parentNotebook=None, resources=None, noteType=None, guid=None,
 				 validated=None, enNote=None):
 		"""
 		Create or Update a Note instance with title and body
@@ -208,6 +206,7 @@ class Evernote(object):
 		:rtype : (EvernoteAPIStatus, EvernoteNote)
 		:returns Status and Note
 		"""
+		if tagNames is None: tagNames = []
 		if enNote: guid, noteTitle, noteContents, tagNames, parentNotebook = enNote.Guid, enNote.FullTitle, enNote.Content, enNote.Tags, enNote.NotebookGuid or parentNotebook
 		if resources is None: resources = []
 		callType = "create"
@@ -217,7 +216,7 @@ class Evernote(object):
 			else:
 				validation_status = self.addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames, parentNotebook, resources, guid)
 				if not validation_status.IsSuccess and not self.hasValidator: return validation_status, None
-
+		log('%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle), 'validation')
 		ourNote = EvernoteNote()
 		ourNote.title = noteTitle.encode('utf-8')
 		if guid: callType = "update"; ourNote.guid = guid
