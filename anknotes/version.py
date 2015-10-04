@@ -37,18 +37,18 @@ class Version:
     seem to be the same for all version numbering classes.
     """
 
-    def __init__ (self, vstring=None):
+    def __init__(self, vstring=None):
         if vstring:
             self.parse(vstring)
 
-    def __repr__ (self):
+    def __repr__(self):
         return "%s ('%s')" % (self.__class__.__name__, str(self))
 
 
 # Interface for version-number classes -- must be implemented
 # by the following classes (the concrete ones -- Version should
 # be treated as an abstract class).
-#    __init__ (string) - create and take same action as 'parse'
+# __init__ (string) - create and take same action as 'parse'
 #                        (string parameter is optional)
 #    parse (string)    - convert a string representation to whatever
 #                        internal representation is appropriate for
@@ -62,8 +62,7 @@ class Version:
 #                        instance of your version class)
 
 
-class StrictVersion (Version):
-
+class StrictVersion(Version):
     """Version numbering for anal retentives and software idealists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of two or three
@@ -103,7 +102,7 @@ class StrictVersion (Version):
                             re.VERBOSE)
 
 
-    def parse (self, vstring):
+    def parse(self, vstring):
         match = self.version_re.match(vstring)
         if not match:
             raise ValueError, "invalid version number '%s'" % vstring
@@ -122,7 +121,7 @@ class StrictVersion (Version):
             self.prerelease = None
 
 
-    def __str__ (self):
+    def __str__(self):
 
         if self.version[2] == 0:
             vstring = string.join(map(str, self.version[0:2]), '.')
@@ -135,12 +134,12 @@ class StrictVersion (Version):
         return vstring
 
 
-    def __cmp__ (self, other):
+    def __cmp__(self, other):
         if isinstance(other, StringType):
             other = StrictVersion(other)
 
         compare = cmp(self.version, other.version)
-        if (compare == 0):              # have to compare prerelease
+        if (compare == 0):  # have to compare prerelease
 
             # case 1: neither has prerelease; they're equal
             # case 2: self has prerelease, other doesn't; other is greater
@@ -156,8 +155,8 @@ class StrictVersion (Version):
             elif (self.prerelease and other.prerelease):
                 return cmp(self.prerelease, other.prerelease)
 
-        else:                           # numeric versions don't match --
-            return compare              # prerelease stuff doesn't matter
+        else:  # numeric versions don't match --
+            return compare  # prerelease stuff doesn't matter
 
 
 # end class StrictVersion
@@ -227,8 +226,7 @@ class StrictVersion (Version):
 # the Right Thing" (ie. the code matches the conception).  But I'd rather
 # have a conception that matches common notions about version numbers.
 
-class LooseVersion (Version):
-
+class LooseVersion(Version):
     """Version numbering for anarchists and software realists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of a series of numbers,
@@ -262,12 +260,12 @@ class LooseVersion (Version):
 
     component_re = re.compile(r'(\d+ | [a-z]+ | \.)', re.VERBOSE)
 
-    def __init__ (self, vstring=None):
+    def __init__(self, vstring=None):
         if vstring:
             self.parse(vstring)
 
 
-    def parse (self, vstring):
+    def parse(self, vstring):
         # I've given up on thinking I can reconstruct the version string
         # from the parsed tuple -- so I just store the string here for
         # use by __str__
@@ -283,15 +281,15 @@ class LooseVersion (Version):
         self.version = components
 
 
-    def __str__ (self):
+    def __str__(self):
         return self.vstring
 
 
-    def __repr__ (self):
+    def __repr__(self):
         return "LooseVersion ('%s')" % str(self)
 
 
-    def __cmp__ (self, other):
+    def __cmp__(self, other):
         if isinstance(other, StringType):
             other = LooseVersion(other)
 
