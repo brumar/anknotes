@@ -4,6 +4,7 @@ anknotes/extra/dev/anknotes.developer*
 anknotes/extra/dev/beyond*
 anknotes/extra/dev/auth_tokens.txt
 anknotes/extra/user/
+anknotes/constants_user.py
 *.bk
 *.lnk
 *.py-bkup
