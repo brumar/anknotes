@@ -22,6 +22,7 @@ from anknotes import menu, settings
 
 ### Anki Imports
 from anki.find import Finder
+from anki.db import DB
 from anki.hooks import wrap, addHook
 from aqt.preferences import Preferences
 from aqt import mw, browser
@@ -325,10 +326,38 @@ def anknotes_profile_loaded():
         # menu.resync_with_local_db()
         pass
 
+def anknotes_scalar(self, *a, **kw):
+    log('Call to DB.scalar(). Self should be instance of cursor: %s\n   - Self:   %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(a), pf(kw)), 'sql\\scalar')
+    last_query = self.ank_lastquery if hasattr(self, 'ank_lastquery') else '<None>'
+    try:
+        res = self.execute(*a, **kw)
+    except TypeError:
+        log(" > ERROR with scalar while executing query: " + str(e), 'sql\\scalar') 
+        log(" >  LAST QUERY: " + last_query, 'sql\\scalar') 
+        raise 
+    log(' > Result: %s' % pf(res), 'sql\\scalar')    
+    try:
+        res = res.fetchone()
+    except TypeError:
+        log(" > ERROR with scalar while fetching result: " + str(e), 'sql\\scalar') 
+        log(" >  LAST QUERY: " + last_query, 'sql\\scalar') 
+        raise     
+    if res:
+        return res[0]
+    return None        
+    
+def anknotes_execute(self, sql, *a, **ka):
+    log('Call to DB.execute(). Self should be instance of cursor: %s\n   - Self:   %s\n   - SQL:    %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(sql), pf(a), pf(kw)), 'sql\\execute')
+    self.ank_lastquery = sql     
 
 def anknotes_onload():
+    global inAnki
     addHook("profileLoaded", anknotes_profile_loaded)
     addHook("search", anknotes_search_hook)
+    rm_log_path('sql\\')
+    if inAnki:
+        DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
+        DB.execute = wrap(DB.execute, anknotes_scalar, "before")
     Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")
     Finder.findCards = wrap(Finder.findCards, anknotes_finder_findCards_wrap, "around")
     browser.Browser._systemTagTree = wrap(browser.Browser._systemTagTree, anknotes_browser_tagtree_wrap, "around")

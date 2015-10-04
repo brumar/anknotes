@@ -29,7 +29,7 @@ class FILES:
         MAIN = DEFAULT_NAME
         ACTIVE = DEFAULT_NAME
         USE_CALLER_NAME = False
-        DISABLED = ['sql*']
+        DISABLED = list()
 
     class ANCILLARY:
         TEMPLATE = os.path.join(FOLDERS.ANCILLARY, 'FrontTemplate.htm')
@@ -247,4 +247,5 @@ class SETTINGS:
 
 
 # Allow user-defined options; place at end of document so that user-defined options override
-from anknotes.constants_user import *
+if os.path.isfile(os.path.join(PATH, 'constants_user.py')):
+    from anknotes.constants_user import *

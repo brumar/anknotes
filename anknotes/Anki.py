@@ -81,14 +81,12 @@ class Anki:
         :type update: bool
         :return: Count of notes successfully added or updated
         """
-        count_update = 0
+        new_nids=[]
         action_str = ['ADDING', 'UPDATING'][update]
         tmr = stopwatch.Timer(len(evernote_notes), 100,
                               infoStr=action_str + " EVERNOTE NOTE(S) %s ANKI" % ['TO', 'IN'][update],
                               label='AddEvernoteNotes')
 
-        # if tmr.willReportProgress:
-        # log_banner(), tmr.label, append_newline=False)
         for ankiNote in evernote_notes:
             try:
                 title = ankiNote.FullTitle
@@ -126,11 +124,16 @@ class Anki:
                                                     count_update=tmr.counts.success, max_count=tmr.max)
             anki_note_prototype._log_update_if_unchanged_ = log_update_if_unchanged
             anki_result = anki_note_prototype.update_note() if update else anki_note_prototype.add_note()
-            if anki_result != -1: tmr.reportSuccess(update, True)
+            if anki_result != -1: 
+                tmr.reportSuccess(update, True)
+                if not update:
+                    new_nids.append([anki_result, ankiNote.Guid])
             else:
                 tmr.reportError(True)
                 log("ANKI ERROR WHILE %s EVERNOTE NOTES: " % action_str + str(anki_result), 'AddEvernoteNotes-Error')
         tmr.Report()
+        if len(new_nids) > 0:
+            ankDB().executemany("UPDATE %s SET nid = ? WHERE guid = ?" % TABLES.EVERNOTE.NOTES, new_nids)
         return tmr.counts.success
 
     def delete_anki_cards(self, evernote_guids):

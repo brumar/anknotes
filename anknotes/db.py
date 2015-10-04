@@ -257,12 +257,14 @@ class ank_DB(object):
         if isinstance(encpath, unicode):
             encpath = path.encode("utf-8")
         if path:
+            log('Creating local ankDB instance from path: ' + path, 'sql\\ankDB')
             self._db = sqlite.connect(encpath, timeout=timeout)
             self._db.row_factory = sqlite.Row
             if text:
                 self._db.text_factory = text
             self._path = path
         else:
+            log('Creating local ankDB instance from Anki DB instance at: ' + mw.col.db._path, 'sql\\ankDB')
             self._db = mw.col.db._db
             self._path = mw.col.db._path
             self._db.row_factory = sqlite.Row
@@ -273,7 +275,8 @@ class ank_DB(object):
         self._db.row_factory = sqlite.Row
 
     def execute(self, sql, *a, **ka):
-        log_sql(sql, a, ka)
+        log_sql(sql, a, ka, self=self)
+        self.ankDB_lastquery = sql 
         s = sql.strip().lower()
         # mark modified?
         for stmt in "insert", "update", "delete":
@@ -321,10 +324,25 @@ class ank_DB(object):
         self._db.rollback()
 
     def scalar(self, sql, *a, **kw):
-        res = self.execute(sql, *a, **kw).fetchone()
+        log('Call to DB.ank_scalar(). Self should be instance of cursor: %s\n   - Self:   %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(a), pf(kw)), 'sql\\ank_scalar')
+        last_query = self.ankDB_lastquery if hasattr(self, 'ankDB_lastquery') else '<None>'
+        try:
+            res = self.execute(*a, **kw)
+        except TypeError:
+            log(" > ERROR with ank_scalar while executing query: " + str(e), 'sql\\ank_scalar') 
+            log(" >  LAST QUERY: " + last_query, 'sql\\ank_scalar') 
+            raise 
+        log(' > Result: %s' % pf(res), 'sql\\ank_scalar')    
+        try:
+            res = res.fetchone()
+        except TypeError:
+            log(" > ERROR with ank_scalar while fetching result: " + str(e), 'sql\\ank_scalar') 
+            log(" >  LAST QUERY: " + last_query, 'sql\\ank_scalar') 
+            raise     
+        log('  > Result: %s' % pf(res), 'sql\\ank_scalar')
         if res:
             return res[0]
-        return None
+        return None      
 
     def all(self, sql, *a, **kw):
         return self.execute(sql, *a, **kw).fetchall()

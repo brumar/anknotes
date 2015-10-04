@@ -547,16 +547,17 @@ def log(content=None, filename=None, **kwargs):
     write_file_contents(content, full_path, print_content=print_content, **kwargs)
 
 
-def log_sql(content, a=None, kw=None, **kwargs):
+def log_sql(content, a=None, kw=None, self=None, sql_fn_prefix='', **kwargs):
     table = content.replace('`', '').replace(',', '')
     i = table.find("FROM")
     table = table[i + 4:].strip()
     table = table[:table.find(' ')]
     if a or kw:
         content = u"SQL: %s" % content
+        if self: content += u"\n\nSelf: " + pf(self, pf_encode_text=False, pf_decode_text=True)
         if a: content += u"\n\nArgs: " + pf(a, pf_encode_text=False, pf_decode_text=True)
         if kw: content += u"\n\nKwargs: " + pf(kw, pf_encode_text=False, pf_decode_text=True)
-    log(content, 'sql\\' + table, **kwargs)
+    log(content, 'sql\\' + sql_fn_prefix + table, **kwargs)
 
 
 def log_error(content, **kwargs):
