@@ -29,7 +29,7 @@ class FILES:
         MAIN = DEFAULT_NAME
         ACTIVE = DEFAULT_NAME
         USE_CALLER_NAME = False
-        DISABLED = list()
+        DISABLED = ['finder*', 'counter*']
 
     class ANCILLARY:
         TEMPLATE = os.path.join(FOLDERS.ANCILLARY, 'FrontTemplate.htm')

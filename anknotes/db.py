@@ -276,7 +276,7 @@ class ank_DB(object):
 
     def execute(self, sql, *a, **ka):
         log_sql(sql, a, ka, self=self)
-        self.ankDB_lastquery = sql 
+        self.ankdb_lastquery = sql 
         s = sql.strip().lower()
         # mark modified?
         for stmt in "insert", "update", "delete":
@@ -324,25 +324,38 @@ class ank_DB(object):
         self._db.rollback()
 
     def scalar(self, sql, *a, **kw):
-        log('Call to DB.ank_scalar(). Self should be instance of cursor: %s\n   - Self:   %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(a), pf(kw)), 'sql\\ank_scalar')
-        last_query = self.ankDB_lastquery if hasattr(self, 'ankDB_lastquery') else '<None>'
+        log_text = 'Call to DB.ankdb_scalar():'
+        if not isinstance(self, DB): 
+            log_text += '\n   - Self:       ' + pf(self)
+        if len(a)>0:
+            log_text += '\n   - Args:       ' + pf(a)
+        if len(kw)>0:
+            log_text += '\n   - KWArgs:     ' + pf(kw)    
+        last_query='<None>'
+        if hasattr(self, 'ankdb_lastquery'):
+            last_query = self.ankdb_lastquery
+            if isinstance(last_query, str) or isinstance(last_query, unicode):
+                last_query = last_query[:50]
+            else:
+                last_query = pf(last_query)
+            log_text += '\n   - Last Query: ' + last_query
+        log(log_text + '\n', 'sql\\ankdb_scalar')    
         try:
             res = self.execute(*a, **kw)
         except TypeError:
-            log(" > ERROR with ank_scalar while executing query: " + str(e), 'sql\\ank_scalar') 
-            log(" >  LAST QUERY: " + last_query, 'sql\\ank_scalar') 
+            log(" > ERROR with ankdb_scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise 
-        log(' > Result: %s' % pf(res), 'sql\\ank_scalar')    
+        if not isinstance(res, sqlite.Cursor):
+            log(' > Cursor: %s' % pf(res), 'sql\\ankdb_scalar')    
         try:
             res = res.fetchone()
         except TypeError:
-            log(" > ERROR with ank_scalar while fetching result: " + str(e), 'sql\\ank_scalar') 
-            log(" >  LAST QUERY: " + last_query, 'sql\\ank_scalar') 
+            log(" > ERROR with ankdb_scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise     
-        log('  > Result: %s' % pf(res), 'sql\\ank_scalar')
+        log_blank('sql\\ankdb_scalar')
         if res:
             return res[0]
-        return None      
+        return None  
 
     def all(self, sql, *a, **kw):
         return self.execute(sql, *a, **kw).fetchall()

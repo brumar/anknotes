@@ -319,7 +319,7 @@ Once the command line tool is done running, you will get a summary of the result
         if showInfo(
                         "Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (
                         missing_evernote_notes_count,
-                        convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES))),
+                        convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES, filter_disabled=False))),
                 cancelButton=True, richText=True):
             import_from_evernote_manual_metadata(missing_evernote_notes)
 
@@ -343,7 +343,7 @@ Anki will be unresponsive until the validation tool completes. This will take at
     allowUpload = True
     if showAlerts:
         tds = [[str(count), '<a href="%s">VIEW %s VALIDATIONS LOG</a>' % (fn, key.upper())] for key, fn, count in [
-            [key, get_log_full_path('MakeNoteQueue\\' + key, as_url_link=True),
+            [key, get_log_full_path('MakeNoteQueue\\' + key, filter_disabled=False, as_url_link=True),
              int(re.search(r'CHECKING +(\d{1,3}) +' + key.upper() + ' MAKE NOTE QUEUE ITEMS', stdoutdata).group(1))]
             for key in ['Pending', 'Successful', 'Failed']] if count > 0]
         if not tds:

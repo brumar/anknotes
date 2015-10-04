@@ -288,8 +288,8 @@ def reset_everything():
 
 
 def anknotes_profile_loaded():
-    if not os.path.exists(os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)): os.makedirs(
-        os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION))
+    if not os.path.exists(os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)): 
+        os.makedirs(os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION))
     with open(FILES.USER.LAST_PROFILE_LOCATION, 'w+') as myFile:
         print>> myFile, mw.pm.name
     menu.anknotes_load_menu_settings()
@@ -327,37 +327,64 @@ def anknotes_profile_loaded():
         pass
 
 def anknotes_scalar(self, *a, **kw):
-    log('Call to DB.scalar(). Self should be instance of cursor: %s\n   - Self:   %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(a), pf(kw)), 'sql\\scalar')
-    last_query = self.ank_lastquery if hasattr(self, 'ank_lastquery') else '<None>'
+    log_text = 'Call to DB.scalar():'
+    if not isinstance(self, DB): 
+        log_text += '\n   - Self:       ' + pf(self)
+    if len(a)>0:
+        log_text += '\n   - Args:       ' + pf(a)
+    if len(kw)>0:
+        log_text += '\n   - KWArgs:     ' + pf(kw)    
+    last_query='<None>'
+    if hasattr(self, 'ank_lastquery'):
+        last_query = self.ank_lastquery
+        if isinstance(last_query, str) or isinstance(last_query, unicode):
+            last_query = last_query[:50]
+        else:
+            last_query = pf(last_query)
+        log_text += '\n   - Last Query: ' + last_query
+    log(log_text + '\n', 'sql\\scalar')    
     try:
         res = self.execute(*a, **kw)
     except TypeError:
-        log(" > ERROR with scalar while executing query: " + str(e), 'sql\\scalar') 
-        log(" >  LAST QUERY: " + last_query, 'sql\\scalar') 
+        log(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
         raise 
-    log(' > Result: %s' % pf(res), 'sql\\scalar')    
+    if not isinstance(res, sqlite.Cursor):
+        log(' > Cursor: %s' % pf(res), 'sql\\scalar')    
     try:
         res = res.fetchone()
     except TypeError:
-        log(" > ERROR with scalar while fetching result: " + str(e), 'sql\\scalar') 
-        log(" >  LAST QUERY: " + last_query, 'sql\\scalar') 
+        log(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
         raise     
+    log_blank('sql\\scalar')
     if res:
         return res[0]
     return None        
     
-def anknotes_execute(self, sql, *a, **ka):
-    log('Call to DB.execute(). Self should be instance of cursor: %s\n   - Self:   %s\n   - SQL:    %s\n   - Args:   %s\n   - KWArgs: %s' % (str(type(self)), pf(self), pf(sql), pf(a), pf(kw)), 'sql\\execute')
+def anknotes_execute(self, sql, *a, **kw):    
+    log_text = 'Call to DB.execute():'
+    if not isinstance(self, DB): 
+        log_text += '\n   - Self:       ' + pf(self)
+    if len(a)>0:
+        log_text += '\n   - Args:       ' + pf(a)
+    if len(kw)>0:
+        log_text += '\n   - KWArgs:     ' + pf(kw)    
+    last_query=sql
+    if isinstance(last_query, str) or isinstance(last_query, unicode):
+        last_query = last_query[:50]
+    else:
+        last_query = pf(last_query)
+    log_text += '\n   - Query:     ' + last_query
+    log(log_text + '\n\n', 'sql\\execute')
     self.ank_lastquery = sql     
 
 def anknotes_onload():
     global inAnki
     addHook("profileLoaded", anknotes_profile_loaded)
     addHook("search", anknotes_search_hook)
-    rm_log_path('sql\\')
+    rm_log_paths('sql\\', 'finder\\')
     if inAnki:
         DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
-        DB.execute = wrap(DB.execute, anknotes_scalar, "before")
+        DB.execute = wrap(DB.execute, anknotes_execute, "before")
     Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")
     Finder.findCards = wrap(Finder.findCards, anknotes_finder_findCards_wrap, "around")
     browser.Browser._systemTagTree = wrap(browser.Browser._systemTagTree, anknotes_browser_tagtree_wrap, "around")

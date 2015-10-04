@@ -399,9 +399,15 @@ def log_blank(filename=None, *args, **kwargs):
 def log_plain(*args, **kwargs):
     log(*args, **DictCaseInsensitive(kwargs, timestamp=False))
 
+def rm_log_paths(*args, **kwargs):
+    for arg in args: 
+        rm_log_path(arg, **kwargs)
 
-def rm_log_path(filename='*', subfolders_only=False, retry_errors=0):
-    path = os.path.dirname(os.path.abspath(get_log_full_path(filename)))
+def rm_log_path(filename='*', subfolders_only=False, retry_errors=0, *args, **kwargs):
+    path = get_log_full_path(filename, filter_disabled=False)
+    path = os.path.abspath(path)
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
     if path is FOLDERS.LOGS or FOLDERS.LOGS not in path: return
     rm_log_path.errors = []
 
@@ -452,7 +458,7 @@ def end_current_log(fn=None):
         _log_filename_history = _log_filename_history[:-1]
 
 
-def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix='', **kwargs):
+def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix='', filter_disabled=True, **kwargs):
     global _log_filename_history
     log_base_name = FILES.LOGS.BASE_NAME
     filename_suffix = ''
@@ -471,11 +477,10 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
     else:
         if filename[0] is '+': filename = filename[1:]
         filename = (log_base_name + '-' if log_base_name and log_base_name[-1] != '\\' else '') + filename
-
     filename += filename_suffix
     if filename and filename[-1] == os.path.sep: filename += 'main'
     filename = re.sub(r'[^\w\-_\.\\]', '_', filename)
-    if filter(lambda x: fnmatch(filename, x), item_to_list(FILES.LOGS.DISABLED)): return False
+    if filter_disabled and filter(lambda x: fnmatch(filename, x), item_to_list(FILES.LOGS.DISABLED)): return False
     filename += ('.' if filename and filename[-1] is not '.' else '') + extension
     full_path = os.path.join(FOLDERS.LOGS, filename)
     if prefix:
@@ -529,7 +534,9 @@ def pad_lines_regex(content, timestamp=None, replace_newline=None, try_decode=Tr
 
 def write_file_contents(content, full_path, clear=False, try_encode=True, do_print=False, print_timestamp=True,
                         print_content=None, **kwargs):
-    if not os.path.exists(os.path.dirname(full_path)): full_path = get_log_full_path(full_path)
+    if not os.path.exists(os.path.dirname(full_path)): 
+        full_path = get_log_full_path(full_path)
+    if full_path is False: return 
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         try: print>> fileLog, content
         except UnicodeEncodeError: content = content.encode('utf-8'); print>> fileLog, content
@@ -642,7 +649,7 @@ def log_api(method, content='', **kwargs):
 
 def get_api_call_count():
     path = get_log_full_path('api')
-    if not os.path.exists(path): return 0
+    if path is False or not os.path.exists(path): return 0
     api_log = file(path, 'r').read().splitlines()
     count = 1
     for i in range(len(api_log), 0, -1):

@@ -134,7 +134,7 @@ def do_find_deleted_notes(all_anki_notes=None):
     results = [
         [
             log[1],
-            log[0] if log[1] == 0 else '<a href="%s">%s</a>' % (get_log_full_path(log[2], as_url_link=True), log[0]),
+            log[0] if log[1] == 0 else '<a href="%s">%s</a>' % (get_log_full_path(log[2], as_url_link=True, filter_disabled=False), log[0]),
             log[3] if len(log) > 3 else ''
         ]
         for log in logs]
