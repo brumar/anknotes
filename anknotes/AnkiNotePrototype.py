@@ -305,8 +305,7 @@ class AnkiNotePrototype:
         # log('Title, self.model_name, tags, self.model_name', 'detectnotemodel')
         # log(self.FullTitle, 'detectnotemodel')
         # log(self.ModelName, 'detectnotemodel')
-        if FIELDS.CONTENT in self.Fields and "{{c1:
-            :" in self.Fields[FIELDS.CONTENT]:
+        if FIELDS.CONTENT in self.Fields and "{{c1::" in self.Fields[FIELDS.CONTENT]:
             self.ModelName = MODELS.CLOZE
         if len(self.Tags) > 0:
             reverse_override = (TAGS.TOC in self.Tags or TAGS.AUTO_TOC in self.Tags)
@@ -318,9 +317,6 @@ class AnkiNotePrototype:
                 self.Tags.remove(TAGS.REVERSE_ONLY)
             if reverse_override:
                 self.ModelName = MODELS.DEFAULT
-
-                # log(self.Tags, 'detectnotemodel')
-                # log(self.ModelName, 'detectnotemodel')
 
     def model_id(self):
         if not self.ModelName:

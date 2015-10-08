@@ -219,10 +219,10 @@ def generateTitleParts(title):
         log('generateTitleParts Unable to re.sub')
         log(type(title))
         raise
-    if strTitle[-1] == ':
-        ': strTitle = strTitle[:-1]
-    if strTitle[0] == ':
-        ': strTitle = strTitle[1:]
+    if strTitle[-1] == ':':
+        strTitle = strTitle[:-1]
+    if strTitle[0] == ':':
+        strTitle = strTitle[1:]
     partsText = strTitle.split(':')
     count = len(partsText)
     for i in range(1, count + 1):

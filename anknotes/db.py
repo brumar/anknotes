@@ -12,7 +12,7 @@ inAnki = 'anki' in sys.modules
 
 ### Anki Shared Imports
 from anknotes.constants import *
-from anknotes.logging import log_sql
+from anknotes.logging import log_sql, log, log_blank
 
 if inAnki:
     from aqt import mw
@@ -355,11 +355,11 @@ class ank_DB(object):
         if where is None:
             where = '1'
         sql = 'SELECT COUNT(*) FROM ' + table + ' WHERE ' + where
-        retur self.scalar(sql)
+        return self.scalar(sql)
         
     def scalar(self, sql, *a, **kw):
         log_text = 'Call to DB.ankdb_scalar():'
-        if not isinstance(self, DB): 
+        if not isinstance(self, ank_DB): 
             log_text += '\n   - Self:       ' + pf(self)
         if len(a)>0:
             log_text += '\n   - Args:       ' + pf(a)
@@ -375,15 +375,15 @@ class ank_DB(object):
             log_text += '\n   - Last Query: ' + last_query
         log(log_text + '\n', 'sql\\ankdb_scalar')    
         try:
-            res = self.execute(*a, **kw)
-        except TypeError:
+            res = self.execute(sql, *a, **kw)
+        except TypeError, e:
             log(" > ERROR with ankdb_scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise 
         if not isinstance(res, sqlite.Cursor):
             log(' > Cursor: %s' % pf(res), 'sql\\ankdb_scalar')    
         try:
             res = res.fetchone()
-        except TypeError:
+        except TypeError, e:
             log(" > ERROR with ankdb_scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise     
         log_blank('sql\\ankdb_scalar')

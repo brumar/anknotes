@@ -171,21 +171,21 @@ def create_subnotes(guids):
                     sublist.heading = sublist.heading[:-1]
                     last_char = sublist.heading[-1:]
                 sublist.is_subnote = matches_list(sublist.heading, HEADINGS.TOP) > -1 or matches_list(sublist.heading, HEADINGS.BOTTOM) > -1
-                if last_char == ':
-                    ':
+                if last_char == ':':
                     sublist.is_subnote = True 
                     sublist.heading = sublist.heading[:-1]
                 if not sublist.is_subnote:
                     return sublist #None, sublist_options  
-                sublist.sublist = li
+                sublist.subnote = li
                 return sublist
                 # return li, [heading, is_reversible, use_descriptor]
             
-            def add_note(contents, names, levels):
-                l.go("NOTE:".ljust(16) + '%-6s %-20s %s' % (
-                    '.'.join(map(str, levels)) + ':', ': '.join(names), contents), 'notes',
-                     crosspost=('.'.join(map(str, levels)) + ' - ' + '-'.join(names)))
-                myNotes.append([levels, names, contents])
+            def add_note(sublist, names, levels):
+                subnote_html = unicode(sublist.subnote)
+                log_text = u'%-6s %-20s %s' % (u'.'.join(map(str, levels)) + u':', u': '.join(names), subnote_html)
+                log_fn = u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
+                l.go(u"NOTE:".ljust(16) + log_text, 'notes', crosspost=log_fn)
+                myNotes.append([levels, names, subnote_html])
 
             def process_list_item(contents, under_ul=False):
                 list_items_full = []
@@ -194,7 +194,7 @@ def create_subnotes(guids):
                     if not isinstance(li, Tag): 
                         sublist.list_items.append(unicode(li))
                         continue
-                    sublist = check_subnote(li, sublist): 
+                    sublist = check_subnote(li, sublist)
                     if sublist.is_subnote:
                         break
                     sublist.list_items.append(unicode(li))
@@ -207,12 +207,11 @@ def create_subnotes(guids):
                 if isinstance(lst_items, Tag):
                     full_text = unicode(str(lst_items.contents), 'utf-8')
                     if len(lst_items.contents) is 0:
-                        l.go('NO TOP TEXT:'.ljust(16) + '%s%s: %s' % (
+                        l.go('NO TOP TEXT:'.ljust(16) + u'%s%s: %s' % (
                             '\t' * level, '.'.join(map(str, levels)), full_text), crosspost=['notoptext'])
                         top_text = "N/A"
                     else: 
-                        top_text = unicode(str(lst_items.contents[0]),
-                                             'utf-8')  # strip_tags(str(lst_items.contents[0])).strip()
+                        top_text = unicode(lst_items.contents[0])
                     if lst_items.name == 'ol' or lst_items.name == 'ul':
                         # levels[-1] += 1            
                         new_levels = levels[:]
@@ -280,8 +279,8 @@ def create_subnotes(guids):
     myNotes = []
     if import_lxml() is False:
         return False
-    from anknotes.shared import lxml
-    from BeautifulSoup import BeautifulSoup, NavigableString, Tag
+    from anknotes.imports import lxml
+    from bs4 import BeautifulSoup, NavigableString, Tag
     from copy import copy
     l = Logger(default_filename='bs4', timestamp=False, rm_path=True)
     for guid in guids: 
