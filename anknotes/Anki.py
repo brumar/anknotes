@@ -25,7 +25,8 @@ try:
     from anki.notes import Note as AnkiNote
     import aqt
     from aqt import mw
-except: pass
+except:
+    pass
 
 
 class Anki:
@@ -56,7 +57,8 @@ class Anki:
             deck += u'::' + notebook.Stack
         deck += "::" + notebook.Name
         deck = deck.replace(": ", "::")
-        if deck[:2] == '::':
+        if deck[:
+            2] == '::':
             deck = deck[2:]
         return deck
 
@@ -146,7 +148,8 @@ class Anki:
 
     @staticmethod
     def get_evernote_model_styles():
-        if MODELS.OPTIONS.IMPORT_STYLES: return '@import url("%s");' % FILES.ANCILLARY.CSS
+        if MODELS.OPTIONS.IMPORT_STYLES:
+            return '@import url("%s");' % FILES.ANCILLARY.CSS
         return file(os.path.join(FOLDERS.ANCILLARY, FILES.ANCILLARY.CSS), 'r').read()
 
     def add_evernote_model(self, mm, modelName, forceRebuild=False, cloze=False, allowForceRebuild=True):
@@ -159,11 +162,15 @@ class Anki:
             if not evernote_account_info.Valid:
                 info = ankDB().first(
                     "SELECT uid, shard, COUNT(uid) as c1, COUNT(shard) as c2 from %s GROUP BY uid, shard ORDER BY c1 DESC, c2 DESC LIMIT 1" % TABLES.SEE_ALSO)
-                if info and evernote_account_info.update(info[0], info[1]): forceRebuild = True
+                if info and evernote_account_info.update(info[0], info[1]):
+                    forceRebuild = True
             if evernote_account_info.Valid:
-                if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front: forceRebuild = True
-            if model['css'] != model_css: forceRebuild = True
-            if model['tmpls'][0]['qfmt'] != templates['Front']: forceRebuild = True
+                if not "evernote_uid = '%s'" % evernote_account_info.uid in front or not "evernote_shard = '%s'" % evernote_account_info.shard in front:
+                    forceRebuild = True
+            if model['css'] != model_css:
+                forceRebuild = True
+            if model['tmpls'][0]['qfmt'] != templates['Front']:
+                forceRebuild = True
         if not model or forceRebuild:
             if model:
                 for t in model['tmpls']:
@@ -296,7 +303,8 @@ class Anki:
         for a_id in ids:
             fields = self.get_anki_fields_from_anki_note_id(a_id, [FIELDS.CONTENT])
             evernote_guid = get_evernote_guid_from_anki_fields(fields)
-            if not evernote_guid: continue
+            if not evernote_guid:
+                continue
             evernote_guids.append(evernote_guid)
             log('Anki USN for Note %s is %s' % (evernote_guid, fields[FIELDS.UPDATE_SEQUENCE_NUM]), 'anki-usn')
             if FIELDS.UPDATE_SEQUENCE_NUM in fields:
@@ -312,7 +320,8 @@ class Anki:
         for a_id in ids:
             fields = self.get_anki_fields_from_anki_note_id(a_id)
             evernote_guid = get_evernote_guid_from_anki_fields(fields)
-            if evernote_guid: evernote_guids[evernote_guid] = fields
+            if evernote_guid:
+                evernote_guids[evernote_guid] = fields
         return evernote_guids
 
     def search_evernote_models_query(self):
@@ -333,7 +342,8 @@ class Anki:
     def get_anki_note_from_evernote_guid(self, evernote_guid):
         col = self.collection()
         ids = col.findNotes(FIELDS.EVERNOTE_GUID_PREFIX + evernote_guid)
-        if not ids or not ids[0]: return None
+        if not ids or not ids[0]:
+            return None
         note = AnkiNote(col, None, ids[0])
         return note
 
@@ -396,9 +406,12 @@ class Anki:
         for row in results:
             target_guid = row[0]
             toc_guid = row[1]
-            if toc_guid not in all_toc_guids: continue
-            if target_guid not in all_toc_guids and target_guid not in all_child_guids: continue
-            if target_guid not in grouped_results: grouped_results[target_guid] = [row[2], []]
+            if toc_guid not in all_toc_guids:
+                continue
+            if target_guid not in all_toc_guids and target_guid not in all_child_guids:
+                continue
+            if target_guid not in grouped_results:
+                grouped_results[target_guid] = [row[2], []]
             toc_titles[toc_guid] = row[3]
             grouped_results[target_guid][1].append(toc_guid)
         tmr = stopwatch.Timer(len(grouped_results), label='insert_toc')
@@ -414,7 +427,8 @@ class Anki:
         logged_missing_anki_note = False
         # sorted_results = sorted(grouped_results.items(), key=lambda s: s[1][0])
         # log.add(sorted_results)
-        for target_guid, target_guid_info in sorted(grouped_results.items(), key=lambda s: s[1][0]):
+        for target_guid, target_guid_info in sorted(grouped_results.items(), key=lambda s:
+            s[1][0]):
             note_title, toc_guids = target_guid_info
             ankiNote = self.get_anki_note_from_evernote_guid(target_guid)
             if not ankiNote:
@@ -441,7 +455,8 @@ class Anki:
             invalid_see_also_links_count = len(invalid_see_also_links)
             if invalid_see_also_links_count > 0:
                 for link in see_also_whole_links:
-                    if link.Guid not in invalid_see_also_links: continue
+                    if link.Guid not in invalid_see_also_links:
+                        continue
                     see_also_html = remove_evernote_link(link, see_also_html)
             see_also_links -= invalid_see_also_links
             see_also_count = len(see_also_links)
@@ -494,8 +509,10 @@ class Anki:
             see_also_html = see_also_html.replace('evernote:///', 'evernote://')
             changed = see_also_html != fields[FIELDS.SEE_ALSO]
             crosspost = []
-            if new_toc_count: crosspost.append(tmr.label + '-new')
-            if invalid_see_also_links: crosspost.append(tmr.label + '-invalid')
+            if new_toc_count:
+                crosspost.append(tmr.label + '-new')
+            if invalid_see_also_links:
+                crosspost.append(tmr.label + '-invalid')
             log.go('  %s  |  %2d TOTAL TOC''s  |  %s  |  %s  |    %s%s' % (
                 format_count('%2d NEW TOC''s', new_toc_count), len(toc_guids),
                 format_count('%2d EXISTING LINKS', see_also_count),
@@ -508,7 +525,8 @@ class Anki:
                                                     count_update=count_update, max_count=tmr.max)
             anki_note_prototype._log_update_if_unchanged_ = (
                 changed or new_toc_count + invalid_see_also_links_count > 0)
-            if anki_note_prototype.update_note(): count_update += 1
+            if anki_note_prototype.update_note():
+                count_update += 1
             count += 1
         db._db.row_factory = sqlite.Row
 
@@ -528,7 +546,8 @@ class Anki:
             enLinks = find_evernote_links(toc_entry['content'])
             for enLink in enLinks:
                 target_evernote_guid = enLink.Guid
-                if not check_evernote_guid_is_valid(target_evernote_guid): l.go(
+                if not check_evernote_guid_is_valid(target_evernote_guid):
+                    l.go(
                     "Invalid Target GUID for %-50s %s" % (toc_link_title + ':', target_evernote_guid),
                     'error'); continue
                 base = {
@@ -568,11 +587,15 @@ class Anki:
         for source_guid in source_guids:
             i += 1
             note = self.get_anki_note_from_evernote_guid(source_guid)
-            if not note: continue
-            if TAGS.TOC in note.tags: continue
+            if not note:
+                continue
+            if TAGS.TOC in note.tags:
+                continue
             for fld in note._model['flds']:
-                if FIELDS.TITLE in fld.get('name'): note_title = note.fields[fld.get('ord')]; continue
-            if not note_title: log_error(
+                if FIELDS.TITLE in fld.get('name'):
+                    note_title = note.fields[fld.get('ord')]; continue
+            if not note_title:
+                log_error(
                 "Could not find note title for %s for insert_toc_and_outline_contents_into_notes" % note.guid); continue
             note_toc = ""
             note_outline = ""
@@ -589,11 +612,14 @@ class Anki:
                     linked_note_title = linked_notes_fields[target_evernote_guid][FIELDS.TITLE]
                 else:
                     linked_note = self.get_anki_note_from_evernote_guid(target_evernote_guid)
-                    if not linked_note: continue
+                    if not linked_note:
+                        continue
                     linked_note_contents = u""
                     for fld in linked_note._model['flds']:
-                        if FIELDS.CONTENT in fld.get('name'): linked_note_contents = linked_note.fields[fld.get('ord')]
-                        elif FIELDS.TITLE in fld.get('name'): linked_note_title = linked_note.fields[fld.get('ord')]
+                        if FIELDS.CONTENT in fld.get('name'):
+                            linked_note_contents = linked_note.fields[fld.get('ord')]
+                        elif FIELDS.TITLE in fld.get('name'):
+                            linked_note_title = linked_note.fields[fld.get('ord')]
                     if linked_note_contents:
                         linked_notes_fields[target_evernote_guid] = {
                             FIELDS.TITLE:   linked_note_title,
@@ -607,24 +633,33 @@ class Anki:
                             i, source_guids_count, source_guid, note_title), 'See Also')
                     if is_toc:
                         toc_count += 1
-                        if toc_count is 1: toc_header = "<span class='header'>TABLE OF CONTENTS</span>: 1. <span class='header'>%s</span>" % linked_note_title
-                        else: note_toc += "<br><hr>"; toc_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
+                        if toc_count is 1:
+                            toc_header = "<span class='header'>TABLE OF CONTENTS</span>: 1. <span class='header'>%s</span>" % linked_note_title
+                        else:
+                            note_toc += "<br><hr>"; toc_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
                             toc_count, linked_note_title)
                         note_toc += linked_note_contents
                         log("   > Appending TOC #%d contents" % toc_count, 'See Also')
                     else:
                         outline_count += 1
-                        if outline_count is 1: outline_header = "<span class='header'>OUTLINE</span>: 1. <span class='header'>%s</span>" % linked_note_title
-                        else: note_outline += "<BR><HR>";  outline_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
+                        if outline_count is 1:
+                            outline_header = "<span class='header'>OUTLINE</span>: 1. <span class='header'>%s</span>" % linked_note_title
+                        else:
+                            note_outline += "<BR><HR>";  outline_header += "<span class='See_Also'> | </span> %d. <span class='header'>%s</span>" % (
                             outline_count, linked_note_title)
                         note_outline += linked_note_contents
                         log("   > Appending Outline #%d contents" % outline_count, 'See Also')
-            if outline_count + toc_count is 0: continue
-            if outline_count > 1: note_outline = "<span class='Outline'>%s</span><BR><BR>" % outline_header + note_outline
-            if toc_count > 1: note_toc = "<span class='TOC'>%s</span><BR><BR>" % toc_header + note_toc
+            if outline_count + toc_count is 0:
+                continue
+            if outline_count > 1:
+                note_outline = "<span class='Outline'>%s</span><BR><BR>" % outline_header + note_outline
+            if toc_count > 1:
+                note_toc = "<span class='TOC'>%s</span><BR><BR>" % toc_header + note_toc
             for fld in note._model['flds']:
-                if FIELDS.TOC in fld.get('name'): note.fields[fld.get('ord')] = note_toc
-                elif FIELDS.OUTLINE in fld.get('name'): note.fields[fld.get('ord')] = note_outline
+                if FIELDS.TOC in fld.get('name'):
+                    note.fields[fld.get('ord')] = note_toc
+                elif FIELDS.OUTLINE in fld.get('name'):
+                    note.fields[fld.get('ord')] = note_outline
             log(" > Flushing Note \r\n", 'See Also')
             note.flush()
 

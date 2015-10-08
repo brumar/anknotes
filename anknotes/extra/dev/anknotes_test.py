@@ -177,7 +177,8 @@ class AnkiNotePrototype:
         self.process_note_content()
 
         # Dynamically determine Anki Card Type 
-        if FIELD_CONTENT in self.fields and "{{c1::" in self.fields[FIELD_CONTENT]:
+        if FIELD_CONTENT in self.fields and "{{c1:
+            :" in self.fields[FIELD_CONTENT]:
             self.model_name = MODEL_EVERNOTE_CLOZE
         elif EVERNOTE_TAG_REVERSIBLE in self.tags:
             self.model_name = MODEL_EVERNOTE_REVERSIBLE
@@ -195,7 +196,8 @@ class AnkiNotePrototype:
 
 
 def test_anki(title, guid, filename=""):
-    if not filename: filename = title
+    if not filename:
+        filename = title
     fields = {
         FIELD_TITLE:         title, FIELD_CONTENT: file(os.path.join(PATH, filename + ".enex"), 'r').read(),
         FIELD_EVERNOTE_GUID: guid

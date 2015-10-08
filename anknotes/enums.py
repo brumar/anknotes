@@ -11,7 +11,8 @@ class AutoNumber(Enum):
         :rtype : AutoNumber
         """
         value = len(cls.__members__) + 1
-        if args and args[0]: value = args[0]
+        if args and args[0]:
+            value = args[0]
         while value in cls._value2member_map_: value += 1
         obj = object.__new__(cls)
         obj._id_ = value

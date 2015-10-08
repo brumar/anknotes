@@ -62,7 +62,8 @@ def do_find_deleted_notes(all_anki_notes=None):
                           FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES)
                 log_plain(repr(find_title) + '\n ' + repr(title), FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES + '-2')
                 anki_mismatch += 1
-                if delete_title_mismatches: del all_anki_notes[guid]
+                if delete_title_mismatches:
+                    del all_anki_notes[guid]
     mismatch = 0
     missing_evernote_notes = []
     for enLink in find_evernote_links(enTableOfContents):
@@ -78,7 +79,8 @@ def do_find_deleted_notes(all_anki_notes=None):
             else:
                 log_plain(guid + '::: ' + title + '\n ' + ' ' * len(guid) + '::: ' + find_title,
                           FILES.LOGS.FDN.ANKNOTES_TITLE_MISMATCHES)
-                if delete_title_mismatches: del find_guids[guid]
+                if delete_title_mismatches:
+                    del find_guids[guid]
                 mismatch += 1
         else:
             log_plain(guid + '::: ' + title, FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES)

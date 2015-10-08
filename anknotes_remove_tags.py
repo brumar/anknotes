@@ -4,8 +4,10 @@ inAnki='anki' in sys.modules
 
 if not inAnki:
     from anknotes.shared import *
-    try: from pysqlite2 import dbapi2 as sqlite
-    except ImportError: from sqlite3 import dbapi2 as sqlite
+    try:
+        from pysqlite2 import dbapi2 as sqlite
+    except ImportError:
+        from sqlite3 import dbapi2 as sqlite
 
     Error = sqlite.Error
     ankDBSetLocal()

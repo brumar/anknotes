@@ -25,9 +25,11 @@ class EvernoteNoteFetcher(object):
         self.use_local_db_only = use_local_db_only
         self.__update_sequence_number__ = -1
         self.evernote = evernote if evernote else None
-        if not guid: self.guid = ""; return
+        if not guid:
+            self.guid = ""; return
         self.guid = guid
-        if evernote and not self.use_local_db_only: self.__update_sequence_number__ = self.evernote.metadata[
+        if evernote and not self.use_local_db_only:
+            self.__update_sequence_number__ = self.evernote.metadata[
             self.guid].updateSequenceNum
         self.getNote()
 
@@ -37,7 +39,8 @@ class EvernoteNoteFetcher(object):
         self.whole_note = None
 
     def UpdateSequenceNum(self):
-        if self.result.Note: return self.result.Note.UpdateSequenceNum
+        if self.result.Note:
+            return self.result.Note.UpdateSequenceNum
         return self.__update_sequence_number__
 
     def reportSuccess(self, note, source=None):
@@ -47,9 +50,12 @@ class EvernoteNoteFetcher(object):
         if note:
             self.result.Note = note
             status = EvernoteAPIStatus.Success
-            if not source: source = 2
-        if status: self.result.Status = status
-        if source: self.result.Source = source
+            if not source:
+                source = 2
+        if status:
+            self.result.Status = status
+        if source:
+            self.result.Source = source
         self.results.reportResult(self.result)
 
     def getNoteLocal(self):
@@ -60,7 +66,8 @@ class EvernoteNoteFetcher(object):
             query += " AND `updateSequenceNum` = %d" % self.UpdateSequenceNum()
         db_note = ankDB().first(query)
         """:type : sqlite.Row"""
-        if not db_note: return False
+        if not db_note:
+            return False
         if not self.use_local_db_only:
             log(' ' + '-' * 14 + ' ' * 5 + "> getNoteLocal: %s" % db_note['title'], 'api')
         assert db_note['guid'] == self.guid
@@ -69,17 +76,21 @@ class EvernoteNoteFetcher(object):
         return True
 
     def setNoteTags(self, tag_names=None, tag_guids=None):
-        if not self.keepEvernoteTags: self.tagGuids, self.tagNames = [], []; return
+        if not self.keepEvernoteTags:
+            self.tagGuids, self.tagNames = [], []; return
         # if not tag_names:
         # if self.tagNames: tag_names = self.tagNames
         # if not tag_names and self.result.Note: tag_names = self.result.Note.TagNames
         # if not tag_names and self.whole_note: tag_names = self.whole_note.tagNames
         # if not tag_names: tag_names = None
-        if not tag_guids: tag_guids = self.tagGuids if self.tagGuids else (
+        if not tag_guids:
+            tag_guids = self.tagGuids if self.tagGuids else (
             self.result.Note.TagGuids if self.result.Note else (self.whole_note.tagGuids if self.whole_note else None))
-        if not tag_names: tag_names = self.tagNames if self.tagNames else (
+        if not tag_names:
+            tag_names = self.tagNames if self.tagNames else (
             self.result.Note.TagNames if self.result.Note else (self.whole_note.tagNames if self.whole_note else None))
-        if not self.evernote or self.result.Source is 1: self.tagGuids, self.tagNames = tag_guids, tag_names; return
+        if not self.evernote or self.result.Source is 1:
+            self.tagGuids, self.tagNames = tag_guids, tag_names; return
         self.tagGuids, self.tagNames = self.evernote.get_matching_tag_data(tag_guids, tag_names)
 
     def addNoteFromServerToDB(self, whole_note=None, tag_names=None):
@@ -131,11 +142,13 @@ class EvernoteNoteFetcher(object):
                                                               False, False)
             """:type : evernote.edam.type.ttypes.Note"""
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             self.reportResult(EvernoteAPIStatus.RateLimitError)
             return False
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             self.reportResult(EvernoteAPIStatus.SocketError)
             return False
         assert self.whole_note.guid == self.guid
@@ -146,11 +159,13 @@ class EvernoteNoteFetcher(object):
             log(
                 "Aborting Evernote.getNoteRemote: EVERNOTE.IMPORT.API_CALLS_LIMIT of %d has been reached" % EVERNOTE.IMPORT.API_CALLS_LIMIT)
             return None
-        if not self.getNoteRemoteAPICall(): return False
+        if not self.getNoteRemoteAPICall():
+            return False
         # self.tagGuids, self.tagNames = self.evernote.get_tag_names_from_guids(self.whole_note.tagGuids)
         self.setNoteTags(tag_guids=self.whole_note.tagGuids)
         self.addNoteFromServerToDB()
-        if not self.keepEvernoteTags: self.tagNames = []
+        if not self.keepEvernoteTags:
+            self.tagNames = []
         self.reportSuccess(EvernoteNotePrototype(whole_note=self.whole_note, tags=self.tagNames))
         return True
 
@@ -166,6 +181,8 @@ class EvernoteNoteFetcher(object):
             self.evernote.guid = guid
             self.__update_sequence_number__ = self.evernote.metadata[
                 self.guid].updateSequenceNum if not self.use_local_db_only else -1
-        if self.getNoteLocal(): return True
-        if self.use_local_db_only: return False
+        if self.getNoteLocal():
+            return True
+        if self.use_local_db_only:
+            return False
         return self.getNoteRemote()

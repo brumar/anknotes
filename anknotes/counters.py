@@ -8,18 +8,23 @@ inAnki = 'anki' in sys.modules
 
 
 def item_to_list(item, list_from_unknown=True, chrs=''):
-    if isinstance(item, list): return item
+    if isinstance(item, list):
+        return item
     if item and (isinstance(item, unicode) or isinstance(item, str)):
-        for c in chrs: item = item.replace(c, '|')
+        for c in chrs:
+            item = item.replace(c, '|')
         return item.split('|')
-    if list_from_unknown: return [item]
+    if list_from_unknown:
+        return [item]
     return item
 
 
 def item_to_set(item, **kwargs):
-    if isinstance(item, set): return item
+    if isinstance(item, set):
+        return item
     item = item_to_list(item, **kwargs)
-    if not isinstance(item, list): return item
+    if not isinstance(item, list):
+        return item
     return set(item)
 
 
@@ -40,16 +45,20 @@ class DictCaseInsensitive(Dict):
 
     def __process_kwarg__(self, kwargs, key, default=None, replace_none_type=True):
         key = self.__key_transform__(key, kwargs.keys())
-        if key not in kwargs: return default
+        if key not in kwargs:
+            return default
         val = kwargs[key]
-        if val is None and replace_none_type: val = default
+        if val is None and replace_none_type:
+            val = default
         del kwargs[key]
         return val
 
     def __key_transform__(self, key, keys=None):
-        if keys is None: keys = self.keys()
+        if keys is None:
+            keys = self.keys()
         for k in keys:
-            if k.lower() == key.lower(): return k
+            if k.lower() == key.lower():
+                return k
         return key
 
     def __init__(self, *args, **kwargs):
@@ -62,12 +71,15 @@ class DictCaseInsensitive(Dict):
         self.__label__ = "root"
         self.__parent_label__ = ""
         super(DictCaseInsensitive, self).__init__(*args, **kwargs)
-        if delete: self.delete_keys(delete)
+        if delete:
+            self.delete_keys(delete)
 
     def reset(self, keys_to_keep=None):
-        if keys_to_keep is None: keys_to_keep = self.__my_aggregates__.lower().split("|")
+        if keys_to_keep is None:
+            keys_to_keep = self.__my_aggregates__.lower().split("|")
         for key in self.keys():
-            if key.lower() not in keys_to_keep: del self[key]
+            if key.lower() not in keys_to_keep:
+                del self[key]
 
     __label__ = ''
     __parent_label__ = ''
@@ -85,17 +97,21 @@ class DictCaseInsensitive(Dict):
 
     def delete_keys(self, keys_to_delete):
         keys = self.keys()
-        if not isinstance(keys_to_delete, list): keys_to_delete = item_to_list(keys_to_delete, chrs=' *,')
+        if not isinstance(keys_to_delete, list):
+            keys_to_delete = item_to_list(keys_to_delete, chrs=' *,')
         for key in keys_to_delete:
             key = self.__key_transform__(key)
-            if key in keys: del self[key]
+            if key in keys:
+                del self[key]
 
     def __setattr__(self, key, value):
         key_adj = self.__key_transform__(key)
-        if key[0:1] + key[-1:] == '__':
+        if key[0:
+            1] + key[-1:] == '__':
             if key.lower() not in self.__my_attrs__.lower().split('|'):
                 raise AttributeError("Attempted to set protected item %s on %s" % (key, self.__class__.__name__))
-            else:  super(Dict, self).__setattr__(key, value)
+            else:
+                super(Dict, self).__setattr__(key, value)
             # elif key == 'Count':
             # self.setCount(value)
             # # super(CaseInsensitiveDict, self).__setattr__(key, value)
@@ -114,7 +130,8 @@ class DictCaseInsensitive(Dict):
     def __getitem__(self, key):
         adjkey = self.__key_transform__(key)
         if adjkey not in self:
-            if key[0:1] + key[-1:] == '__':
+            if key[0:
+                1] + key[-1:] == '__':
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
                     try:
                         return super(Dict, self).__getattr__(key.lower())
@@ -139,15 +156,18 @@ class DictCaseInsensitive2(Dict):
 
     def __process_kwarg__(self, kwargs, key, default=None):
         key = self.__key_transform__(key, kwargs.keys())
-        if key not in kwargs: return default
+        if key not in kwargs:
+            return default
         val = kwargs[key]
         del kwargs[key]
         return val
 
     def __key_transform__(self, key, keys=None):
-        if keys is None: keys = self.keys()
+        if keys is None:
+            keys = self.keys()
         for k in keys:
-            if k.lower() == key.lower(): return k
+            if k.lower() == key.lower():
+                return k
         return key
 
     def __init__(self, *args, **kwargs):
@@ -155,9 +175,11 @@ class DictCaseInsensitive2(Dict):
         lbl = self.__process_kwarg__(kwargs, 'label', 'root')
         parent_lbl = self.__process_kwarg__(kwargs, 'parent_label', '')
         print "lbl: %s\nkwargs: %s" % (lbl, str(kwargs))
-        if not isinstance(lbl, unicode) and not isinstance(lbl, str): raise TypeError(
+        if not isinstance(lbl, unicode) and not isinstance(lbl, str):
+            raise TypeError(
             "Cannot create DictCaseInsensitive label from non-string type: " + str(lbl))
-        if not isinstance(parent_lbl, unicode) and not isinstance(parent_lbl, str): raise TypeError(
+        if not isinstance(parent_lbl, unicode) and not isinstance(parent_lbl, str):
+            raise TypeError(
             "Cannot create DictCaseInsensitive parent label from non-string type: " + str(parent_lbl))
         self.__label__ = lbl
         self.__parent_label__ = parent_lbl
@@ -165,7 +187,8 @@ class DictCaseInsensitive2(Dict):
 
     def __setattr__(self, key, value):
         key_adj = self.__key_transform__(key)
-        if key[0:1] + key[-1:] == '__':
+        if key[0:
+            1] + key[-1:] == '__':
             if key.lower() not in self.__my_attrs__.lower().split('|'):
                 raise AttributeError("Attempted to set protected item %s on %s" % (key, self.__class__.__name__))
             super(Dict, self).__setattr__(key, value)
@@ -179,14 +202,19 @@ class DictCaseInsensitive2(Dict):
     def __getitem__(self, key):
         adjkey = self.__key_transform__(key)
         if adjkey not in self:
-            if key[0:1] + key[-1:] == '__':
+            if key[0:
+                1] + key[-1:] == '__':
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
-                    try: return super(Dict, self).__getattr__(key.lower())
-                    except: raise (KeyError("Could not find protected item " + key))
+                    try:
+                        return super(Dict, self).__getattr__(key.lower())
+                    except:
+                        raise (KeyError("Could not find protected item " + key))
                 return super(Dict, self).__getattr__(key.lower())
             self[adjkey] = DictCaseInsensitive(label=adjkey, parent_label=self.full_label)
-        try: return super(Dict, self).__getitem__(adjkey)
-        except TypeError: return "<null>"
+        try:
+            return super(Dict, self).__getitem__(adjkey)
+        except TypeError:
+            return "<null>"
 
 
 class Counter(Dict):
@@ -207,13 +235,16 @@ class Counter(Dict):
         # return super(Counter, self).__init__(*args, **kwargs)
 
     def reset(self, keys_to_keep=None):
-        if keys_to_keep is None: keys_to_keep = self.__my_aggregates__.lower().split("|")
+        if keys_to_keep is None:
+            keys_to_keep = self.__my_aggregates__.lower().split("|")
         for key in self.keys():
-            if key.lower() not in keys_to_keep: del self[key]
+            if key.lower() not in keys_to_keep:
+                del self[key]
 
     def __key_transform__(self, key):
         for k in self.keys():
-            if k.lower() == key.lower(): return k
+            if k.lower() == key.lower():
+                return k
         return key
         # return key[0].upper() + key[1:].lower()
 
@@ -225,7 +256,8 @@ class Counter(Dict):
     __my_attrs__ = '__count__|__is_exclusive_sum__|__label__|__parent_label__|__my_aggregates__'
 
     def getCount(self):
-        if self.__is_exclusive_sum__: return self.sum
+        if self.__is_exclusive_sum__:
+            return self.sum
         return self.__count__
 
     def setCount(self, value):
@@ -252,7 +284,8 @@ class Counter(Dict):
         # self.print_banner("Getting main Count ")
         sum = 0
         for key in self.iterkeys():
-            if key in self.__my_aggregates__.split("|"): continue
+            if key in self.__my_aggregates__.split("|"):
+                continue
             val = self[key]
             if isinstance(val, int):
                 sum += val
@@ -316,10 +349,12 @@ class Counter(Dict):
 
     def __setattr__(self, key, value):
         key_adj = self.__key_transform__(key)
-        if key[0:1] + key[-1:] == '__':
+        if key[0:
+            1] + key[-1:] == '__':
             if key.lower() not in self.__my_attrs__.lower().split('|'):
                 raise AttributeError("Attempted to set protected item %s on %s" % (key, self.__class__.__name__))
-            else:  super(Dict, self).__setattr__(key, value)
+            else:
+                super(Dict, self).__setattr__(key, value)
         elif key == 'Count':
             self.setCount(value)
             # super(CaseInsensitiveDict, self).__setattr__(key, value)
@@ -339,7 +374,8 @@ class Counter(Dict):
         keys = self.keys()
         counts = [Dict(level=level, label=self.label, full_label=self.full_label, value=self.getCount(),
                        is_exclusive_sum=self.__is_exclusive_sum__, class_name=self.__class__.__name__, children=keys)]
-        if header_only: return counts
+        if header_only:
+            return counts
         for key in keys:
             # print "Summaryzing key %s: %s " % (key, type( self[key]))
             if key not in self.__my_aggregates__.split("|"):
@@ -364,9 +400,11 @@ class Counter(Dict):
 
     def __getitem__(self, key):
         adjkey = self.__key_transform__(key)
-        if key == 'Count': return self.getCount()
+        if key == 'Count':
+            return self.getCount()
         if adjkey not in self:
-            if key[0:1] + key[-1:] == '__':
+            if key[0:
+                1] + key[-1:] == '__':
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
                     try:
                         return super(Dict, self).__getattr__(key.lower())
@@ -416,18 +454,22 @@ class EvernoteCounter(Counter):
         last_level = 1
         for key_code in aggs.split('|'):
             is_exclusive_sum = key_code[0] is not '!'
-            if not is_exclusive_sum: key_code = key_code[1:]
+            if not is_exclusive_sum:
+                key_code = key_code[1:]
             key = key_code.lstrip('+')
             level = len(key_code) - len(key) + 1
             val = self.__getattr__(key)
             cls = type(val)
-            if cls is not int: val = val.getCount()
+            if cls is not int:
+                val = val.getCount()
             parent_lbl = '.'.join(parents)
             full_label = parent_lbl + ('.' if parent_lbl else '') + key
             counts += [Dict(level=level, label=key, full_label=full_label, value=val, is_exclusive_sum=is_exclusive_sum,
                             class_name=cls, children=['<aggregate>'])]
-            if level < last_level: del parents[-1]
-            elif level > last_level: parents.append(key)
+            if level < last_level:
+                del parents[-1]
+            elif level > last_level:
+                parents.append(key)
             last_level = level
         return self.__summarize_lines__(counts, includeHeader)
 

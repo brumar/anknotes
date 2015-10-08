@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 ### Python Imports
-try: from pysqlite2 import dbapi2 as sqlite
-except ImportError: from sqlite3 import dbapi2 as sqlite
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except ImportError:
+    from sqlite3 import dbapi2 as sqlite
 import os
 import re
 import sys
@@ -27,7 +29,8 @@ from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCo
 
 
 def get_friendly_interval_string(lastImport):
-    if not lastImport: return ""
+    if not lastImport:
+        return ""
     td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
     days = td.days
     hours, remainder = divmod(td.total_seconds(), 3600)
@@ -68,15 +71,20 @@ def __check_tag_name__(v, tags_to_delete):
 
 def get_tag_names_to_import(tagNames, evernoteQueryTags=None, evernoteTagsToDelete=None, keepEvernoteTags=None,
                             deleteEvernoteQueryTags=None):
-    if keepEvernoteTags is None: keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS,
+    if keepEvernoteTags is None:
+        keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS,
                                                                     SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
-    if not keepEvernoteTags: return {} if isinstance(tagNames, dict) else []
-    if evernoteQueryTags is None: evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
+    if not keepEvernoteTags:
+        return {} if isinstance(tagNames, dict) else []
+    if evernoteQueryTags is None:
+        evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
                                                                       SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(
         ',', ' ').split()
-    if deleteEvernoteQueryTags is None: deleteEvernoteQueryTags = mw.col.conf.get(
+    if deleteEvernoteQueryTags is None:
+        deleteEvernoteQueryTags = mw.col.conf.get(
         SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
-    if evernoteTagsToDelete is None: evernoteTagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(
+    if evernoteTagsToDelete is None:
+        evernoteTagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(
         ',', ' ').split()
     tags_to_delete = evernoteQueryTags if deleteEvernoteQueryTags else [] + evernoteTagsToDelete
     if isinstance(tagNames, dict):
@@ -153,7 +161,8 @@ def remove_evernote_link(link, html):
 def get_dict_from_list(lst, keys_to_ignore=list()):
     dic = {}
     for key, value in lst:
-        if not key in keys_to_ignore: dic[key] = value
+        if not key in keys_to_ignore:
+            dic[key] = value
     return dic
 
 
@@ -169,5 +178,6 @@ def update_regex():
 
 def regex_see_also():
     global _regex_see_also
-    if not _regex_see_also: update_regex()
+    if not _regex_see_also:
+        update_regex()
     return _regex_see_also

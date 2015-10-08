@@ -43,7 +43,8 @@ class EvernoteNotePrototype:
         self.Status = EvernoteAPIStatus.Uninitialized
         self.TagNames = tags
         if whole_note is not None:
-            if self.TagNames is None: self.TagNames = whole_note.tagNames
+            if self.TagNames is None:
+                self.TagNames = whole_note.tagNames
             self.Title = EvernoteNoteTitle(whole_note)
             self.Content = whole_note.content
             self.Guid = whole_note.guid

@@ -18,7 +18,8 @@ def upperFirst(name):
 
 def getattrcallable(obj, attr):
     val = getattr(obj, attr)
-    if callable(val): return val()
+    if callable(val):
+        return val()
     return val
 
 
@@ -77,7 +78,8 @@ class EvernoteStruct(object):
 
     def getAttribute(self, key, default=None, raiseIfInvalidKey=False):
         if not self.hasAttribute(key):
-            if raiseIfInvalidKey: raise KeyError
+            if raiseIfInvalidKey:
+                raise KeyError
             return default
         return getattr(self, self.__attr_from_key__(key))
 
@@ -116,17 +118,20 @@ class EvernoteStruct(object):
             keys = getattrcallable(keyed_object, 'keys')
         elif hasattr(keyed_object, self.__sql_where__):
             for key in self.keys():
-                if hasattr(keyed_object, key): self.setAttribute(key, getattr(keyed_object, key))
+                if hasattr(keyed_object, key):
+                    self.setAttribute(key, getattr(keyed_object, key))
             return True
         else:
             return False
 
-        if keys is None: keys = keyed_object
+        if keys is None:
+            keys = keyed_object
         for key in keys:
             if key == "fetch_" + self.__sql_where__:
                 self.Where = keyed_object[key]
                 self.getFromDB()
-            elif key in lst: self.setAttributeByObject(key, keyed_object)
+            elif key in lst:
+                self.setAttributeByObject(key, keyed_object)
         return True
 
     def setFromListByDefaultOrder(self, args):
@@ -144,13 +149,16 @@ class EvernoteStruct(object):
         return (attribute[0].lower() + attribute[1:]) in self._valid_attributes_()
 
     def __init__(self, *args, **kwargs):
-        if self.__attr_order__ is None: self.__attr_order__ = []
-        if self.__additional__attr__ is None: self.__additional__attr__ = set()
+        if self.__attr_order__ is None:
+            self.__attr_order__ = []
+        if self.__additional__attr__ is None:
+            self.__additional__attr__ = set()
         self.__sql_columns__ = item_to_list(self.__sql_columns__, chrs=' ,;')
         self.__attr_order__ = item_to_list(self.__attr_order__, chrs=' ,;')
         self.__additional__attr__ = item_to_set(self.__additional__attr__, chrs=' ,;')
         args = list(args)
-        if args and self.setFromKeyedObject(args[0]): del args[0]
+        if args and self.setFromKeyedObject(args[0]):
+            del args[0]
         self.setFromListByDefaultOrder(args)
         self.setFromKeyedObject(kwargs)
 
@@ -214,7 +222,8 @@ class EvernoteLink(EvernoteStruct):
     @property
     def NoteTitle(self):
         f = anknotes.EvernoteNoteFetcher.EvernoteNoteFetcher(guid=self.Guid, use_local_db_only=True)
-        if not f.getNote(): return "<Invalid Note>"
+        if not f.getNote():
+            return "<Invalid Note>"
         return f.result.Note.FullTitle
 
     def __str__(self):
@@ -384,7 +393,8 @@ class EvernoteNoteFetcherResult(object):
         :type note: EvernoteNotePrototype.EvernoteNotePrototype
         :type status: EvernoteAPIStatus
         """
-        if not status: status = EvernoteAPIStatus.Uninitialized
+        if not status:
+            status = EvernoteAPIStatus.Uninitialized
         self.Note = note
         self.Status = status
         self.Source = source
@@ -427,7 +437,8 @@ class EvernoteNoteFetcherResults(object):
 
     @property
     def SummaryLines(self):
-        if self.Max is 0: return []
+        if self.Max is 0:
+            return []
         add_update_strs = ['New', "Added to"] if self.ImportType == EvernoteImportType.Add else  ['Existing',
                                                                                                   "%s in" % (
                                                                                                       'Updated In-Place' if self.ImportType == EvernoteImportType.UpdateInPlace else 'Deleted and Updated')]
@@ -493,8 +504,10 @@ class EvernoteNoteFetcherResults(object):
         :param local:
         :return:
         """
-        if not status: status = EvernoteAPIStatus.Uninitialized
-        if not local: local = 0
+        if not status:
+            status = EvernoteAPIStatus.Uninitialized
+        if not local:
+            local = 0
         self.Status = status
         self.Local = local
         self.Imported = 0
@@ -707,7 +720,8 @@ class EvernoteMetadataProgress:
 
     @property
     def TotalPages(self):
-        if self.Total is -1: return -1
+        if self.Total is -1:
+            return -1
         p = float(self.Total) / self.QueryLimit
         return int(p) + (1 if p > int(p) else 0)
 

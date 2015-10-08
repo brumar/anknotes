@@ -1,6 +1,8 @@
 ### Python Imports
-try: from pysqlite2 import dbapi2 as sqlite
-except ImportError: from sqlite3 import dbapi2 as sqlite
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except ImportError:
+    from sqlite3 import dbapi2 as sqlite
 from datetime import datetime
 import time
 import os
@@ -29,12 +31,15 @@ def anki_profile_path_root():
 def last_anki_profile_name():
     root = anki_profile_path_root()
     name = ANKI.PROFILE_NAME
-    if name and os.path.isdir(os.path.join(root, name)): return name
+    if name and os.path.isdir(os.path.join(root, name)):
+        return name
     if os.path.isfile(FILES.USER.LAST_PROFILE_LOCATION):
         name = file(FILES.USER.LAST_PROFILE_LOCATION, 'r').read().strip()
-        if name and os.path.isdir(os.path.join(root, name)): return name
+        if name and os.path.isdir(os.path.join(root, name)):
+            return name
     dirs = [x for x in os.listdir(root) if os.path.isdir(os.path.join(root, x)) and x is not 'addons']
-    if not dirs: return ""
+    if not dirs:
+        return ""
     return dirs[0]
 
 
@@ -51,9 +56,11 @@ def ankDBIsLocal():
 def ankDB(reset=False):
     global ankNotesDBInstance, dbLocal
     if not ankNotesDBInstance or reset:
-        if dbLocal: ankNotesDBInstance = ank_DB(
+        if dbLocal:
+            ankNotesDBInstance = ank_DB(
             os.path.abspath(os.path.join(anki_profile_path_root(), last_anki_profile_name(), 'collection.anki2')))
-        else: ankNotesDBInstance = ank_DB()
+        else:
+            ankNotesDBInstance = ank_DB()
     return ankNotesDBInstance
 
 
@@ -87,7 +94,8 @@ def get_anki_deck_id_from_note_id(nid):
 
 def get_anki_card_ids_from_evernote_guids(guids, sql=None):
     pred = "n.flds LIKE '%s' || ? || '%%'" % FIELDS.EVERNOTE_GUID_PREFIX
-    if sql is None: sql = "SELECT c.id FROM cards c, notes n WHERE c.nid = n.id AND ({pred})"
+    if sql is None:
+        sql = "SELECT c.id FROM cards c, notes n WHERE c.nid = n.id AND ({pred})"
     return execute_sqlite_query(sql, guids, pred=pred)
 
 
@@ -110,8 +118,10 @@ def get_anknotes_root_notes_nids():
 
 
 def get_cached_data(func, data_generator, subkey=''):
-    if not ANKNOTES.CACHE_SEARCHES: return data_generator()
-    if subkey: subkey += '_'
+    if not ANKNOTES.CACHE_SEARCHES:
+        return data_generator()
+    if subkey:
+        subkey += '_'
     if not hasattr(func, subkey + 'data') or getattr(func, subkey + 'update') < lastHierarchyUpdate:
         setattr(func, subkey + 'data', data_generator())
         setattr(func, subkey + 'update', datetime.now())
@@ -121,7 +131,8 @@ def get_cached_data(func, data_generator, subkey=''):
 def get_anknotes_root_notes_guids(column='guid', tag=None):
     sql = "SELECT %s FROM %s WHERE UPPER(title) IN {pred}" % (column, TABLES.EVERNOTE.NOTES)
     data_key = column
-    if tag: sql += " AND tagNames LIKE '%%,%s,%%'" % tag; data_key += '-' + tag
+    if tag:
+        sql += " AND tagNames LIKE '%%,%s,%%'" % tag; data_key += '-' + tag
     return get_cached_data(get_anknotes_root_notes_guids, lambda: execute_sqlite_in_query(sql,
                                                                                           get_anknotes_potential_root_titles(
                                                                                               upper_case=False,
@@ -143,8 +154,10 @@ def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs)
     global generateTOCTitle
     from anknotes.EvernoteNoteTitle import generateTOCTitle
     mapper = lambda x: generateTOCTitle(x)
-    if upper_case: mapper = lambda x, f=mapper: f(x).upper()
-    if encode: mapper = lambda x, f=mapper: f(x).encode('utf-8')
+    if upper_case:
+        mapper = lambda x, f=mapper: f(x).upper()
+    if encode:
+        mapper = lambda x, f=mapper: f(x).encode('utf-8')
     data = get_cached_data(get_anknotes_potential_root_titles, lambda: ankDB().list(
         "SELECT DISTINCT SUBSTR(title, 0, INSTR(title, ':')) FROM %s WHERE title LIKE '%%:%%'" % TABLES.EVERNOTE.NOTES))
     return map(mapper, data)
@@ -154,7 +167,8 @@ def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs)
 # return '(%s)' % ' OR '.join(["title LIKE '%s'" % (escape_text_sql(x) + ':%') for x in get_anknotes_root_notes_titles()])
 
 def __get_anknotes_root_notes_pred(base=None, column='guid', **kwargs):
-    if base is None: base = "SELECT %(column)s FROM %(table)s WHERE {pred} "
+    if base is None:
+        base = "SELECT %(column)s FROM %(table)s WHERE {pred} "
     base = base % {'column': column, 'table': TABLES.EVERNOTE.NOTES}
     pred = "title LIKE ? || ':%'"
     return execute_sqlite_query(base, get_anknotes_root_notes_titles(), pred=pred)
@@ -176,7 +190,8 @@ def execute_sqlite_query(sql, data, in_query=False, **kwargs):
 
 
 def generate_sqlite_predicate(data, pred='?', pred_delim=' OR ', query_base='(%s)', max_round=990):
-    if not query_base: query_base = '%s'
+    if not query_base:
+        query_base = '%s'
     length = len(data)
     rounds = float(length) / max_round
     rounds = int(rounds) + 1 if int(rounds) < rounds else 0
@@ -198,7 +213,8 @@ def get_sql_anki_cids_from_evernote_guids(guids):
 
 
 def get_anknotes_child_notes_nids(**kwargs):
-    if 'column' in kwargs: del kwargs['column']
+    if 'column' in kwargs:
+        del kwargs['column']
     return get_anknotes_child_notes(column='nid', **kwargs)
 
 
@@ -208,7 +224,8 @@ def get_anknotes_child_notes(column='guid', **kwargs):
 
 
 def get_anknotes_orphan_notes_nids(**kwargs):
-    if 'column' in kwargs: del kwargs['column']
+    if 'column' in kwargs:
+        del kwargs['column']
     return get_anknotes_orphan_notes(column='nid', **kwargs)
 
 
@@ -219,7 +236,8 @@ def get_anknotes_orphan_notes(column='guid', **kwargs):
 
 def get_evernote_guid_from_anki_fields(fields):
     if isinstance(fields, dict):
-        if not FIELDS.EVERNOTE_GUID in fields: return None
+        if not FIELDS.EVERNOTE_GUID in fields:
+            return None
         return fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
     if isinstance(fields, str) or isinstance(fields, unicode):
         fields = splitFields(fields)
@@ -227,7 +245,8 @@ def get_evernote_guid_from_anki_fields(fields):
 
 
 def get_all_local_db_guids(filter=None):
-    if filter is None: filter = "1"
+    if filter is None:
+        filter = "1"
     return ankDB().list("SELECT guid FROM %s WHERE %s ORDER BY title ASC" % (TABLES.EVERNOTE.NOTES, filter))
 
 
@@ -239,14 +258,16 @@ def get_evernote_model_ids(sql=False):
         get_evernote_model_ids.model_ids = anki.evernoteModels
         del anki
         del Anki
-    if sql: return 'n.mid IN (%s)' % ', '.join(get_evernote_model_ids.model_ids.values())
+    if sql:
+        return 'n.mid IN (%s)' % ', '.join(get_evernote_model_ids.model_ids.values())
     return get_evernote_model_ids.model_ids
 
 
 def update_anknotes_nids():
     db = ankDB()
     count = db.count(TABLES.EVERNOTE.NOTES, 'nid <= 0')
-    if not count: return count 
+    if not count:
+        return count 
     paired_data = db.all("SELECT n.id, n.flds FROM notes n WHERE " + get_evernote_model_ids(True))
     paired_data = [[nid, get_evernote_guid_from_anki_fields(flds)] for nid, flds in paired_data]
     db.executemany('UPDATE %s SET nid = ? WHERE guid = ?' % TABLES.EVERNOTE.NOTES, paired_data)
@@ -331,7 +352,8 @@ class ank_DB(object):
         return count is not None and count > 0
         
     def count(self, table, where=None, *a, **kw):
-        if where is None: where = '1'
+        if where is None:
+            where = '1'
         sql = 'SELECT COUNT(*) FROM ' + table + ' WHERE ' + where
         retur self.scalar(sql)
         

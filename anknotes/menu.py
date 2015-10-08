@@ -81,7 +81,8 @@ def auto_reload_modules(function):
     if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
         log_banner('AUTO RELOAD MODULES - RELOADING', 'automation', claar=True)
         anknotes.shared = reload(anknotes.shared)
-        if not anknotes.Controller: importlib.import_module('anknotes.Controller')
+        if not anknotes.Controller:
+            importlib.import_module('anknotes.Controller')
         reload(anknotes.Controller)
     else:
         log_banner('AUTO RELOAD MODULES - SKIPPING RELOAD', 'automation', clear=True)
@@ -89,7 +90,8 @@ def auto_reload_modules(function):
 
 
 def add_menu_items(menu_items, parent=None):
-    if not parent: parent = mw.form.menubar
+    if not parent:
+        parent = mw.form.menubar
     for title, action in menu_items:
         if title == "SEPARATOR":
             parent.addSeparator()
@@ -169,7 +171,8 @@ def create_subnotes(guids):
                     sublist.heading = sublist.heading[:-1]
                     last_char = sublist.heading[-1:]
                 sublist.is_subnote = matches_list(sublist.heading, HEADINGS.TOP) > -1 or matches_list(sublist.heading, HEADINGS.BOTTOM) > -1
-                if last_char == ':':
+                if last_char == ':
+                    ':
                     sublist.is_subnote = True 
                     sublist.heading = sublist.heading[:-1]
                 if not sublist.is_subnote:
@@ -197,7 +200,8 @@ def create_subnotes(guids):
                     sublist.list_items.append(unicode(li))
                 return sublist
 
-            if levels is None or names is None: levels = []; names = [title]
+            if levels is None or names is None:
+                levels = []; names = [title]
             level = len(levels)
             for lst_items in lst:
                 if isinstance(lst_items, Tag):
@@ -260,7 +264,8 @@ def create_subnotes(guids):
         first_div = en_note.find('div')
         if first_div:
             descriptor_text = first_div.text
-            if descriptor_text[:1] == '`':
+            if descriptor_text[:
+                1] == '`':
                 descriptor = descriptor_text[1:]
                 
         lists = en_note.find(['ol', 'ul'])
@@ -273,7 +278,8 @@ def create_subnotes(guids):
         l.go(soup.prettify(), filename='full', clear=True)
 
     myNotes = []
-    if import_lxml() is False: return False
+    if import_lxml() is False:
+        return False
     from anknotes.shared import lxml
     from BeautifulSoup import BeautifulSoup, NavigableString, Tag
     from copy import copy
@@ -349,7 +355,8 @@ Once the command line tool is done running, you will get a summary of the result
             delete_anki_notes_and_cards_by_guid(anki_dels)
             db_changed = True
             show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5000, 6000)
-    if db_changed: ankDB().commit()
+    if db_changed:
+        ankDB().commit()
     if missing_evernote_notes_count > 0:
         if showInfo(
                         "Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (
@@ -361,7 +368,8 @@ Once the command line tool is done running, you will get a summary of the result
 
 def validate_pending_notes(showAlerts=True, uploadAfterValidation=True, callback=None, unloadedCollection=False,
                            reload_delay=10):
-    if not unloadedCollection: return unload_collection(
+    if not unloadedCollection:
+        return unload_collection(
         lambda *xargs, **xkwargs: validate_pending_notes(showAlerts, uploadAfterValidation, callback(*xargs, **xkwargs),
                                                          True))
     log("Validating Notes", 'automation')
@@ -399,7 +407,8 @@ Anki will be unresponsive until the validation tool completes. This will take at
     # mw.col.reopen()
     # mw.col.load()
     log("Validate Notes completed", 'automation')
-    if callback is None and allowUpload: callback = lambda *xargs, **xkwargs: upload_validated_notes()
+    if callback is None and allowUpload:
+        callback = lambda *xargs, **xkwargs: upload_validated_notes()
     mw.progress.timer(reload_delay * 1000, lambda: reload_collection(callback), False)
 
 
@@ -412,10 +421,13 @@ def modify_collection(collection_operation, action_str='modifying collection', c
         return_val = collection_operation()
         passed = True
     except (sqlite.OperationalError, sqlite.ProgrammingError, Exception), e:
-        if e.message.replace(".", "") == 'database is locked': friendly_message = 'sqlite database is locked'
-        elif e.message == "Cannot operate on a closed database.": friendly_message = 'sqlite database is closed'
+        if e.message.replace(".", "") == 'database is locked':
+            friendly_message = 'sqlite database is locked'
+        elif e.message == "Cannot operate on a closed database.":
+            friendly_message = 'sqlite database is closed'
         else:
-            if e.message.replace('.', '') == 'database is locked': log_error('**locked', crosspost='automation',
+            if e.message.replace('.', '') == 'database is locked':
+                log_error('**locked', crosspost='automation',
                                                                              crosspost_to_default=False)
             import traceback
             type = str(e.__class__);
@@ -424,17 +436,21 @@ def modify_collection(collection_operation, action_str='modifying collection', c
                 str(e).split()) + '\n Message: "%s"' % e.message + '\n Trace: ' + traceback.format_exc() + '\n'
         log_error("   > Modify Collection: Error %s: %s. %s" % (action_str, retry, friendly_message), time_out=10000,
                   do_show_tooltip=True, crosspost='automation', crosspost_to_default=False)
-    if not passed: return (
+    if not passed:
+        return (
         False if callback_failure is False else callback(None,
                                                          **kwargs)) if attempt > max_attempts else mw.progress.timer(
         delay * 1000,
         lambda: modify_collection(collection_operation, action_str, callback, callback_failure, callback_delay, delay,
                                   attempt + 1, **kwargs), False)
-    if not callback: log("   > Modify Collection: Completed %s" % action_str, 'automation'); return
+    if not callback:
+        log("   > Modify Collection: Completed %s" % action_str, 'automation'); return
     log("   > Modify Collection: Completed %s" % action_str + ': %s Initiated' % (
         '%ds Callback Timer' % callback_delay if callback_delay > 0 else 'Callback'), 'automation')
-    if not callback: return  # return_val
-    if callback_delay > 0: mw.progress.timer(callback_delay * 1000, lambda: callback(return_val, **kwargs),
+    if not callback:
+        return  # return_val
+    if callback_delay > 0:
+        mw.progress.timer(callback_delay * 1000, lambda: callback(return_val, **kwargs),
                                              False); return  # return return_val
     callback(return_val, **kwargs)
     # return return_val
@@ -449,7 +465,8 @@ def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *args, *
             result = cur.fetchone()
             log(" > Reload Collection: Not needed: ankDB exists and cursor created: %s" % (str_safe(result[0])),
                 'automation')
-            if callback: callback(True)
+            if callback:
+                callback(True)
             return True
         except (sqlite.ProgrammingError, Exception), e:
             if e.message == "Cannot operate on a closed database":
@@ -465,7 +482,8 @@ def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *args, *
     # if callback and reopen_callback_delay > 0: 
     # log("Reload Collection: Callback Timer Set To %ds" % reopen_callback_delay, 'automation')
     # callback = lambda: mw.progress.timer(reopen_callback_delay*1000, callback, False)
-    if reopen_delay > 0: return mw.progress.timer(reopen_delay * 1000,
+    if reopen_delay > 0:
+        return mw.progress.timer(reopen_delay * 1000,
                                                   lambda *xargs, **xkwargs: modify_collection(do_load_collection,
                                                                                               'reload collection',
                                                                                               lambda *xargs,
@@ -512,12 +530,15 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
             callback = lambda *xargs, **xkwargs: see_also(steps, showAlerts, validationComplete)
             reload_collection(callback)
         return False
-    if not steps: steps = range(1, 10)
-    if isinstance(steps, int): steps = [steps]
+    if not steps:
+        steps = range(1, 10)
+    if isinstance(steps, int):
+        steps = [steps]
     steps = list(steps)
     log("See Also --> 3. Proceeding: " + ', '.join(map(str, steps)), 'automation')
     multipleSteps = (len(steps) > 1)
-    if showAlerts is None: showAlerts = not multipleSteps
+    if showAlerts is None:
+        showAlerts = not multipleSteps
     remaining_steps = steps
     if 1 in steps:
         # Should be unnecessary once See Also algorithms are finalized
@@ -532,7 +553,8 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
                 crosspost='automation')
             upload_validated_notes(multipleSteps)
             validationComplete = False
-        else: steps = [-3]
+        else:
+            steps = [-3]
     if 4 in steps:
         log(" > See Also: Step 4:  Extract Links from TOC", crosspost='automation')
         controller.anki.extract_links_from_toc()
@@ -548,7 +570,8 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
             log(" > See Also: Step 7B: Validate and Upload Modified Evernote Notes: Upload Validated Notes",
                 crosspost='automation')
             upload_validated_notes(multipleSteps)
-        else: steps = [-7]
+        else:
+            steps = [-7]
     if 8 in steps:
         log(" > See Also: Step 8:  Insert TOC/Outline Contents Into Anki Notes", crosspost='automation')
         controller.anki.insert_toc_and_outline_contents_into_notes()

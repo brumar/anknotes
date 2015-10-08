@@ -60,7 +60,8 @@ class Evernote(object):
     """:type : EvernoteClient """
 
     def hasValidator(self):
-        if self.__hasValidator__ is None: self.__hasValidator__ = import_etree()
+        if self.__hasValidator__ is None:
+            self.__hasValidator__ = import_etree()
         return self.__hasValidator__
 
     def __init__(self):
@@ -94,7 +95,8 @@ class Evernote(object):
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
             mw.col.conf[SETTINGS.EVERNOTE.AUTH_TOKEN] = auth_token
-        else: client = EvernoteClient(token=auth_token, sandbox=EVERNOTE.API.IS_SANDBOXED)
+        else:
+            client = EvernoteClient(token=auth_token, sandbox=EVERNOTE.API.IS_SANDBOXED)
         self.token = auth_token
         self.client = client
         log("Set up Evernote Client", 'client')
@@ -109,17 +111,21 @@ class Evernote(object):
                 "Client does not exist for some reason. Did we not initialize Evernote Class? Current token: " + str(
                     self.token))
             self.setup_client()
-        try: self.noteStore = self.client.get_note_store()
+        try:
+            self.noteStore = self.client.get_note_store()
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.RateLimitError
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.SocketError
         return EvernoteAPIStatus.Success
 
     def loadDTD(self):
-        if self.DTD: return
+        if self.DTD:
+            return
         timerInterval = stopwatch.Timer()
         log("Loading ENML DTD", "lxml", timestamp=False, do_print=True)
         self.DTD = etree.DTD(FILES.ANCILLARY.ENML_DTD)
@@ -132,13 +138,15 @@ class Evernote(object):
         noteBody = noteBody.replace('"http://xml.evernote.com/pub/enml2.dtd"',
                                     '"%s"' % convert_filename_to_local_link(FILES.ANCILLARY.ENML_DTD))
         parser = etree.XMLParser(dtd_validation=True, attribute_defaults=True)
-        try: root = etree.fromstring(noteBody, parser)
+        try:
+            root = etree.fromstring(noteBody, parser)
         except Exception as e:
             log_str = "XML Loading of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str, False)
             return False, [log_str]
-        try: success = self.DTD.validate(root)
+        try:
+            success = self.DTD.validate(root)
         except Exception as e:
             log_str = "DTD Validation of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
@@ -168,7 +176,8 @@ class Evernote(object):
         :rtype : (EvernoteAPIStatus, evernote.edam.type.ttypes.Note)
         :returns Status and Note
         """
-        if resources is None: resources = []
+        if resources is None:
+            resources = []
         return self.makeNote(noteTitle, noteBody, tagNames=tagNames, parentNotebook=parentNotebook, noteType=noteType,
                              resources=resources,
                              guid=guid)
@@ -176,7 +185,8 @@ class Evernote(object):
     @staticmethod
     def makeNoteBody(content, resources=None, encode=True):
         ## Build body of note
-        if resources is None: resources = []
+        if resources is None:
+            resources = []
         nBody = content
         if not nBody.startswith("<?xml"):
             nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
@@ -190,14 +200,17 @@ class Evernote(object):
     def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None,
                                noteType=None,
                                guid=None):
-        if not noteType: noteType = 'Unspecified'
-        if resources is None: resources = []
+        if not noteType:
+            noteType = 'Unspecified'
+        if resources is None:
+            resources = []
         sql = "FROM %s WHERE noteType = '%s' AND " % (TABLES.NOTE_VALIDATION_QUEUE, noteType) + (
             ("guid = '%s'" % guid) if guid else "title = '%s' AND contents = '%s'" % (
                 escape_text_sql(noteTitle), escape_text_sql(noteContents)))
         statuses = ankDB().all('SELECT validation_status ' + sql)
         if len(statuses) > 0:
-            if str(statuses[0]['validation_status']) == '1': return EvernoteAPIStatus.Success
+            if str(statuses[0]['validation_status']) == '1':
+                return EvernoteAPIStatus.Success
             ankDB().execute("DELETE " + sql)
         ankDB().execute(
             "INSERT INTO %s(guid, title, contents, tagNames, notebookGuid, noteType) VALUES(?, ?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
@@ -216,42 +229,53 @@ class Evernote(object):
         :rtype : (EvernoteAPIStatus, EvernoteNote)
         :returns Status and Note
         """
-        if tagNames is None: tagNames = []
-        if enNote: guid, noteTitle, noteContents, tagNames, parentNotebook = enNote.Guid, enNote.FullTitle, enNote.Content, enNote.Tags, enNote.NotebookGuid or parentNotebook
-        if resources is None: resources = []
+        if tagNames is None:
+            tagNames = []
+        if enNote:
+            guid, noteTitle, noteContents, tagNames, parentNotebook = enNote.Guid, enNote.FullTitle, enNote.Content, enNote.Tags, enNote.NotebookGuid or parentNotebook
+        if resources is None:
+            resources = []
         callType = "create"
         validation_status = EvernoteAPIStatus.Uninitialized
         if validated is None:
-            if not EVERNOTE.UPLOAD.VALIDATION.ENABLED: validated = True
+            if not EVERNOTE.UPLOAD.VALIDATION.ENABLED:
+                validated = True
             else:
                 validation_status = self.addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames, parentNotebook,
                                                                 resources, guid)
-                if not validation_status.IsSuccess and not self.hasValidator: return validation_status, None
+                if not validation_status.IsSuccess and not self.hasValidator:
+                    return validation_status, None
         log('%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle),
             'validation')
         ourNote = EvernoteNote()
         ourNote.title = noteTitle.encode('utf-8')
-        if guid: callType = "update"; ourNote.guid = guid
+        if guid:
+            callType = "update"; ourNote.guid = guid
 
         ## Build body of note
         nBody = self.makeNoteBody(noteContents, resources)
         if validated is not True and not validation_status.IsSuccess:
             success, errors = self.validateNoteBody(nBody, ourNote.title)
-            if not success: return EvernoteAPIStatus.UserError, None
+            if not success:
+                return EvernoteAPIStatus.UserError, None
         ourNote.content = nBody
 
         notestore_status = self.initialize_note_store()
-        if not notestore_status.IsSuccess: return notestore_status, None
+        if not notestore_status.IsSuccess:
+            return notestore_status, None
 
         while '' in tagNames: tagNames.remove('')
         if len(tagNames) > 0:
-            if EVERNOTE.API.IS_SANDBOXED and not '#Sandbox' in tagNames: tagNames.append("#Sandbox")
+            if EVERNOTE.API.IS_SANDBOXED and not '#Sandbox' in tagNames:
+                tagNames.append("#Sandbox")
             ourNote.tagNames = tagNames
 
         ## parentNotebook is optional; if omitted, default notebook is used
         if parentNotebook:
-            if hasattr(parentNotebook, 'guid'): ourNote.notebookGuid = parentNotebook.guid
-            elif hasattr(parentNotebook, 'Guid'): ourNote.notebookGuid = parentNotebook.Guid
+            if hasattr(parentNotebook, 'guid'):
+                ourNote.notebookGuid = parentNotebook.guid
+            elif hasattr(parentNotebook, 'Guid'):
+                ourNote.notebookGuid = parentNotebook.Guid
             elif isinstance(parentNotebook, str) or isinstance(parentNotebook,
                                                                unicode): ourNote.notebookGuid = parentNotebook
 
@@ -262,10 +286,12 @@ class Evernote(object):
         try:
             note = getattr(self.noteStore, callType + 'Note')(self.token, ourNote)
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.RateLimitError, None
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.SocketError, None
         except EDAMUserException, edue:
             ## Something was wrong with the note data
@@ -277,7 +303,8 @@ class Evernote(object):
             log_error(str(ourNote.tagNames), crosspost_to_default=False)
             log_error(str(ourNote.content), crosspost_to_default=False)
             log_error("-" * 50 + "\r\n", crosspost_to_default=False)
-            if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.UserError, None
         except EDAMNotFoundException, ednfe:
             print "EDAMNotFoundException:", ednfe
@@ -288,7 +315,8 @@ class Evernote(object):
             if ourNote.notebookGuid:
                 log_error('Notebook GUID: ' + str(ourNote.notebookGuid), crosspost_to_default=False)
             log_error("-" * 50 + "\r\n", crosspost_to_default=False)
-            if EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return EvernoteAPIStatus.NotFoundError, None
         except Exception, e:
             print "Unknown Exception:", e
@@ -314,10 +342,13 @@ class Evernote(object):
         :param use_local_db_only: Do not initiate API calls
         :return: EvernoteNoteFetcherResults
         """
-        if not hasattr(self, 'evernote_guids') or evernote_guids: self.evernote_guids = evernote_guids
-        if not use_local_db_only: self.check_ancillary_data_up_to_date()
+        if not hasattr(self, 'evernote_guids') or evernote_guids:
+            self.evernote_guids = evernote_guids
+        if not use_local_db_only:
+            self.check_ancillary_data_up_to_date()
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
-        if len(evernote_guids) == 0: fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
+        if len(evernote_guids) == 0:
+            fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
         if inAnki:
             fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
                                                         SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',',
@@ -327,7 +358,8 @@ class Evernote(object):
             fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
             fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
         for evernote_guid in self.evernote_guids:
-            if not fetcher.getNote(evernote_guid): return fetcher.results
+            if not fetcher.getNote(evernote_guid):
+                return fetcher.results
         return fetcher.results
 
     def check_ancillary_data_up_to_date(self):
@@ -345,16 +377,23 @@ class Evernote(object):
     def report_ancillary_data_results(new_tags, new_nbs, title_prefix='', report_blank=False):
         strr = ''
         if new_tags is 0 and new_nbs is 0:
-            if not report_blank: return
+            if not report_blank:
+                return
             strr = 'No new tags or notebooks found'
-        elif new_tags is None and new_nbs is None: strr = 'Error downloading ancillary data'
-        elif new_tags is None: strr = 'Error downloading tags list, and '
-        elif new_nbs is None: strr = 'Error downloading notebooks list, and '
+        elif new_tags is None and new_nbs is None:
+            strr = 'Error downloading ancillary data'
+        elif new_tags is None:
+            strr = 'Error downloading tags list, and '
+        elif new_nbs is None:
+            strr = 'Error downloading notebooks list, and '
 
-        if new_tags > 0 and new_nbs > 0: strr = '%d new tag%s and %d new notebook%s found' % (
+        if new_tags > 0 and new_nbs > 0:
+            strr = '%d new tag%s and %d new notebook%s found' % (
             new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
-        elif new_nbs > 0: strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
-        elif new_tags > 0: strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
+        elif new_nbs > 0:
+            strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
+        elif new_tags > 0:
+            strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
         show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + strr, do_log=True)
 
     def set_notebook_data(self):
@@ -371,7 +410,8 @@ class Evernote(object):
         self.set_notebook_data()
         for note in notes:
             assert (isinstance(note, EvernoteNotePrototype))
-            if note.NotebookGuid in self.notebook_data: continue
+            if note.NotebookGuid in self.notebook_data:
+                continue
             new_nbs = self.update_notebooks_database()
             if note.NotebookGuid in self.notebook_data:
                 log(
@@ -399,17 +439,20 @@ class Evernote(object):
 
     def update_notebooks_database(self):
         notestore_status = self.initialize_note_store()
-        if not notestore_status.IsSuccess: return None  # notestore_status
+        if not notestore_status.IsSuccess:
+            return None  # notestore_status
         api_action_str = u'trying to update Evernote notebooks.'
         log_api("listNotebooks")
         try:
             notebooks = self.noteStore.listNotebooks(self.token)
             """: type : list[evernote.edam.type.ttypes.Notebook] """
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return None
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return None
         data = []
         self.notebook_data = {}
@@ -434,17 +477,20 @@ class Evernote(object):
             return None
         self.LastTagDBUpdate = datetime.now()
         notestore_status = self.initialize_note_store()
-        if not notestore_status.IsSuccess: return None  # notestore_status
+        if not notestore_status.IsSuccess:
+            return None  # notestore_status
         api_action_str = u'trying to update Evernote tags.'
         log_api("listTags" + (': ' + reason_str) if reason_str else '')
         try:
             tags = self.noteStore.listTags(self.token)
             """: type : list[evernote.edam.type.ttypes.Tag] """
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return None
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             return None
         data = []
         self.tag_data = {}
@@ -453,7 +499,8 @@ class Evernote(object):
             enTag = EvernoteTag(tag)
             self.tag_data[enTag.Guid] = enTag
             data.append(enTag.items())
-        if not enTag: return None
+        if not enTag:
+            return None
         db = ankDB()
         old_count = db.scalar("SELECT COUNT(*) FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)
         ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
@@ -468,7 +515,8 @@ class Evernote(object):
                              ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}
 
     def get_missing_tags(self, current_tags, from_guids=True):
-        if isinstance(current_tags, list): current_tags = set(current_tags)
+        if isinstance(current_tags, list):
+            current_tags = set(current_tags)
         self.set_tag_data()
         all_tags = set(self.tag_data.keys() if from_guids else [v.Name for k, v in self.tag_data.items()])
         missing_tags = current_tags - all_tags
@@ -493,15 +541,18 @@ class Evernote(object):
                 keys = ', '.join(sorted(missing_tags))
                 log_error("FATAL ERROR: Tag %s(s) %s were not found on the Evernote Servers" % (identifier, keys))
                 raise EDAMNotFoundException(identifier.lower(), keys)
-        if from_guids: tags_dict = {x: self.tag_data[x] for x in tags_original}
-        else: tags_dict = {[k for k, v in self.tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in
+        if from_guids:
+            tags_dict = {x: self.tag_data[x] for x in tags_original}
+        else:
+            tags_dict = {[k for k, v in self.tag_data.items() if v.Name is tag_name][0]: tag_name for tag_name in
                            tags_original}
         tagNamesToImport = get_tag_names_to_import(tags_dict)
         """:type : dict[string, EvernoteTag]"""
         if tagNamesToImport:
             is_struct = None
             for k, v in tagNamesToImport.items():
-                if is_struct is None: is_struct = isinstance(v, EvernoteTag)
+                if is_struct is None:
+                    is_struct = isinstance(v, EvernoteTag)
                 tagGuids.append(k)
                 tagNames.append(v.Name if is_struct else v)
             tagNames = sorted(tagNames, key=lambda s: s.lower())
@@ -513,10 +564,13 @@ class Evernote(object):
                 log_error('Could not find note metadata for Note ''%s''' % evernote_guid)
                 return False
             note_metadata = self.metadata[evernote_guid]
-            if not note_metadata.tagGuids: continue
+            if not note_metadata.tagGuids:
+                continue
             for tag_guid in note_metadata.tagGuids:
-                if tag_guid in self.tag_data: continue
+                if tag_guid in self.tag_data:
+                    continue
                 tag = EvernoteTag(fetch_guid=tag_guid)
-                if not tag.success: return False
+                if not tag.success:
+                    return False
                 self.tag_data[tag_guid] = tag
         return True

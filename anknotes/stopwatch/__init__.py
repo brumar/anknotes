@@ -56,8 +56,10 @@ class ActionInfo(object):
     @property
     def ActionShort(self):
         try:
-            if self.__action_short: return self.__action_short
-        finally: return (self.ActionBase.upper() + 'ING').replace(' OFING', 'ING').replace("CREATEING",
+            if self.__action_short:
+                return self.__action_short
+        finally:
+            return (self.ActionBase.upper() + 'ING').replace(' OFING', 'ING').replace("CREATEING",
                                                                                            "CREATING") + ' ' + self.RowItemBase.upper()
 
     @property
@@ -66,7 +68,8 @@ class ActionInfo(object):
 
     @property
     def ActionTemplate(self):
-        if self.__action_template: return self.__action_template
+        if self.__action_template:
+            return self.__action_template
         return self.ActionBase + ' ' + self.RowItemFull  # .replace('(s)','')
 
     @property
@@ -86,7 +89,8 @@ class ActionInfo(object):
 
     @property
     def RowItemFull(self):
-        if self.__row_item_full: return self.__row_item_full
+        if self.__row_item_full:
+            return self.__row_item_full
         return self.RowItemBase
 
     @property
@@ -95,7 +99,8 @@ class ActionInfo(object):
 
     @property
     def RowSource(self):
-        if self.__row_source: return self.__row_source
+        if self.__row_source:
+            return self.__row_source
         return self.RowItemFull
 
     @property
@@ -104,8 +109,10 @@ class ActionInfo(object):
 
     @property
     def Max(self):
-        if not self.__max: return -1
-        if isinstance(self.__max, Counter): return self.__max.val
+        if not self.__max:
+            return -1
+        if isinstance(self.__max, Counter):
+            return self.__max.val
         return self.__max
 
     @Max.setter
@@ -121,12 +128,15 @@ class ActionInfo(object):
 
     @property
     def willReportProgress(self):
-        if self.emptyResults: return False
-        if not self.Interval or self.Interval < 1: return False
+        if self.emptyResults:
+            return False
+        if not self.Interval or self.Interval < 1:
+            return False
         return self.Max > self.Interval
 
     def FormatLine(self, text, num=None):
-        if isinstance(num, Counter): num = num.val
+        if isinstance(num, Counter):
+            num = num.val
         return text.format(num=('%' + str(len(str(self.Max))) + 'd ') % num if num else '',
                            row_sources=self.RowSource.replace('(s)', 's'),
                            rows=self.RowItemFull.replace('(s)', 's'),
@@ -160,18 +170,23 @@ class ActionInfo(object):
     def displayInitialInfo(self, max=None, interval=None, automated=None, enabled=None):
         if max:
             self.__max = max
-        if interval: self.__interval = interval
-        if automated is not None: self.__automated = automated
-        if enabled is not None: self.__enabled = enabled
+        if interval:
+            self.__interval = interval
+        if automated is not None:
+            self.__automated = automated
+        if enabled is not None:
+            self.__enabled = enabled
         if self.emptyResults:
             if not self.automated:
                 log('report: ' + self.Aborted, self.Label)
                 show_report(self.Aborted, blank_line_before=False)
-            else: log('report: [automated] ' + self.Aborted, self.Label)
+            else:
+                log('report: [automated] ' + self.Aborted, self.Label)
             return self.setStatus(EvernoteAPIStatus.EmptyRequest)
         if not self.enabled:
             log("Not starting - stopwatch.ActionInfo = false ", self.Label)
-            if not automated: show_report(self.ActionLine("Aborted", "Action has been disabled"),
+            if not automated:
+                show_report(self.ActionLine("Aborted", "Action has been disabled"),
                                           blank_line_before=False)
             return self.setStatus(EvernoteAPIStatus.Disabled)
         log(self.Initiated)
@@ -256,7 +271,8 @@ class Timer(object):
 
     @property
     def label(self):
-        if self.info: return self.info.Label
+        if self.info:
+            return self.info.Label
         return ""
 
     @label.setter
@@ -273,12 +289,14 @@ class Timer(object):
 
     @property
     def parentTotal(self):
-        if not self.__parent_timer: return -1
+        if not self.__parent_timer:
+            return -1
         return self.__parent_timer.total
 
     @property
     def percentOfParent(self):
-        if not self.__parent_timer: return -1
+        if not self.__parent_timer:
+            return -1
         return float(self.total) / float(self.parentTotal) * 100
 
     @property
@@ -287,7 +305,8 @@ class Timer(object):
 
     @property
     def percentComplete(self):
-        if not self.counts.max: return -1
+        if not self.counts.max:
+            return -1
         return float(self.count) / self.counts.max * 100
 
     @property
@@ -303,11 +322,13 @@ class Timer(object):
         return self.rateStrCustom()
 
     def rateCustom(self, unit=None):
-        if unit is None: unit = self.__interval
+        if unit is None:
+            unit = self.__interval
         return self.elapsed / self.count * unit
 
     def rateStrCustom(self, unit=None):
-        if unit is None: unit = self.__interval
+        if unit is None:
+            unit = self.__interval
         return self.__timetostr__(self.rateCustom(unit))
 
     @property
@@ -316,7 +337,8 @@ class Timer(object):
 
     @property
     def projectedTime(self):
-        if not self.counts.max: return -1
+        if not self.counts.max:
+            return -1
         return self.counts.max * self.rateCustom(1)
 
     @property
@@ -365,17 +387,20 @@ class Timer(object):
 
     @property
     def isProgressCheck(self):
-        if not self.counts.max: return False
+        if not self.counts.max:
+            return False
         return self.count % max(self.__interval, 1) is 0
 
     @property
     def status(self):
-        if self.hasActionInfo: return self.info.Status
+        if self.hasActionInfo:
+            return self.info.Status
         return self.__status
 
     @status.setter
     def status(self, value):
-        if self.hasActionInfo: self.info.Status = value
+        if self.hasActionInfo:
+            self.info.Status = value
 
     def autoStep(self, returned_tuple, title=None, update=None, val=None):
         self.step(title, val)
@@ -383,11 +408,13 @@ class Timer(object):
 
     def extractStatus(self, returned_tuple, update=None):
         self.report_result = self.reportStatus(returned_tuple[0], update)
-        if len(returned_tuple) == 2: return returned_tuple[1]
+        if len(returned_tuple) == 2:
+            return returned_tuple[1]
         return returned_tuple[1:]
 
     def checkLimits(self):
-        if not -1 < self.counts.max_allowed <= self.counts.updated + self.counts.created: return True
+        if not -1 < self.counts.max_allowed <= self.counts.updated + self.counts.created:
+            return True
         log("Count exceeded- Breaking with status " + str(self.status), self.label)
         self.reportStatus(EvernoteAPIStatus.ExceededLocalLimit)
         return False
@@ -397,30 +424,41 @@ class Timer(object):
         :type status : EvernoteAPIStatus
         """
         self.status = status
-        if status.IsError: return self.reportError(save_status=False)
-        if status == EvernoteAPIStatus.RequestQueued: return self.reportQueued(save_status=False)
-        if status.IsSuccess: return self.reportSuccess(update, save_status=False)
-        if status == EvernoteAPIStatus.ExceededLocalLimit: return status
+        if status.IsError:
+            return self.reportError(save_status=False)
+        if status == EvernoteAPIStatus.RequestQueued:
+            return self.reportQueued(save_status=False)
+        if status.IsSuccess:
+            return self.reportSuccess(update, save_status=False)
+        if status == EvernoteAPIStatus.ExceededLocalLimit:
+            return status
         self.counts.unhandled.step()
         return False
 
     def reportSkipped(self, save_status=True):
-        if save_status: self.status = EvernoteAPIStatus.RequestSkipped
+        if save_status:
+            self.status = EvernoteAPIStatus.RequestSkipped
         return self.counts.skipped.step()
 
     def reportSuccess(self, update=None, save_status=True):
-        if save_status: self.status = EvernoteAPIStatus.Success
-        if update: self.counts.updated.completed.step()
-        else: self.counts.created.completed.step()
+        if save_status:
+            self.status = EvernoteAPIStatus.Success
+        if update:
+            self.counts.updated.completed.step()
+        else:
+            self.counts.created.completed.step()
         return self.counts.success
 
     def reportError(self, save_status=True):
-        if save_status: self.status = EvernoteAPIStatus.GenericError
+        if save_status:
+            self.status = EvernoteAPIStatus.GenericError
         return self.counts.error.step()
 
     def reportQueued(self, save_status=True, update=None):
-        if save_status: self.status = EvernoteAPIStatus.RequestQueued
-        if update: return self.counts.updated.queued.step()
+        if save_status:
+            self.status = EvernoteAPIStatus.RequestQueued
+        if update:
+            return self.counts.updated.queued.step()
         return self.counts.created.queued.step()
 
     @property
@@ -429,15 +467,21 @@ class Timer(object):
             "%s {r} were processed" % counts_as_str(self.counts.total, self.counts.max), self.counts.total)
 
     def ReportSingle(self, text, count, subtext='', queued_text='', queued=0, subcount=0, process_subcounts=True):
-        if not count: return []
+        if not count:
+            return []
         if isinstance(count, Counter) and process_subcounts:
-            if count.queued: queued = count.queued.val
-            if count.completed.subcount: subcount = count.completed.subcount.val
-        if not queued_text: queued_text = self.info.__queued_str__
+            if count.queued:
+                queued = count.queued.val
+            if count.completed.subcount:
+                subcount = count.completed.subcount.val
+        if not queued_text:
+            queued_text = self.info.__queued_str__
         strs = [self.info.FormatLine("%s {r} %s" % (counts_as_str(count), text), self.count)]
         if process_subcounts:
-            if queued: strs.append("-%-3d of these were queued%s" % (queued, queued_text))
-            if subcount: strs.append("-%-3d of these were successfully%s " % (subcount, subtext))
+            if queued:
+                strs.append("-%-3d of these were queued%s" % (queued, queued_text))
+            if subcount:
+                strs.append("-%-3d of these were successfully%s " % (subcount, subtext))
         return strs
 
     def Report(self, subcount_created=0, subcount_updated=0):
@@ -447,11 +491,14 @@ class Timer(object):
         str_tips += self.ReportSingle('were newly created', self.counts.created, self.info.__created_str__)
         str_tips += self.ReportSingle('already exist and were updated', self.counts.updated, self.info.__updated_str__)
         str_tips += self.ReportSingle('already exist but were unchanged', self.counts.skipped, process_subcounts=False)
-        if self.counts.error: str_tips.append("%d Error(s) occurred " % self.counts.error.val)
-        if self.status == EvernoteAPIStatus.ExceededLocalLimit: str_tips.append(
+        if self.counts.error:
+            str_tips.append("%d Error(s) occurred " % self.counts.error.val)
+        if self.status == EvernoteAPIStatus.ExceededLocalLimit:
+            str_tips.append(
             "Action was prematurely terminated because locally-defined limit of %d was exceeded." % self.counts.max_allowed.val)
         report_title = "   > %s Complete" % self.info.Action
-        if self.counts.total is 0: report_title += self.info.FormatLine(": No {r} were processed")
+        if self.counts.total is 0:
+            report_title += self.info.FormatLine(": No {r} were processed")
         show_report(report_title, self.ReportHeader, str_tips, blank_line_before=False)
         log_blank(filename='counters')
         log(self.counts.fullSummary((self.label if self.label else 'Counter') + ': End'), 'counters')
@@ -484,7 +531,8 @@ class Timer(object):
 
     @property
     def automated(self):
-        if not self.info: return False
+        if not self.info:
+            return False
         return self.info.Automated
 
     def hasActionInfo(self):
@@ -498,14 +546,19 @@ class Timer(object):
         simple_label = False
         self.counts = EvernoteCounter()
         self.__interval = interval
-        if type(info) == str or type(info) == unicode: info = ActionInfo(info)
-        if infoStr and not info: info = ActionInfo(infoStr)
+        if type(info) == str or type(info) == unicode:
+            info = ActionInfo(info)
+        if infoStr and not info:
+            info = ActionInfo(infoStr)
         if label and not info:
             simple_label = True
-            if display_initial_info is None: display_initial_info = False
+            if display_initial_info is None:
+                display_initial_info = False
             info = ActionInfo(label, label=label)
-        elif label: info.__label = label
-        if max is not None and info and (info.Max is None or info.Max <= 0): info.Max = max
+        elif label:
+            info.__label = label
+        if max is not None and info and (info.Max is None or info.Max <= 0):
+            info.Max = max
         self.counts.max = -1 if max is None else max
         self.counts.max_allowed = self.counts.max if max_allowed is None else max_allowed
         self.__did_break = True
@@ -513,11 +566,14 @@ class Timer(object):
         self.__action_initialized = False
         self.__action_attempted = self.hasActionInfo and (display_initial_info is not False)
         if self.__action_attempted:
-            if self.info is None: print "Unexpected; Timer has no ActionInfo instance"
-            else: self.__action_initialized = self.info.displayInitialInfo(max=self.counts.max, interval=interval,
+            if self.info is None:
+                print "Unexpected; Timer has no ActionInfo instance"
+            else:
+                self.__action_initialized = self.info.displayInitialInfo(max=self.counts.max, interval=interval,
                                                                            automated=automated,
                                                                            enabled=enabled) is EvernoteAPIStatus.Initialized
-        if begin: self.reset(False)
+        if begin:
+            self.reset(False)
         log_blank(filename='counters')
         log(self.counts.fullSummary((self.label if self.label else 'Counter') + ': Start'), 'counters')
 
@@ -543,12 +599,15 @@ class Timer(object):
         # del self.__counts
         if reset_counter:
             log("Resetting counter", 'counters')
-            if self.counts is None: self.counts = EvernoteCounter()
-            else: self.counts.reset()
+            if self.counts is None:
+                self.counts = EvernoteCounter()
+            else:
+                self.counts.reset()
             # if keep:
             # self.counts.max = keep[0]
             # self.counts.max_allowed = keep[1]
-        if not self.__stopped: self.stop()
+        if not self.__stopped:
+            self.stop()
         self.__stopped = None
         self.__start = self.__time()
 
@@ -556,7 +615,8 @@ class Timer(object):
         """Stops the clock permanently for the instance of the Timer.
         Returns the time at which the instance was stopped.
         """
-        if not self.__start: return -1
+        if not self.__start:
+            return -1
         self.__stopped = self.__last_time()
         self.__times.append(self.elapsed)
         return self.elapsed
@@ -578,7 +638,8 @@ class Timer(object):
         object was created.  If stop() was called, it is the number
         of seconds from the instance creation until stop() was called.
         """
-        if not self.__start: return -1
+        if not self.__start:
+            return -1
         return self.__last_time() - self.__start
 
     elapsed = property(elapsed)
@@ -616,7 +677,8 @@ class Timer(object):
         return self.__timetostr__(short=False)
 
     def __timetostr__(self, total_seconds=None, short=True, pad=True):
-        if total_seconds is None: total_seconds = self.elapsed
+        if total_seconds is None:
+            total_seconds = self.elapsed
         total_seconds = int(round(total_seconds))
         if total_seconds < 60:
             return ['%ds', '%2ds'][pad] % total_seconds

@@ -38,7 +38,8 @@ def TOCSort(hash1, hash2):
     for i in range(0, min(lvl1, lvl2)):
         name1 = names1[i]
         name2 = names2[i]
-        if name1 != name2: return TOCNameSort(name1, name2)
+        if name1 != name2:
+            return TOCNameSort(name1, name2)
     # Lower value for item 1 = item 1 placed BEFORE item 2
     return lvl1 - lvl2
 
@@ -66,17 +67,20 @@ class TOCHierarchyClass:
         for i in range(0, min(lvl1, lvl2)):
             name1 = names1[i]
             name2 = names2[i]
-            if name1 != name2: return TOCNameSort(name1, name2)
+            if name1 != name2:
+                return TOCNameSort(name1, name2)
         # Lower value for item 1 = item 1 placed BEFORE item 2
         return lvl1 - lvl2
 
     @property
     def IsOutline(self):
-        if not self.Note: return False
+        if not self.Note:
+            return False
         return TAGS.OUTLINE in self.Note.Tags
 
     def sortIfNeeded(self):
-        if self.__isSorted__: return
+        if self.__isSorted__:
+            return
         self.sortChildren()
 
     @property
@@ -99,7 +103,8 @@ class TOCHierarchyClass:
         self.addHierarchy(tocHierarchy)
 
     def getChildIndex(self, tocChildHierarchy):
-        if not tocChildHierarchy in self.Children: return -1
+        if not tocChildHierarchy in self.Children:
+            return -1
         self.sortIfNeeded()
         return self.Children.index(tocChildHierarchy)
 
@@ -107,21 +112,25 @@ class TOCHierarchyClass:
     def ListPrefix(self):
         index = self.Index
         isSingleItem = self.IsSingleItem
-        if isSingleItem is 0: return ""
-        if isSingleItem is 1: return "*"
+        if isSingleItem is 0:
+            return ""
+        if isSingleItem is 1:
+            return "*"
         return str(index) + "."
 
     @property
     def IsSingleItem(self):
         index = self.Index
-        if index is 0: return 0
+        if index is 0:
+            return 0
         if index is 1 and len(self.Parent.Children) is 1:
             return 1
         return -1
 
     @property
     def Index(self):
-        if not self.Parent: return 0
+        if not self.Parent:
+            return 0
         return self.Parent.getChildIndex(self) + 1
 
     def addTitle(self, title):
@@ -132,7 +141,8 @@ class TOCHierarchyClass:
         tocNewLevel = tocNewTitle.Level
         selfLevel = self.Title.Level
         tocTestBase = tocHierarchy.FullTitle.replace(self.FullTitle, '')
-        if tocTestBase[:2] == ': ':
+        if tocTestBase[:
+            2] == ': ':
             tocTestBase = tocTestBase[2:]
 
         print " \nAdd Hierarchy: %-70s --> %-40s\n-------------------------------------" % (
@@ -234,13 +244,15 @@ class TOCHierarchyClass:
         return '\n'.join(lst)
 
     def GetOrderedListItem(self, title=None):
-        if not title: title = self.Title.Name
+        if not title:
+            title = self.Title.Name
         selfTitleStr = title
         selfLevel = self.Title.Level
         selfDepth = self.Title.Depth
         if selfLevel == 1:
             guid = 'guid-pending'
-            if self.Note: guid = self.Note.Guid
+            if self.Note:
+                guid = self.Note.Guid
             link = generate_evernote_link(guid, generateTOCTitle(selfTitleStr), 'TOC')
             if self.Outline:
                 link += ' ' + generate_evernote_link(self.Outline.Note.Guid,

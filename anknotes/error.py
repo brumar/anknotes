@@ -39,7 +39,8 @@ latestEDAMRateLimit = 0
 
 def HandleEDAMRateLimitError(e, strError):
     global latestEDAMRateLimit
-    if not e.errorCode is EDAMErrorCode.RATE_LIMIT_REACHED: return False
+    if not e.errorCode is EDAMErrorCode.RATE_LIMIT_REACHED:
+        return False
     latestEDAMRateLimit = e.rateLimitDuration
     m, s = divmod(e.rateLimitDuration, 60)
     strError = "Error: Rate limit has been reached while %s\r\n" % strError
@@ -87,7 +88,8 @@ def HandleUnicodeError(log_header, e, guid, title, action='', attempt=1, content
             timestamp=False)
     else:
         return_val = 0
-        if attempt is 1 and content: log_dump(content, log_header, 'NonUnicodeErrors')
+        if attempt is 1 and content:
+            log_dump(content, log_header, 'NonUnicodeErrors')
     if (new_error and attempt >= attempt_min) or not is_unicode:
         log_error(log_header + "\n -  Error: %s\n -   GUID: %s\n -  Title: %s%s" % (
             str(e), guid, str_safe(title), '' if not object else "\n - Object: %s" % str_safe(object)))

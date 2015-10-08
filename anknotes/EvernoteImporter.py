@@ -20,8 +20,10 @@ from anknotes.ankEvernote import Evernote
 from anknotes.EvernoteNotes import EvernoteNotes
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 
-try: from anknotes import settings
-except: pass
+try:
+    from anknotes import settings
+except:
+    pass
 
 ### Evernote Imports
 from anknotes.evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec, NoteMetadata, NotesMetadataList
@@ -29,8 +31,10 @@ from anknotes.evernote.edam.type.ttypes import NoteSortOrder, Note as EvernoteNo
 from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 
 ### Anki Imports
-try: from aqt import mw
-except: pass
+try:
+    from aqt import mw
+except:
+    pass
 
 
 class EvernoteImporter:
@@ -95,11 +99,13 @@ class EvernoteImporter:
             :type: NotesMetadataList
             """
         except EDAMSystemException as e:
-            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             self.MetadataProgress.Status = EvernoteAPIStatus.RateLimitError
             return False
         except socket.error, v:
-            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS: raise
+            if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
+                raise
             self.MetadataProgress.Status = EvernoteAPIStatus.SocketError
             return False
         self.MetadataProgress.loadResults(result)
@@ -177,14 +183,16 @@ class EvernoteImporter:
         col.setMod()
         col.save()
         lastImportStr = get_friendly_interval_string(lastImport)
-        if lastImportStr: lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
+        if lastImportStr:
+            lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
         log_banner("  > Starting Evernote Import:           Page %3s                     Query: %s".ljust(122) % (
             '#' + str(self.currentPage), settings.generate_evernote_query()) + lastImportStr, append_newline=False,
                    chr='=', length=0, center=False, clear=False, timestamp=True)
         # log("!  > Starting Evernote Import:           Page %3s                     Query: %s".ljust(123) % (
         # '#' + str(self.currentPage), settings.generate_evernote_query()) + ' ' + lastImportStr)
         # log("-"*(ANKNOTES.FORMATTING.LINE_LENGTH+1), timestamp=False)
-        if auto_paging: return True
+        if auto_paging:
+            return True
         notestore_status = self.evernote.initialize_note_store()
         if not notestore_status == EvernoteAPIStatus.Success:
             log("    > Note store does not exist. Aborting.")
@@ -196,8 +204,10 @@ class EvernoteImporter:
     def proceed_find_metadata(self, auto_paging=False):
         global latestEDAMRateLimit, latestSocketError
 
-        if self.ManualMetadataMode: self.override_evernote_metadata()
-        else: self.get_evernote_metadata()
+        if self.ManualMetadataMode:
+            self.override_evernote_metadata()
+        else:
+            self.get_evernote_metadata()
 
         if self.MetadataProgress.Status == EvernoteAPIStatus.RateLimitError:
             m, s = divmod(latestEDAMRateLimit, 60)
@@ -235,7 +245,8 @@ class EvernoteImporter:
         self.anki.collection().autosave()
 
     def save_current_page(self):
-        if self.forceAutoPage: return
+        if self.forceAutoPage:
+            return
         col = self.anki.collection()
         col.conf[SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE] = self.currentPage
         col.setMod()
@@ -300,11 +311,13 @@ class EvernoteImporter:
                     EVERNOTE.IMPORT.PAGING.INTERVAL, 60 * 10)
                 suffix = "<BR>Delaying Auto Paging: Per EVERNOTE.IMPORT.PAGING.INTERVAL, "
         self.save_current_page()
-        if restart > 0: suffix += "will delay for {interval} before continuing"
+        if restart > 0:
+            suffix += "will delay for {interval} before continuing"
         m, s = divmod(abs(restart), 60)
         suffix = suffix.format(interval=['%2ds' % s, '%d:%02d min' % (m, s)][m > 0])
         show_report(restart_title, (restart_msg + suffix).split('<BR>'), delay=5)
-        if restart: mw.progress.timer(abs(restart) * 1000, lambda: self.proceed(True), False); return False
+        if restart:
+            mw.progress.timer(abs(restart) * 1000, lambda: self.proceed(True), False); return False
         return self.proceed(True)
 
     @property

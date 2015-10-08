@@ -31,8 +31,10 @@ class EvernoteNoteProcessingFlags:
 
     def __init__(self, flags=None):
         if isinstance(flags, bool):
-            if not flags: self.set_default(False)
-        if flags: self.update(flags)
+            if not flags:
+                self.set_default(False)
+        if flags:
+            self.update(flags)
 
     def set_default(self, flag):
         self.populateRootTitlesList = flag
@@ -83,7 +85,8 @@ class EvernoteNotes:
         """:type enNote: EvernoteNote.EvernoteNote"""
         assert enNote
         self.addNoteSilently(enNote)
-        if self.processingFlags.delayProcessing: return
+        if self.processingFlags.delayProcessing:
+            return
         self.processNote(enNote)
 
     def addDBNote(self, dbNote):
@@ -103,7 +106,8 @@ class EvernoteNotes:
 
     def addDbQuery(self, sql_query, order=''):
         sql_query = "SELECT *  FROM %s WHERE (%s) AND (%s) " % (TABLES.EVERNOTE.NOTES, self.baseQuery, sql_query)
-        if order: sql_query += ' ORDER BY ' + order
+        if order:
+            sql_query += ' ORDER BY ' + order
         dbNotes = ankDB().execute(sql_query)
         self.addDBNotes(dbNotes)
 
@@ -117,7 +121,8 @@ class EvernoteNotes:
         """
         sql_query = "SELECT *  FROM %s WHERE %s " % (TABLES.EVERNOTE.NOTES, query)
         dbNote = ankDB().first(sql_query)
-        if not dbNote: return None
+        if not dbNote:
+            return None
         return dbNote
 
     def getNoteFromDBByGuid(self, guid):
@@ -392,10 +397,13 @@ class EvernoteNotes:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
             fn = 'toc-ols\\toc-index.htm'
             file_object = open(os.path.join(FOLDERS.LOGS, fn), 'w')
-            try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
+            try:
+                file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
             except:
-                try: file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
-                except: pass
+                try:
+                    file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
+                except:
+                    pass
 
             file_object.close()
 

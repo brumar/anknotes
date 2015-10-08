@@ -51,7 +51,8 @@ class Controller:
         self.evernote = Evernote()
 
     def test_anki(self, title, evernote_guid, filename=""):
-        if not filename: filename = title
+        if not filename:
+            filename = title
         fields = {
             FIELDS.TITLE:                          title,
             FIELDS.CONTENT:                        file(
@@ -78,19 +79,25 @@ class Controller:
         tmr = stopwatch.Timer(len(dbRows), 25, "Upload of Validated Evernote Notes", automated=automated,
                               enabled=EVERNOTE.UPLOAD.ENABLED, max_allowed=EVERNOTE.UPLOAD.MAX,
                               display_initial_info=True)
-        if tmr.actionInitializationFailed: return tmr.status, 0, 0
+        if tmr.actionInitializationFailed:
+            return tmr.status, 0, 0
         for dbRow in dbRows:
             entry = EvernoteValidationEntry(dbRow)
             evernote_guid, rootTitle, contents, tagNames, notebookGuid, noteType = entry.items()
             tagNames = tagNames.split(',')
-            if not tmr.checkLimits(): break
+            if not tmr.checkLimits():
+                break
             whole_note = tmr.autoStep(
                 self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, guid=evernote_guid,
                                        noteType=noteType, validated=True), rootTitle, evernote_guid)
-            if tmr.report_result == False: raise ValueError
-            if tmr.status.IsDelayableError: break
-            if not tmr.status.IsSuccess: continue
-            if not whole_note.tagNames: whole_note.tagNames = tagNames
+            if tmr.report_result == False:
+                raise ValueError
+            if tmr.status.IsDelayableError:
+                break
+            if not tmr.status.IsSuccess:
+                continue
+            if not whole_note.tagNames:
+                whole_note.tagNames = tagNames
             noteFetcher.addNoteFromServerToDB(whole_note, tagNames)
             note = EvernoteNotePrototype(whole_note=whole_note)
             assert whole_note.tagNames
@@ -101,15 +108,20 @@ class Controller:
             else:
                 notes_created.append(note)
                 queries2.append([rootTitle, contents])
-        else: tmr.reportNoBreak()
+        else:
+            tmr.reportNoBreak()
         tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.counts.created else 0,
                    self.anki.update_evernote_notes(notes_updated) if tmr.counts.updated else 0)
-        if tmr.counts.created.completed.subcount: ankDB().executemany(
+        if tmr.counts.created.completed.subcount:
+            ankDB().executemany(
             "DELETE FROM %s WHERE title = ? and contents = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries2)
-        if tmr.counts.updated.completed.subcount: ankDB().executemany(
+        if tmr.counts.updated.completed.subcount:
+            ankDB().executemany(
             "DELETE FROM %s WHERE guid = ? " % TABLES.NOTE_VALIDATION_QUEUE, queries1)
-        if tmr.is_success: ankDB().commit()
-        if tmr.should_retry: mw.progress.timer(
+        if tmr.is_success:
+            ankDB().commit()
+        if tmr.should_retry:
+            mw.progress.timer(
             (30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000,
             lambda: self.upload_validated_notes(True), False)
         return tmr.status, tmr.count, 0
@@ -154,7 +166,8 @@ class Controller:
                                     enabled=EVERNOTE.UPLOAD.ENABLED)
         tmr = stopwatch.Timer(len(dbRows), 25, info, max_allowed=EVERNOTE.UPLOAD.MAX)
         tmr.label = noteType
-        if tmr.actionInitializationFailed: return tmr.status, 0, 0
+        if tmr.actionInitializationFailed:
+            return tmr.status, 0, 0
         for dbRow in dbRows:
             evernote_guid = None
             rootTitle, contents, tagNames, notebookGuid = dbRow.items()
@@ -162,18 +175,24 @@ class Controller:
                 {"#Sandbox"} if EVERNOTE.API.IS_SANDBOXED else set())) - {TAGS.REVERSIBLE, TAGS.REVERSE_ONLY}
             rootTitle = generateTOCTitle(rootTitle)
             evernote_guid, contents = check_old_values()
-            if contents is None: continue
-            if not tmr.checkLimits(): break
+            if contents is None:
+                continue
+            if not tmr.checkLimits():
+                break
             whole_note = tmr.autoStep(
                 self.evernote.makeNote(rootTitle, contents, tagNames, notebookGuid, noteType=noteType,
                                        guid=evernote_guid), rootTitle, evernote_guid)
-            if tmr.report_result == False: raise ValueError
-            if tmr.status.IsDelayableError: break
-            if not tmr.status.IsSuccess: continue
+            if tmr.report_result == False:
+                raise ValueError
+            if tmr.status.IsDelayableError:
+                break
+            if not tmr.status.IsSuccess:
+                continue
             (notes_updated if evernote_guid else notes_created).append(EvernoteNotePrototype(whole_note=whole_note))
         tmr.Report(self.anki.add_evernote_notes(notes_created) if tmr.counts.created.completed else 0,
                    self.anki.update_evernote_notes(notes_updated) if tmr.counts.updated.completed else 0)
-        if tmr.counts.queued: ankDB().commit()
+        if tmr.counts.queued:
+            ankDB().commit()
         return tmr.status, tmr.count, tmr.counts.skipped.val
 
     def update_ancillary_data(self):

@@ -471,7 +471,8 @@ def update_evernote_tags_to_delete(text):
 
 def update_evernote_query_tags(text):
     mw.col.conf[SETTINGS.EVERNOTE.QUERY.TAGS] = text
-    if text: evernote_query_use_tags.setChecked(True)
+    if text:
+        evernote_query_use_tags.setChecked(True)
     evernote_query_text_changed()
 
 
@@ -482,7 +483,8 @@ def update_evernote_query_use_tags():
 
 def update_evernote_query_excluded_tags(text):
     mw.col.conf[SETTINGS.EVERNOTE.QUERY.EXCLUDED_TAGS] = text
-    if text: evernote_query_use_excluded_tags.setChecked(True)
+    if text:
+        evernote_query_use_excluded_tags.setChecked(True)
     evernote_query_text_changed()
 
 
@@ -493,7 +495,8 @@ def update_evernote_query_use_excluded_tags():
 
 def update_evernote_query_notebook(text):
     mw.col.conf[SETTINGS.EVERNOTE.QUERY.NOTEBOOK] = text
-    if text: evernote_query_use_notebook.setChecked(True)
+    if text:
+        evernote_query_use_notebook.setChecked(True)
     evernote_query_text_changed()
 
 
@@ -504,7 +507,8 @@ def update_evernote_query_use_notebook():
 
 def update_evernote_query_note_title(text):
     mw.col.conf[SETTINGS.EVERNOTE.QUERY.NOTE_TITLE] = text
-    if text: evernote_query_use_note_title.setChecked(True)
+    if text:
+        evernote_query_use_note_title.setChecked(True)
     evernote_query_text_changed()
 
 
@@ -520,7 +524,8 @@ def update_evernote_query_use_last_updated():
 
 def update_evernote_query_search_terms(text):
     mw.col.conf[SETTINGS.EVERNOTE.QUERY.SEARCH_TERMS] = text
-    if text: evernote_query_use_search_terms.setChecked(True)
+    if text:
+        evernote_query_use_search_terms.setChecked(True)
     evernote_query_text_changed()
     update_evernote_query_visibilities()
 
@@ -650,7 +655,8 @@ def evernote_query_last_updated_value_get_current_value():
     if index < EvernoteQueryLocationType.AbsoluteDate:
         spinner_text = ['day', 'week', 'month', 'year'][index]
         spinner_val = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.LAST_UPDATED_VALUE_RELATIVE, 0)
-        if spinner_val > 0: spinner_text += "-" + str(spinner_val)
+        if spinner_val > 0:
+            spinner_text += "-" + str(spinner_val)
         return spinner_text
 
     absolute_date_str = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.LAST_UPDATED_VALUE_ABSOLUTE_DATE,
@@ -733,7 +739,8 @@ def generate_evernote_query():
         query += "any: "
     if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_NOTE_TITLE, False):
         query_note_title = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.NOTE_TITLE, "")
-        if not query_note_title[:1] + query_note_title[-1:] == '""':
+        if not query_note_title[:
+            1] + query_note_title[-1:] == '""':
             query_note_title = '"%s"' % query_note_title
         query += 'intitle:%s ' % query_note_title
     if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_TAGS, True):
@@ -741,13 +748,15 @@ def generate_evernote_query():
                                                                                                                  ' ').split()
         for tag in tags:
             tag = tag.strip()
-            if ' ' in tag: tag = '"%s"' % tag
+            if ' ' in tag:
+                tag = '"%s"' % tag
             query += 'tag:%s ' % tag
     if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_EXCLUDED_TAGS, True):
         tags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.EXCLUDED_TAGS, '').replace(',', ' ').split()
         for tag in tags:
             tag = tag.strip()
-            if ' ' in tag: tag = '"%s"' % tag
+            if ' ' in tag:
+                tag = '"%s"' % tag
             query += '-tag:%s ' % tag
     if mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.USE_LAST_UPDATED, False):
         query += " updated:%s " % evernote_query_last_updated_value_get_current_value()

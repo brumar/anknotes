@@ -130,8 +130,10 @@ class AnkiNotePrototype:
             deck += DECKS.OUTLINE_SUFFIX
         elif not self._deck_parent_ or mw.col.conf.get(SETTINGS.ANKI.DECKS.EVERNOTE_NOTEBOOK_INTEGRATION, True):
             deck = self.Anki.get_deck_name_from_evernote_notebook(self.NotebookGuid, self._deck_parent_)
-            if not deck: return None
-        if deck[:2] == '::':
+            if not deck:
+                return None
+        if deck[:
+            2] == '::':
             deck = deck[2:]
         return deck
 
@@ -147,17 +149,20 @@ class AnkiNotePrototype:
 
     def regex_occlude_match(self, match):
         matchText = match.group(0)
-        if 'class="Occluded"' in matchText or "class='Occluded'" in matchText: return matchText
+        if 'class="Occluded"' in matchText or "class='Occluded'" in matchText:
+            return matchText
         return r'&lt;&lt;' + match.group('PrefixKeep') + ' <div class="occluded">' + match.group(
             'OccludedText') + '</div>&gt;&gt;'
 
     def process_note_see_also(self):
-        if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields: return
+        if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields:
+            return
         db = ankDB()
         db.execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
         link_num = 0
         for enLink in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
-            if not check_evernote_guid_is_valid(enLink.Guid): self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(
+            if not check_evernote_guid_is_valid(enLink.Guid):
+                self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(
                 enLink, self.Fields[FIELDS.SEE_ALSO]); continue
             link_num += 1
             title_text = enLink.FullTitle.replace(u'\'', u'\'\'')
@@ -168,7 +173,8 @@ class AnkiNotePrototype:
                 "INSERT OR REPLACE INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', %d, %d, %d)" % (
                     TABLES.SEE_ALSO, self.Guid, link_num, enLink.Uid, enLink.Shard,
                     enLink.Guid, enLink.HTML, title_text, from_toc, is_toc, is_outline))
-        if link_num is 0: self.Fields[FIELDS.SEE_ALSO] = ""
+        if link_num is 0:
+            self.Fields[FIELDS.SEE_ALSO] = ""
         db.commit()
 
     def process_note_content(self):
@@ -188,7 +194,8 @@ class AnkiNotePrototype:
                                                  r'evernote://view/\2/\1/\3/\3/', self.Fields[FIELDS.CONTENT])
 
             # If we are converting back to Evernote format 
-            if self.light_processing: self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace("evernote://",
+            if self.light_processing:
+                self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace("evernote://",
                                                                                                         "evernote:///")
 
         def step_2_modify_image_links():
@@ -245,7 +252,8 @@ class AnkiNotePrototype:
                 if i_see_also > -1:
                     self.loggedSeeAlsoError = self.Guid
                     i_div = self.Fields[FIELDS.CONTENT].rfind("<div", 0, i_see_also)
-                    if i_div is -1: i_div = i_see_also
+                    if i_div is -1:
+                        i_div = i_see_also
                     log_error(
                         "No See Also Content Found, but phrase 'See Also' exists in " + self.Guid + ": " + self.FullTitle,
                         crosspost_to_default=False)
@@ -282,7 +290,8 @@ class AnkiNotePrototype:
         steps = [0, 1, 6] if self.light_processing else range(0, 7)
         if self.light_processing and not ANKI.NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING:
             steps.remove(0)
-        if 0 in steps: step_0_remove_evernote_css_attributes()
+        if 0 in steps:
+            step_0_remove_evernote_css_attributes()
         step_1_modify_evernote_links()
         if 2 in steps:
             step_2_modify_image_links()
@@ -296,7 +305,8 @@ class AnkiNotePrototype:
         # log('Title, self.model_name, tags, self.model_name', 'detectnotemodel')
         # log(self.FullTitle, 'detectnotemodel')
         # log(self.ModelName, 'detectnotemodel')
-        if FIELDS.CONTENT in self.Fields and "{{c1::" in self.Fields[FIELDS.CONTENT]:
+        if FIELDS.CONTENT in self.Fields and "{{c1:
+            :" in self.Fields[FIELDS.CONTENT]:
             self.ModelName = MODELS.CLOZE
         if len(self.Tags) > 0:
             reverse_override = (TAGS.TOC in self.Tags or TAGS.AUTO_TOC in self.Tags)
@@ -313,7 +323,8 @@ class AnkiNotePrototype:
                 # log(self.ModelName, 'detectnotemodel')
 
     def model_id(self):
-        if not self.ModelName: return None
+        if not self.ModelName:
+            return None
         return long(self.Anki.models().byName(self.ModelName)['id'])
 
     def process_note(self):
@@ -323,7 +334,8 @@ class AnkiNotePrototype:
 
     def update_note_model(self):
         modelNameNew = self.ModelName
-        if not modelNameNew: return False
+        if not modelNameNew:
+            return False
         modelIdOld = self.note.mid
         modelIdNew = self.model_id()
         if modelIdOld == modelIdNew:
@@ -364,14 +376,17 @@ class AnkiNotePrototype:
             log(log_title, 'AddUpdateNote', timestamp=(content is ''),
                 clear=((self.Counts.Current == 1 or self.Counts.Current == 100) and not self.logged))
             self.logged = True
-        if not content: return
+        if not content:
+            return
         content = obj2log_simple(content)
         content = content.replace('\n', '\n        ')
-        if content.lstrip()[:1] != '>': content = '> ' + content
+        if content.lstrip()[:
+            1] != '>': content = '> ' + content
         log(' %s\n' % content, 'AddUpdateNote', timestamp=False)
 
     def update_note_tags(self):
-        if len(self.Tags) == 0: return False
+        if len(self.Tags) == 0:
+            return False
         self.Tags = get_tag_names_to_import(self.Tags)
         if not self.BaseNote:
             self.log_update("Error with unt")
@@ -391,7 +406,8 @@ class AnkiNotePrototype:
 
     def update_note_deck(self):
         deckNameNew = self.deck()
-        if not deckNameNew: return False
+        if not deckNameNew:
+            return False
         deckIDNew = self.Anki.decks().id(deckNameNew)
         deckIDOld = get_anki_deck_id_from_note_id(self.note.id)
         if deckIDNew == deckIDOld:
@@ -440,7 +456,8 @@ class AnkiNotePrototype:
                         raise
         for update in field_updates:
             self.log_update(update)
-        if flag_changed: self.Changed = True
+        if flag_changed:
+            self.Changed = True
         return flag_changed
 
     def update_note(self):
@@ -455,7 +472,8 @@ class AnkiNotePrototype:
         i_see_also = self.Fields[FIELDS.CONTENT].find("See Also")
         if i_see_also > -1:
             i_div = self.Fields[FIELDS.CONTENT].rfind("<div", 0, i_see_also)
-            if i_div is -1: i_div = i_see_also
+            if i_div is -1:
+                i_div = i_see_also
             if not hasattr(self, 'loggedSeeAlsoError') or self.loggedSeeAlsoError != self.Guid:
                 log_error(
                     "No See Also Content Found, but phrase 'See Also' exists in " + self.Guid + ": " + self.FullTitle,
@@ -491,11 +509,15 @@ class AnkiNotePrototype:
     def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
         do_log_title = False
         if not isinstance(new_title, unicode):
-            try: new_title = unicode(new_title, 'utf-8')
-            except: do_log_title = True
+            try:
+                new_title = unicode(new_title, 'utf-8')
+            except:
+                do_log_title = True
         if not isinstance(old_title, unicode):
-            try: old_title = unicode(old_title, 'utf-8')
-            except: do_log_title = True
+            try:
+                old_title = unicode(old_title, 'utf-8')
+            except:
+                do_log_title = True
         guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + (
             '' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
         if do_log_title or new_title != old_title or (self.OriginalGuid and new_guid != self.OriginalGuid):
@@ -531,19 +553,26 @@ class AnkiNotePrototype:
             base_values = enumerate(self.note.fields)
         for key, value in base_values:
             name = key if from_anp_fields else FIELDS.LIST[key - 1] if key > 0 else FIELDS.EVERNOTE_GUID
-            if isinstance(value, unicode) and not do_decode is True: action = 'ENCODING'
-            elif isinstance(value, str) and not do_decode is False: action = 'DECODING'
-            else: action = 'DOING NOTHING'
+            if isinstance(value, unicode) and not do_decode is True:
+                action = 'ENCODING'
+            elif isinstance(value, str) and not do_decode is False:
+                action = 'DECODING'
+            else:
+                action = 'DOING NOTHING'
             log('\t - %s for %s field %s' % (action, value.__class__.__name__, name), 'unicode', timestamp=False)
             if action is not 'DOING NOTHING':
                 try:
                     new_value = value.encode('utf-8') if action == 'ENCODED' else value.decode('utf-8')
-                    if from_anp_fields: self.note[key] = new_value
-                    else: self.note.fields[key] = new_value
+                    if from_anp_fields:
+                        self.note[key] = new_value
+                    else:
+                        self.note.fields[key] = new_value
                 except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:
                     e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, value, field=name)
-                    if e_return is not 1: raise
-        if e_return is not False: log_blank('unicode')
+                    if e_return is not 1:
+                        raise
+        if e_return is not False:
+            log_blank('unicode')
         return 1
 
     def add_note_try(self, attempt=1):
@@ -555,26 +584,30 @@ class AnkiNotePrototype:
             col.addNote(self.note)
         except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:
             e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, self.note[FIELDS.TITLE])
-            if e_return is not 1: raise
+            if e_return is not 1:
+                raise
             self.save_anki_fields_decoded(attempt + 1)
             return self.add_note_try(attempt + 1)
         return 1
 
     def add_note(self):
         self.create_note()
-        if self.note is None: return -1
+        if self.note is None:
+            return -1
         collection = self.Anki.collection()
         db_title = get_evernote_title_from_guid(self.Guid)
         log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, 'AddUpdateNote')
         self.check_titles_equal(db_title, self.FullTitle, self.Guid, 'NEW NOTE TITLE UNEQUAL TO DB ENTRY')
-        if self.add_note_try() is not 1: return -1
+        if self.add_note_try() is not 1:
+            return -1
         collection.autosave()
         self.Anki.start_editing()
         return self.note.id
 
     def create_note(self, attempt=1):
         id_deck = self.Anki.decks().id(self.deck())
-        if not self.ModelName: self.ModelName = MODELS.DEFAULT
+        if not self.ModelName:
+            self.ModelName = MODELS.DEFAULT
         model = self.Anki.models().byName(self.ModelName)
         col = self.Anki.collection()
         self.note = AnkiNote(col, model)

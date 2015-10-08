@@ -37,21 +37,24 @@ class notes:
 
             @property
             def regex_original(self):
-                if self.original is None: return None
+                if self.original is None:
+                    return None
                 if self.__regex_original__ is None:
                     self.__regex_original__ = notes.version.see_also_match(self.original)
                 return self.__regex_original__
 
             @property
             def regex_processed(self):
-                if self.processed is None: return None
+                if self.processed is None:
+                    return None
                 if self.__regex_processed__ is None:
                     self.__regex_processed__ = notes.version.see_also_match(self.processed)
                 return self.__regex_processed__
 
             @property
             def regex_updated(self):
-                if self.updated is None: return None
+                if self.updated is None:
+                    return None
                 if self.__regex_updated__ is None:
                     self.__regex_updated__ = notes.version.see_also_match(self.updated)
                 return self.__regex_updated__
@@ -64,7 +67,8 @@ class notes:
 
             @property
             def updated(self):
-                if self.__updated__ is None: return str_process(self.__original__)
+                if self.__updated__ is None:
+                    return str_process(self.__original__)
                 return self.__updated__
 
             @updated.setter
@@ -95,7 +99,8 @@ class notes:
 
             @property
             def subject(self):
-                if not self.__subject__: return self.content
+                if not self.__subject__:
+                    return self.content
                 return self.__subject__
 
             @subject.setter
@@ -120,7 +125,8 @@ class notes:
 
             @property
             def successful_match(self):
-                if self.__matchobject__: return True
+                if self.__matchobject__:
+                    return True
                 if self.__match_attempted__ is 0 and self.subject is not None:
                     self.__matchobject__ = notes.rgx.search(self.subject)
                     """:type : anknotes._re.__Match """
@@ -159,7 +165,8 @@ class notes:
 
 
 def str_process(strr):
-    if not strr: return strr
+    if not strr:
+        return strr
     strr = strr.replace(u"evernote:///", u"evernote://")
     strr = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
                   r'evernote://view/\2/\1/\3/\3/', strr)
@@ -280,13 +287,19 @@ def main(evernote=None, anki=None):
         print_results()
         print_results('Diff\\Contents', final=True)
         enNote.Content = n.new.content.final
-        if not EVERNOTE.UPLOAD.ENABLED: continue
-        if not evernote: evernote = Evernote()
+        if not EVERNOTE.UPLOAD.ENABLED:
+            continue
+        if not evernote:
+            evernote = Evernote()
         whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote, noteType=noteType), enNote.FullTitle, True)
-        if tmr.reportStatus(status) == False: raise ValueError
-        if tmr.status.IsDelayableError: break
-        if tmr.status.IsSuccess: notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))
-    if tmr.is_success and not anki: anki = Anki()
+        if tmr.reportStatus(status) == False:
+            raise ValueError
+        if tmr.status.IsDelayableError:
+            break
+        if tmr.status.IsSuccess:
+            notes_updated.append(EvernoteNotePrototype(whole_note=whole_note))
+    if tmr.is_success and not anki:
+        anki = Anki()
     tmr.Report(0, anki.update_evernote_notes(notes_updated) if tmr.is_success else 0)
     # log.go("Total %d of %d note(s) successfully uploaded to Evernote" % (tmr.count_success, tmr.max), tmr.label, do_print=True)
     # if number_updated > 0: log.go("  > %4d updated in Anki" % number_updated, tmr.label, do_print=True)

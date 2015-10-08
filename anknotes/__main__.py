@@ -39,7 +39,8 @@ def import_timer_toggle():
     title = "&Enable Auto Import On Profile Load"
     doAutoImport = mw.col.conf.get(
         SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX + '_' + title.replace(' ', '_').replace('&', ''), False)
-    if not doAutoImport: return
+    if not doAutoImport:
+        return
     lastImport = mw.col.conf.get(SETTINGS.EVERNOTE.LAST_IMPORT, None)
     importDelay = 0
     if lastImport:
@@ -56,15 +57,18 @@ def import_timer_toggle():
 
 
 def _findEdited((val, args)):
-    try: days = int(val)
-    except ValueError: return
+    try:
+        days = int(val)
+    except ValueError:
+        return
     return "c.mod > %d" % (time.time() - days * 86400)
 
 
 def _findAnknotes((val, args)):
     tmr = stopwatch.Timer(label='finder\\findAnknotes', begin=False)
     log_banner("FINDANKNOTES SEARCH: " + val.upper().replace('_', ' '), tmr.label, append_newline=False, clear=False)
-    if not hasattr(_findAnknotes, 'note_ids'): _findAnknotes.note_ids = {}
+    if not hasattr(_findAnknotes, 'note_ids'):
+        _findAnknotes.note_ids = {}
     if val == 'hierarchical' or val == 'hierarchical_alt':
         if val not in _findAnknotes.note_ids or not ANKNOTES.CACHE_SEARCHES:
             tmr.reset()
@@ -105,7 +109,8 @@ def _findAnknotes((val, args)):
                 table += ', %s ank' % TABLES.EVERNOTE.NOTES
             sql = 'select %s from %s where ' % (col, table) + pred
             _findAnknotes.note_ids[val] = ankDB().list(sql)
-        else: return None
+        else:
+            return None
         log("  > Cached %s Note IDs: ".ljust(25) % val + "%-5s --> %3d results" % (
             tmr.str_long, len(_findAnknotes.note_ids[val])), tmr.label)
     else:
@@ -122,7 +127,8 @@ class CallbackItem(QTreeWidgetItem):
 
 
 def anknotes_browser_get_icon(icon=None):
-    if icon: return QIcon(":/icons/" + icon)
+    if icon:
+        return QIcon(":/icons/" + icon)
     if not hasattr(anknotes_browser_get_icon, 'default_icon'):
         from anknotes.graphics import icoEvernoteWeb
         anknotes_browser_get_icon.default_icon = icoEvernoteWeb
@@ -130,7 +136,8 @@ def anknotes_browser_get_icon(icon=None):
 
 
 def anknotes_browser_add_treeitem(self, tree, name, cmd, icon=None, index=None, root=None):
-    if root is None: root = tree
+    if root is None:
+        root = tree
     onclick = lambda c=cmd: self.setFilter(c)
     if index:
         widgetItem = QTreeWidgetItem([_(name)])
@@ -144,7 +151,8 @@ def anknotes_browser_add_treeitem(self, tree, name, cmd, icon=None, index=None, 
 
 
 def anknotes_browser_add_tree(self, tree, items, root=None, name=None, icon=None):
-    if root is None: root = tree
+    if root is None:
+        root = tree
     for item in items:
         if isinstance(item[1], list):
             new_name = item[0]
@@ -207,7 +215,8 @@ def anknotes_finder_findCards_wrap(self, query, order=False, _old=None):
     tokens = self._tokenize(query)
     preds, args = self._where(tokens)
     log('Tokens: '.ljust(25) + ', '.join(tokens), tmr.label)
-    if args: log('Args: '.ljust(25) + ', '.join(tokens), tmr.label)
+    if args:
+        log('Args: '.ljust(25) + ', '.join(tokens), tmr.label)
     if preds is None:
         log('Preds: '.ljust(25) + '<NONE>', tmr.label)
         log_blank(tmr.label)

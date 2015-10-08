@@ -27,8 +27,10 @@ class EvernoteNoteTitle:
 
     @property
     def TitleParts(self):
-        if not self.FullTitle: return []
-        if not self.__titleParts__: self.__titleParts__ = generateTitleParts(self.FullTitle)
+        if not self.FullTitle:
+            return []
+        if not self.__titleParts__:
+            self.__titleParts__ = generateTitleParts(self.FullTitle)
         return self.__titleParts__
 
     @property
@@ -37,7 +39,8 @@ class EvernoteNoteTitle:
         :rtype: int
         :return: Current Level with 1 being the Root Title
         """
-        if not self.level: self.level = len(self.TitleParts)
+        if not self.level:
+            self.level = len(self.TitleParts)
         return self.level
 
     @property
@@ -49,7 +52,8 @@ class EvernoteNoteTitle:
 
     def Part(self, level=-1):
         mySlice = self.Parts(level)
-        if not mySlice: return None
+        if not mySlice:
+            return None
         return mySlice.Root
 
     def BaseParts(self, level=None):
@@ -215,15 +219,19 @@ def generateTitleParts(title):
         log('generateTitleParts Unable to re.sub')
         log(type(title))
         raise
-    if strTitle[-1] == ':': strTitle = strTitle[:-1]
-    if strTitle[0] == ':': strTitle = strTitle[1:]
+    if strTitle[-1] == ':
+        ': strTitle = strTitle[:-1]
+    if strTitle[0] == ':
+        ': strTitle = strTitle[1:]
     partsText = strTitle.split(':')
     count = len(partsText)
     for i in range(1, count + 1):
         txt = partsText[i - 1]
         try:
-            if txt[-1] == ' ': txt = txt[:-1]
-            if txt[0] == ' ': txt = txt[1:]
+            if txt[-1] == ' ':
+                txt = txt[:-1]
+            if txt[0] == ' ':
+                txt = txt[1:]
         except:
             print_safe(title + ' -- ' + '"' + txt + '"')
             raise
