@@ -61,6 +61,7 @@ class FILES:
 class ANKNOTES:
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     CACHE_SEARCHES = False
+    UPDATE_DB_ON_START = False 
 
     class LXML:
         ENABLE_IN_ANKI = False
@@ -194,7 +195,11 @@ class TABLES:
         NOTES = u'anknotes_evernote_notes'
         NOTES_HISTORY = u'anknotes_evernote_notes_history'
 
-
+class HEADINGS:
+    TOP = "Summary|Definition|Classification|Types|Presentation|Organ Involvement|Age of Onset|Si/Sx|Sx|Sign|MCC's|MCC|Inheritance|Incidence|Prognosis|Mechanism|MOA|Pathophysiology|Indications|Examples|Causes|Causative Organisms|Risk Factors|Complications|Side Effects|Drug S/E|Associated Conditions|A/w|Diagnosis|Dx|Physical Exam|Labs|Hemodynamic Parameters|Lab Findings|Imaging|Screening Test|Confirmatory Test"
+    BOTTOM = "Management|Work Up|Tx"
+    NOT_REVERSIBLE = BOTTOM + "|Dx|Diagnosis"
+    
 class SETTINGS:
     class EVERNOTE:
         class QUERY:

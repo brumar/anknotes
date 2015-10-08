@@ -3,33 +3,30 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
+from fnmatch import fnmatch
 from anknotes.constants import *
 from anknotes.html import generate_evernote_link, generate_evernote_span
 from anknotes.logging import log_dump
+from anknotes.shared import matches_list
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle, generateTOCTitle
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 
 
 def TOCNamePriority(title):
-    for index, value in enumerate(
-            ['Summary', 'Definition', 'Classification', 'Types', 'Presentation', 'Organ Involvement', 'Age of Onset',
-             'Si/Sx', 'Sx', 'Sign', 'MCC\'s', 'MCC', 'Inheritance', 'Incidence', 'Prognosis', 'Mechanism', 'MOA',
-             'Pathophysiology', 'Indications', 'Examples', 'Cause', 'Causes', 'Causative Organisms', 'Risk Factors',
-             'Complication', 'Complications', 'Side Effects', 'Drug S/E', 'Associated Conditions', 'A/w', 'Dx',
-             'Physical Exam', 'Labs', 'Hemodynamic Parameters', 'Lab Findings', 'Imaging', 'Screening Test',
-             'Confirmatory Test']):
-        if title == value: return -1, index
-    for index, value in enumerate(['Management', 'Work Up', 'Tx']):
-        if title == value: return 1, index
-    return 0, 0
+    all_headings = [HEADINGS.TOP, [], HEADINGS.BOTTOM]
+    for heading_index, headings in enumerate(all_headings):
+        match = matches_list(title, headings)
+        if match > -1:
+            return heading_index + float(match) / len(headings)
+    return all_headings.index([])
 
 
 def TOCNameSort(title1, title2):
     priority1 = TOCNamePriority(title1)
     priority2 = TOCNamePriority(title2)
     # Lower value for item 1 = item 1 placed BEFORE item 2
-    if priority1[0] != priority2[0]: return priority1[0] - priority2[0]
-    if priority1[1] != priority2[1]: return priority1[1] - priority2[1]
+    if priority1 != priority2: 
+        return priority1 - priority2
     return cmp(title1, title2)
 
 

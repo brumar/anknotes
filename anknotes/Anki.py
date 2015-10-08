@@ -333,9 +333,7 @@ class Anki:
     def get_anki_note_from_evernote_guid(self, evernote_guid):
         col = self.collection()
         ids = col.findNotes(FIELDS.EVERNOTE_GUID_PREFIX + evernote_guid)
-        # TODO: Ugly work around for a bug. Fix this later
-        if not ids: return None
-        if not ids[0]: return None
+        if not ids or not ids[0]: return None
         note = AnkiNote(col, None, ids[0])
         return note
 
@@ -433,7 +431,9 @@ class Anki:
             see_also_whole_links = find_evernote_links(see_also_html)
             see_also_links = {x.Guid for x in see_also_whole_links}
             invalid_see_also_links = {x for x in see_also_links if x not in all_child_guids and x not in all_toc_guids}
-            new_tocs = set(toc_guids) - see_also_links - set(content_links)
+            new_tocs = set(toc_guids) - see_also_links 
+            if TAGS.TOC_AUTO in ankiNote.tags:
+                new_tocs -= set(content_links)
             log.dump([new_tocs, toc_guids, invalid_see_also_links, see_also_links, content_links],
                      'TOCs for %s' % fields[FIELDS.TITLE] + ' vs ' + note_title, 'insert_toc_new_tocs',
                      crosspost_to_default=False)

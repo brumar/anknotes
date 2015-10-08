@@ -87,24 +87,7 @@ def _findAnknotes((val, args)):
             'orphan_alt': "n.sfld LIKE '%%:%%' AND UPPER(SUBSTR(n.sfld, 0, INSTR(n.sfld, ':'))) NOT IN (SELECT UPPER(title) FROM %s WHERE title NOT LIKE '%%:%%' AND tagNames LIKE '%%,%s,%%') " % (
                 TABLES.EVERNOTE.NOTES, TAGS.TOC)
         }
-        # _findAnknotes.queries['hierarchical'] = '(%s) OR (%s)' % (_findAnknotes.queries['root'], _findAnknotes.queries['child'])    
-
-        # if not val in _findAnknotes.queries and not val in _findAnknotes.note_ids:
-        # if val == 'child_alt' or val == 'root_alt':
-        # if 'root_alt' not in _findAnknotes.note_ids:
-        # tmr.reset()
-        # _findAnknotes.note_ids['root_alt'] = get_anknotes_root_notes_nids()
-        # log("  > Cached Root TOC Notes NIDs: ".ljust(25) + "%-5s --> %3d results" % (tmr.str_long, len(_findAnknotes.note_ids['root_alt'])), tmr.label)
-        # if val == 'child_alt':
-        # if  not in _findAnknotes.note_ids:
-        # tmr.reset()
-        # _findAnknotes.root_titles=["'%s'" % escape_text_sql(x.upper()) for x in get_evernote_title_from_nids(_findAnknotes.note_ids['root_alt'])]
-        # log("  > Cached Root Titles: ".ljust(25) + "%-5s --> %3d results" % (val, tmr.str_long, len(_findAnknotes.root_titles)), tmr.label)
-        # _findAnknotes.note_ids[val] =
-        # _findAnknotes.queries['child_alt'] = "n.sfld LIKE '%%:%%' AND UPPER(SUBSTR(n.sfld, 0, INSTR(n.sfld, ':'))) IN (%s) " % ', '.join(_findAnknotes.root_titles)
-        # elif val == 'root_alt':
-        # pass
-        # else: return None     
+        
     if val not in _findAnknotes.note_ids or (not ANKNOTES.CACHE_SEARCHES and 'hierarchical' not in val):
         tmr.reset()
         if val == 'root':
@@ -229,21 +212,9 @@ def anknotes_finder_findCards_wrap(self, query, order=False, _old=None):
         log('Preds: '.ljust(25) + '<NONE>', tmr.label)
         log_blank(tmr.label)
         return []
-    line_prefix = ' > ' + ' ' * 7
-    # pred_str = preds
-    # pred_str = re.sub(r'(?si)\) (IN) \(',  r')\n      >   \1   (', pred_str)
-    # pred_str = re.sub(r'(?si)\) (OR|AND) \(',  r')\n  >   \1   (', pred_str)
-    # log('Preds: '.ljust(25) + pred_str , tmr.label)
 
     order, rev = self._order(order)
     sql = self._query(preds, order)
-    # pred_str = sql
-    # pred_str = re.sub(r'(?si)\) (IN) \(',  r')\n      >   \1   (', pred_str)
-    # pred_str = re.sub(r'(?si)(FROM|WHERE|ORDER|SELECT)',  r'\n>  \1  ', pred_str)
-    # pred_str = re.sub(r'(?si)\) (OR|AND) \(',  r')\n  >   \1   (', pred_str)
-    # log('SQL: '.ljust(25) + pred_str , tmr.label)    
-    # log('SQL: '.ljust(25) + pred_str , 'finder\\findCards')    
-    # showInfo(sql)
     try:
         res = self.col.db.list(sql, *args)
     except Exception as ex:
@@ -277,10 +248,9 @@ def anknotes_finder_query_wrap(self, preds=None, order=None, _old=None):
 def anknotes_search_hook(search):
     anknotes_search = {'edited': _findEdited, 'anknotes': _findAnknotes}
     for key, value in anknotes_search.items():
-        if key not in search: search[key] = anknotes_search[key]
-        # search = anknotes_search
-
-
+        if key not in search: 
+            search[key] = anknotes_search[key]
+            
 def reset_everything():
     ankDB().InitSeeAlso(True)
     menu.resync_with_local_db()
@@ -288,12 +258,16 @@ def reset_everything():
 
 
 def anknotes_profile_loaded():
-    if not os.path.exists(os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)): 
-        os.makedirs(os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION))
+    last_profile_dir = os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)
+    if not os.path.exists(last_profile_dir): 
+        os.makedirs(last_profile_dir)
     with open(FILES.USER.LAST_PROFILE_LOCATION, 'w+') as myFile:
         print>> myFile, mw.pm.name
     menu.anknotes_load_menu_settings()
-    if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED: menu.upload_validated_notes(True)
+    if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED: 
+        menu.upload_validated_notes(True)    
+    if ANKNOTES.UPDATE_DB_ON_START:
+        update_anknotes_nids()
     import_timer_toggle()
 
     if ANKNOTES.DEVELOPER_MODE.AUTOMATED:
@@ -382,6 +356,7 @@ def anknotes_onload():
     addHook("profileLoaded", anknotes_profile_loaded)
     addHook("search", anknotes_search_hook)
     rm_log_paths('sql\\', 'finder\\')
+    
     if inAnki:
         DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
         DB.execute = wrap(DB.execute, anknotes_execute, "before")

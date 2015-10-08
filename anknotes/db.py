@@ -245,10 +245,13 @@ def get_evernote_model_ids(sql=False):
 
 def update_anknotes_nids():
     db = ankDB()
+    count = db.count(TABLES.EVERNOTE.NOTES, 'nid <= 0')
+    if not count: return count 
     paired_data = db.all("SELECT n.id, n.flds FROM notes n WHERE " + get_evernote_model_ids(True))
     paired_data = [[nid, get_evernote_guid_from_anki_fields(flds)] for nid, flds in paired_data]
     db.executemany('UPDATE %s SET nid = ? WHERE guid = ?' % TABLES.EVERNOTE.NOTES, paired_data)
     db.commit()
+    return count 
 
 
 class ank_DB(object):
@@ -272,8 +275,8 @@ class ank_DB(object):
         self.mod = False
 
     def setrowfactory(self):
-        self._db.row_factory = sqlite.Row
-
+        self._db.row_factory = sqlite.Row    
+        
     def execute(self, sql, *a, **ka):
         log_sql(sql, a, ka, self=self)
         self.ankdb_lastquery = sql 
@@ -323,6 +326,15 @@ class ank_DB(object):
     def rollback(self):
         self._db.rollback()
 
+    def exists(self, table, where):
+        count = self.count(table, where)
+        return count is not None and count > 0
+        
+    def count(self, table, where=None, *a, **kw):
+        if where is None: where = '1'
+        sql = 'SELECT COUNT(*) FROM ' + table + ' WHERE ' + where
+        retur self.scalar(sql)
+        
     def scalar(self, sql, *a, **kw):
         log_text = 'Call to DB.ankdb_scalar():'
         if not isinstance(self, DB): 

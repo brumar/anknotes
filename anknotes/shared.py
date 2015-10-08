@@ -5,6 +5,7 @@ except ImportError: from sqlite3 import dbapi2 as sqlite
 import os
 import re
 import sys
+from fnmatch import fnmatch
 from bs4 import UnicodeDammit
 
 ### Check if in Anki
@@ -97,6 +98,13 @@ def replace_evernote_web_links(content):
         r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
         r'evernote:///view/\2/\1/\3/\3/', content)
 
+def matches_list(item, lst):
+    item = item.lower()
+    for index, value in enumerate(item_to_list(lst)):
+        value = value.lower()
+        if fnmatch(item, value) or fnmatch(item + 's', value):
+            return index 
+    return -1 
 
 def find_evernote_links(content):
     """
