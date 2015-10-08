@@ -121,16 +121,14 @@ class Controller:
         if tmr.is_success:
             ankDB().commit()
         if tmr.should_retry:
-            mw.progress.timer(
-            (30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL) * 1000,
-            lambda: self.upload_validated_notes(True), False)
+            create_timer(30 if tmr.status.IsDelayableError else EVERNOTE.UPLOAD.RESTART_INTERVAL, self.upload_validated_notes, True)
         return tmr.status, tmr.count, 0
 
-    def create_auto_toc(self):
+    def create_toc_auto(self):
         def check_old_values():
             old_values = ankDB().first(
                 "SELECT guid, content FROM %s WHERE UPPER(title) = ? AND tagNames LIKE '%%,' || ? || ',%%'" % TABLES.EVERNOTE.NOTES,
-                rootTitle.upper(), TAGS.AUTO_TOC)
+                rootTitle.upper(), TAGS.TOC_AUTO)
             if not old_values:
                 log(rootTitle, 'AutoTOC-Create\\Add')
                 return None, contents
@@ -153,7 +151,7 @@ class Controller:
                                                                                                      '/%s/' % evernote_guid)
 
         update_regex()
-        noteType = 'create-auto_toc'
+        noteType = 'create-toc_auto'
         ankDB().execute("DELETE FROM %s WHERE noteType = '%s'" % (TABLES.NOTE_VALIDATION_QUEUE, noteType))
         NotesDB = EvernoteNotes()
         NotesDB.baseQuery = ANKNOTES.HIERARCHY.ROOT_TITLES_BASE_QUERY
@@ -171,7 +169,7 @@ class Controller:
         for dbRow in dbRows:
             evernote_guid = None
             rootTitle, contents, tagNames, notebookGuid = dbRow.items()
-            tagNames = (set(tagNames[1:-1].split(',')) | {TAGS.TOC, TAGS.AUTO_TOC} | (
+            tagNames = (set(tagNames[1:-1].split(',')) | {TAGS.TOC, TAGS.TOC_AUTO} | (
                 {"#Sandbox"} if EVERNOTE.API.IS_SANDBOXED else set())) - {TAGS.REVERSIBLE, TAGS.REVERSE_ONLY}
             rootTitle = generateTOCTitle(rootTitle)
             evernote_guid, contents = check_old_values()

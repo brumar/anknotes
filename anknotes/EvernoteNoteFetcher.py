@@ -146,7 +146,7 @@ class EvernoteNoteFetcher(object):
                 raise
             self.reportResult(EvernoteAPIStatus.RateLimitError)
             return False
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             self.reportResult(EvernoteAPIStatus.SocketError)

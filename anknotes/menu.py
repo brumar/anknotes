@@ -347,13 +347,13 @@ Once the command line tool is done running, you will get a summary of the result
             ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, [[x] for x in anknotes_dels])
             delete_anki_notes_and_cards_by_guid(anknotes_dels)
             db_changed = True
-            show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5000, 3000)
+            show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5, 3)
     if anki_dels_count > 0:
         code = getText("Please enter code 'ANKI_DEL_%d' to delete your orphan Anki note(s)" % anki_dels_count)[0]
         if code == 'ANKI_DEL_%d' % anki_dels_count:
             delete_anki_notes_and_cards_by_guid(anki_dels)
             db_changed = True
-            show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5000, 6000)
+            show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5, 6)
     if db_changed:
         ankDB().commit()
     if missing_evernote_notes_count > 0:
@@ -407,7 +407,7 @@ Anki will be unresponsive until the validation tool completes. This will take at
     # mw.col.load()
     log("Validate Notes completed", 'automation')
     if callback is None and allowUpload:
-        callback = lambda *xargs, **xkwargs: upload_validated_notes()
+        def callback(*xa, **xkw): return upload_validated_notes()
     mw.progress.timer(reload_delay * 1000, lambda: reload_collection(callback), False)
 
 
@@ -419,7 +419,7 @@ def modify_collection(collection_operation, action_str='modifying collection', c
     try:
         return_val = collection_operation()
         passed = True
-    except (sqlite.OperationalError, sqlite.ProgrammingError, Exception), e:
+    except (sqlite.OperationalError, sqlite.ProgrammingError, Exception) as e:
         if e.message.replace(".", "") == 'database is locked':
             friendly_message = 'sqlite database is locked'
         elif e.message == "Cannot operate on a closed database.":
@@ -436,26 +436,21 @@ def modify_collection(collection_operation, action_str='modifying collection', c
         log_error("   > Modify Collection: Error %s: %s. %s" % (action_str, retry, friendly_message), time_out=10000,
                   do_show_tooltip=True, crosspost='automation', crosspost_to_default=False)
     if not passed:
-        return (
-        False if callback_failure is False else callback(None,
-                                                         **kwargs)) if attempt > max_attempts else mw.progress.timer(
-        delay * 1000,
-        lambda: modify_collection(collection_operation, action_str, callback, callback_failure, callback_delay, delay,
-                                  attempt + 1, **kwargs), False)
+        if callback_failure is False:
+            return False 
+        if attempt > max_attempts:
+            return callback(None, **kwargs)
+        return create_timer(delay, modify_collection, collection_operation, action_str, callback, callback_failure, callback_delay, delay, attempt + 1, **kwargs)
     if not callback:
-        log("   > Modify Collection: Completed %s" % action_str, 'automation'); return
+        log("   > Modify Collection: Completed %s" % action_str, 'automation')
+        return None
     log("   > Modify Collection: Completed %s" % action_str + ': %s Initiated' % (
         '%ds Callback Timer' % callback_delay if callback_delay > 0 else 'Callback'), 'automation')
-    if not callback:
-        return  # return_val
     if callback_delay > 0:
-        mw.progress.timer(callback_delay * 1000, lambda: callback(return_val, **kwargs),
-                                             False); return  # return return_val
-    callback(return_val, **kwargs)
-    # return return_val
+        return create_timer(callback_delay, callback, return_val, **kwargs)
+    return callback(return_val, **kwargs)
 
-
-def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *args, **kwargs):
+def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *a, **kw):
     if not mw.col is None:
         try:
             myDB = ankDB(True)
@@ -467,7 +462,7 @@ def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *args, *
             if callback:
                 callback(True)
             return True
-        except (sqlite.ProgrammingError, Exception), e:
+        except (sqlite.ProgrammingError, Exception) as e:
             if e.message == "Cannot operate on a closed database":
                 # mw.loadCollection()
                 log(" > Reloading Collection Check: DB is Closed. Proceed with reload. Col: " + str(mw.col),
@@ -478,21 +473,12 @@ def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *args, *
                     'automation')
     log(" > Initiating Reload: %sInitiated: %s" % (
         '%ds Timer ' % reopen_delay if reopen_delay > 0 else '', str(mw.col)), 'automation')
-    # if callback and reopen_callback_delay > 0: 
-    # log("Reload Collection: Callback Timer Set To %ds" % reopen_callback_delay, 'automation')
-    # callback = lambda: mw.progress.timer(reopen_callback_delay*1000, callback, False)
     if reopen_delay > 0:
-        return mw.progress.timer(reopen_delay * 1000,
-                                                  lambda *xargs, **xkwargs: modify_collection(do_load_collection,
-                                                                                              'reload collection',
-                                                                                              lambda *xargs,
-                                                                                                     **xkwargs: callback(
-                                                                                                  *args, **kwargs),
-                                                                                              callback_delay=callback_delay,
-                                                                                              *args, **kwargs), False)
-    modify_collection(do_load_collection, 'Reloading Collection', callback, callback_delay=callback_delay, *args,
-                      **kwargs)
-
+        def callback_reopen(): 
+            def inner_callback(*xa, **xkw): return callback(*a, **kw)
+            return modify_collection(do_load_collection, 'reload collection', inner_callback, callback_delay=callback_delay, *a, **kw)
+        return create_timer(reopen_delay, callback_reopen)
+    return modify_collection(do_load_collection, 'Reloading Collection', callback, callback_delay=callback_delay, *a, **kw)
 
 def do_load_collection():
     log("    > Do Load Collection: Attempting mw.loadCollection()", 'automation')
@@ -522,11 +508,11 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
         check = reload_collection()
         if check:
             log("See Also --> 2. Loading Controller", 'automation')
-            callback = lambda x, *xargs, **xkwargs: see_also(steps, showAlerts, validationComplete, x)
+            def callback(x, *xa, **xkw): return see_also(steps, showAlerts, validationComplete, x)
             load_controller(callback)
         else:
             log("See Also --> 1. Loading Collection", 'automation')
-            callback = lambda *xargs, **xkwargs: see_also(steps, showAlerts, validationComplete)
+            def callback(*xa, **xkw): return see_also(steps, showAlerts, validationComplete)
             reload_collection(callback)
         return False
     if not steps:
@@ -545,7 +531,7 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
         controller.process_unadded_see_also_notes()
     if 2 in steps:
         log(" > See Also: Step 2:  Create Auto TOC Evernote Notes", crosspost='automation')
-        controller.create_auto_toc()
+        controller.create_toc_auto()
     if 3 in steps:
         if validationComplete:
             log(" > See Also: Step 3B: Validate and Upload Auto TOC Notes: Upload Validated Notes",

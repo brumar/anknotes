@@ -153,7 +153,7 @@ def get_anknotes_root_notes_titles():
 def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs):
     global generateTOCTitle
     from anknotes.EvernoteNoteTitle import generateTOCTitle
-    mapper = lambda x: generateTOCTitle(x)
+    def mapper(x): return generateTOCTitle(x)
     if upper_case:
         mapper = lambda x, f=mapper: f(x).upper()
     if encode:
@@ -376,14 +376,14 @@ class ank_DB(object):
         log(log_text + '\n', 'sql\\ankdb_scalar')    
         try:
             res = self.execute(sql, *a, **kw)
-        except TypeError, e:
+        except TypeError as e:
             log(" > ERROR with ankdb_scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise 
         if not isinstance(res, sqlite.Cursor):
             log(' > Cursor: %s' % pf(res), 'sql\\ankdb_scalar')    
         try:
             res = res.fetchone()
-        except TypeError, e:
+        except TypeError as e:
             log(" > ERROR with ankdb_scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
             raise     
         log_blank('sql\\ankdb_scalar')
@@ -450,7 +450,7 @@ class ank_DB(object):
         self.execute(
             """CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL)""" % TABLES.EVERNOTE.NOTES_HISTORY)
         self.execute(
-            """CREATE TABLE IF NOT EXISTS `%s` (     `root_title`    TEXT NOT NULL UNIQUE,     `contents`    TEXT NOT NULL,     `tagNames`    TEXT NOT NULL,     `notebookGuid`    TEXT NOT NULL,     PRIMARY KEY(root_title) );""" % TABLES.AUTO_TOC)
+            """CREATE TABLE IF NOT EXISTS `%s` (     `root_title`    TEXT NOT NULL UNIQUE,     `contents`    TEXT NOT NULL,     `tagNames`    TEXT NOT NULL,     `notebookGuid`    TEXT NOT NULL,     PRIMARY KEY(root_title) );""" % TABLES.TOC_AUTO)
         self.execute(
             """CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT, `title` TEXT NOT NULL, `contents` TEXT NOT NULL, `tagNames` TEXT NOT NULL DEFAULT ',,', `notebookGuid` TEXT, `validation_status` INTEGER NOT NULL DEFAULT 0, `validation_result` TEXT, `noteType` TEXT);""" % TABLES.NOTE_VALIDATION_QUEUE)
         self.InitSeeAlso()

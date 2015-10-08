@@ -2,7 +2,7 @@ from anknotes.constants import *
 ### Anki Imports
 try:
     from aqt.qt import QIcon, QPixmap
-except:
+except Exception:
     pass
 
 try:
@@ -11,5 +11,5 @@ try:
     icoTomato = QIcon(FILES.GRAPHICS.ICON.TOMATO)
     imgEvernoteWeb = QPixmap(FILES.GRAPHICS.IMAGE.EVERNOTE_WEB, "PNG")
     imgEvernoteWebMsgBox = imgEvernoteWeb.scaledToWidth(64)
-except:
+except Exception:
     pass

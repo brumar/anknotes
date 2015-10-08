@@ -10,8 +10,9 @@ from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 try:
     import anki
     from anki.notes import Note as AnkiNote
+    from anki.utils import intTime
     from aqt import mw
-except:
+except Exception:
     pass
 
 
@@ -124,7 +125,7 @@ class AnkiNotePrototype:
 
     def deck(self):
         deck = self._deck_parent_
-        if TAGS.TOC in self.Tags or TAGS.AUTO_TOC in self.Tags:
+        if TAGS.TOC in self.Tags or TAGS.TOC_AUTO in self.Tags:
             deck += DECKS.TOC_SUFFIX
         elif TAGS.OUTLINE in self.Tags and TAGS.OUTLINE_TESTABLE not in self.Tags:
             deck += DECKS.OUTLINE_SUFFIX
@@ -218,7 +219,7 @@ class AnkiNotePrototype:
                 self.Fields[FIELDS.CONTENT] = re.sub(dropbox_image_url_regex,
                                                      r'\g<URLPrefix>' + dropbox_image_src_subst % "From Plain-Text Link" + r'\g<URLSuffix>',
                                                      self.Fields[FIELDS.CONTENT])
-            except:
+            except Exception:
                 log_error("\nERROR processing note, Step 2.2.  Content: %s" % self.Fields[FIELDS.CONTENT])
 
             # Step 2.3: Modify HTML links with the inner text of exactly "(Image Link*)"
@@ -308,7 +309,7 @@ class AnkiNotePrototype:
         if FIELDS.CONTENT in self.Fields and "{{c1::" in self.Fields[FIELDS.CONTENT]:
             self.ModelName = MODELS.CLOZE
         if len(self.Tags) > 0:
-            reverse_override = (TAGS.TOC in self.Tags or TAGS.AUTO_TOC in self.Tags)
+            reverse_override = (TAGS.TOC in self.Tags or TAGS.TOC_AUTO in self.Tags)
             if TAGS.REVERSIBLE in self.Tags:
                 self.ModelName = MODELS.REVERSIBLE
                 self.Tags.remove(TAGS.REVERSIBLE)
@@ -443,7 +444,7 @@ class AnkiNotePrototype:
                             else:
                                 diff = 'From: \n%s \n\n To:   \n%s' % (value_original, value)
                             field_updates.append("Changing field #%d %s:\n%s" % (fld.get('ord'), field_to_update, diff))
-                    except:
+                    except Exception:
                         self.log_update(field_updates)
                         log_error(
                             "ERROR: UPDATE_NOTE: Note '%s': %s: Unable to set self.note.fields for field '%s'. Ord: %s. Note fields count: %d" % (
@@ -496,7 +497,7 @@ class AnkiNotePrototype:
         new_guid = self.Guid
         new_title = self.FullTitle
         self.check_titles_equal(db_title, new_title, new_guid)
-        self.note.flush()
+        self.note.flush(intTime())
         self.log_update("  > Flushing Note")
         self.update_note_model()
         self.Counts.Updated += 1
@@ -507,12 +508,12 @@ class AnkiNotePrototype:
         if not isinstance(new_title, unicode):
             try:
                 new_title = unicode(new_title, 'utf-8')
-            except:
+            except Exception:
                 do_log_title = True
         if not isinstance(old_title, unicode):
             try:
                 old_title = unicode(old_title, 'utf-8')
-            except:
+            except Exception:
                 do_log_title = True
         guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + (
             '' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
@@ -563,7 +564,7 @@ class AnkiNotePrototype:
                         self.note[key] = new_value
                     else:
                         self.note.fields[key] = new_value
-                except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception), e:
+                except (UnicodeDecodeError, UnicodeEncodeError, UnicodeTranslateError, UnicodeError, Exception) as e:
                     e_return = HandleUnicodeError(log_header, e, self.Guid, title, action, attempt, value, field=name)
                     if e_return is not 1:
                         raise

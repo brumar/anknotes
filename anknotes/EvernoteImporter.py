@@ -22,7 +22,7 @@ from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 
 try:
     from anknotes import settings
-except:
+except Exception:
     pass
 
 ### Evernote Imports
@@ -33,7 +33,7 @@ from anknotes.evernote.edam.error.ttypes import EDAMSystemException
 ### Anki Imports
 try:
     from aqt import mw
-except:
+except Exception:
     pass
 
 
@@ -103,7 +103,7 @@ class EvernoteImporter:
                 raise
             self.MetadataProgress.Status = EvernoteAPIStatus.RateLimitError
             return False
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             self.MetadataProgress.Status = EvernoteAPIStatus.SocketError
@@ -214,13 +214,13 @@ class EvernoteImporter:
             show_report("   > Error: Delaying Operation",
                         "Over the rate limit when searching for Evernote metadata<BR>Evernote requested we wait %d:%02d min" % (
                             m, s), delay=5)
-            mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(auto_paging), False)
+            create_timer(latestEDAMRateLimit + 10, self.proceed, auto_paging)
             return False
         elif self.MetadataProgress.Status == EvernoteAPIStatus.SocketError:
             show_report("   > Error: Delaying Operation:",
                         "%s when searching for Evernote metadata" %
                         latestSocketError['friendly_error_msg'], "We will try again in 30 seconds", delay=5)
-            mw.progress.timer(30000, lambda: self.proceed(auto_paging), False)
+            create_timer(30, self.proceed, auto_paging)
             return False
 
         self.ImportProgress = EvernoteImportProgress(self.anki, self.MetadataProgress)
@@ -263,14 +263,14 @@ class EvernoteImporter:
             show_report("   > Error: Delaying Auto Paging",
                         "Over the rate limit when getting Evernote notes<BR>Evernote requested we wait %d:%02d min" % (
                             m, s), delay=5)
-            mw.progress.timer(latestEDAMRateLimit * 1000 + 10000, lambda: self.proceed(True), False)
+            create_timer(latestEDAMRateLimit + 10, self.proceed, True)
             return False
         if status == EvernoteAPIStatus.SocketError:
             show_report("   > Error: Delaying Auto Paging:",
                         "%s when getting Evernote notes" % latestSocketError[
                             'friendly_error_msg'],
                         "We will try again in 30 seconds", delay=5)
-            mw.progress.timer(30000, lambda: self.proceed(True), False)
+            create_timer(30, self.proceed, True)
             return False
         if self.MetadataProgress.IsFinished:
             self.currentPage = 1
@@ -317,7 +317,7 @@ class EvernoteImporter:
         suffix = suffix.format(interval=['%2ds' % s, '%d:%02d min' % (m, s)][m > 0])
         show_report(restart_title, (restart_msg + suffix).split('<BR>'), delay=5)
         if restart:
-            mw.progress.timer(abs(restart) * 1000, lambda: self.proceed(True), False); return False
+            create_timer(restart, self.proceed, True)
         return self.proceed(True)
 
     @property

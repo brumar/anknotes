@@ -229,7 +229,7 @@ class EvernoteNotes:
             baseNoteCount = len(baseTitles)
             query = "UPPER(title) = '%s'" % escape_text_sql(rootTitle).upper()
             if self.processingFlags.ignoreAutoTOCAsRootTitle:
-                query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.AUTO_TOC
+                query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.TOC_AUTO
             if self.processingFlags.ignoreOutlineAsRootTitle:
                 query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.OUTLINE
             rootNote = self.getNoteFromDB(query)
@@ -247,7 +247,7 @@ class EvernoteNotes:
     def getRootNotes(self):
         query = "title NOT LIKE '%%:%%'"
         if self.processingFlags.ignoreAutoTOCAsRootTitle:
-            query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.AUTO_TOC
+            query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.TOC_AUTO
         if self.processingFlags.ignoreOutlineAsRootTitle:
             query += " AND tagNames NOT LIKE '%%,%s,%%'" % TAGS.OUTLINE
         self.addDbQuery(query, 'title ASC')
@@ -312,7 +312,7 @@ class EvernoteNotes:
         dbRows = []
         returns = []
         """:type : list[EvernoteTOCEntry]"""
-        ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.AUTO_TOC)
+        ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.TOC_AUTO)
         ankDB().commit()
         # olsz = None
         for rootTitleStr in self.RootNotesMissing.TitlesList:
@@ -324,7 +324,7 @@ class EvernoteNotes:
             outline = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
                 escape_text_sql(rootTitleStr.upper()), TAGS.OUTLINE))
             currentAutoNote = self.getNoteFromDB("UPPER(title) = '%s' AND tagNames LIKE '%%,%s,%%'" % (
-                escape_text_sql(rootTitleStr.upper()), TAGS.AUTO_TOC))
+                escape_text_sql(rootTitleStr.upper()), TAGS.TOC_AUTO))
             notebookGuids = {}
             childGuid = None
             if total_child is 1 and not outline:
@@ -379,7 +379,7 @@ class EvernoteNotes:
                 # if olsz is None: olsz = ol
                 # olsz += ol
                 # ol = '<OL>\r\n%s</OL>\r\n'
-                # strr = tocHierarchy.__str__()
+                # str_ = tocHierarchy.__str__()
                 if DEBUG_HTML:
                     ols.append(ol)
                     olutf8 = ol.encode('utf8')
@@ -392,23 +392,23 @@ class EvernoteNotes:
                     file_object.close()
 
                     # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
-                    # log("Created TOC #%d:\n%s\n\n" % (count, strr), 'tocList', timestamp=False)
+                    # log("Created TOC #%d:\n%s\n\n" % (count, str_), 'tocList', timestamp=False)
         if DEBUG_HTML:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
             fn = 'toc-ols\\toc-index.htm'
             file_object = open(os.path.join(FOLDERS.LOGS, fn), 'w')
             try:
                 file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
-            except:
+            except Exception:
                 try:
                     file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
-                except:
+                except Exception:
                     pass
 
             file_object.close()
 
         ankDB().executemany(
-            "INSERT INTO %s (root_title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?)" % TABLES.AUTO_TOC,
+            "INSERT INTO %s (root_title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?)" % TABLES.TOC_AUTO,
             dbRows)
         ankDB().commit()
 

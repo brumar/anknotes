@@ -137,9 +137,9 @@ class EvernoteNoteTitle:
         :rtype: str
         """
         # if recursion == 0:
-        #     strr = str_safe(title)
-        #     try: log(u'\n---------------------------------%s' % strr, 'tOTS', timestamp=False)
-        #     except: log(u'\n---------------------------------%s' % '[UNABLE TO DISPLAY TITLE]', 'tOTS', timestamp=False)
+        #     str_ = str_safe(title)
+        #     try: log(u'\n---------------------------------%s' % str_, 'tOTS', timestamp=False)
+        #     except Exception: log(u'\n---------------------------------%s' % '[UNABLE TO DISPLAY TITLE]', 'tOTS', timestamp=False)
         #     pass
 
         if title is None:
@@ -188,7 +188,7 @@ class EvernoteNoteTitle:
                     # log(title)
                     # log(title.keys())
                     return title
-            except:
+            except Exception:
                 log('except', 'tOTS', timestamp=False)
                 log(title, 'toTS', timestamp=False)
                 raise LookupError
@@ -215,7 +215,7 @@ def generateTitleParts(title):
     title = EvernoteNoteTitle.titleObjectToString(title)
     try:
         strTitle = re.sub(':+', ':', title)
-    except:
+    except Exception:
         log('generateTitleParts Unable to re.sub')
         log(type(title))
         raise
@@ -232,7 +232,7 @@ def generateTitleParts(title):
                 txt = txt[:-1]
             if txt[0] == ' ':
                 txt = txt[1:]
-        except:
+        except Exception:
             print_safe(title + ' -- ' + '"' + txt + '"')
             raise
         partsText[i - 1] = txt

@@ -7,7 +7,7 @@
 
 try: 
     from anknotes import constants
-except:
+except Exception:
     import os
     import imp
 

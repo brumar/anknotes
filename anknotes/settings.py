@@ -24,7 +24,7 @@ try:
         QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, \
         QMessageBox, QPixmap
     from aqt import mw
-except:
+except Exception:
     import pdb;
     import traceback;
 

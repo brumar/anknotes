@@ -17,31 +17,31 @@ try:
     from aqt import mw
     from aqt.utils import tooltip
     from aqt.qt import QMessageBox, QPushButton, QSizePolicy, QSpacerItem, QGridLayout, QLayout
-except:
+except Exception:
     pass
 
 
-def str_safe(strr, prefix=''):
+def str_safe(str_, prefix=''):
     try:
-        strr = str((prefix + strr.__repr__()))
-    except:
-        strr = str((prefix + strr.__repr__().encode('utf8', 'replace')))
-    return strr
+        str_ = str((prefix + str_.__repr__()))
+    except Exception:
+        str_ = str((prefix + str_.__repr__().encode('utf8', 'replace')))
+    return str_
 
 
-def print_safe(strr, prefix=''):
-    print str_safe(strr, prefix)
+def print_safe(str_, prefix=''):
+    print str_safe(str_, prefix)
 
 
-def show_tooltip(text, time_out=7000, delay=None, do_log=False, **kwargs):
+def show_tooltip(text, time_out=7, delay=None, do_log=False, **kwargs):
     if do_log:
         log(text, **kwargs)
     if delay:
         try:
-            return mw.progress.timer(delay, lambda: tooltip(text, time_out), False)
-        except:
+            return create_timer(delay, tooltip, text, time_out * 1000)
+        except Exception:
             pass
-    tooltip(text, time_out)
+    tooltip(text, time_out * 1000)
 
 
 def counts_as_str(count, max=None):
@@ -147,22 +147,22 @@ def diffify(content, split=True):
 def generate_diff(value_original, value):
     try:
         return '\n'.join(list(difflib.unified_diff(diffify(value_original), diffify(value), lineterm='')))
-    except:
+    except Exception:
         pass
     try:
         return '\n'.join(
         list(difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value), lineterm='')))
-    except:
+    except Exception:
         pass
     try:
         return '\n'.join(
         list(difflib.unified_diff(diffify(value_original), diffify(value.decode('utf-8')), lineterm='')))
-    except:
+    except Exception:
         pass
     try:
         return '\n'.join(list(
         difflib.unified_diff(diffify(value_original.decode('utf-8')), diffify(value.decode('utf-8')), lineterm='')))
-    except:
+    except Exception:
         raise
 
 
@@ -179,17 +179,17 @@ def PadList(lst, length=ANKNOTES.FORMATTING.LIST_PAD):
 def JoinList(lst, joiners='\n', pad=0, depth=1):
     if isinstance(joiners, str) or isinstance(joiners, unicode):
         joiners = [joiners]
-    strr = ''
+    str_ = ''
     if pad and (isinstance(lst, str) or isinstance(lst, unicode)):
         return lst.center(pad)
     if not lst or not isinstance(lst, list):
         return lst
     delimit = joiners[min(len(joiners), depth) - 1]
     for val in lst:
-        if strr:
-            strr += delimit
-        strr += JoinList(val, joiners, pad, depth + 1)
-    return strr
+        if str_:
+            str_ += delimit
+        str_ += JoinList(val, joiners, pad, depth + 1)
+    return str_
 
 
 def PadLines(content, line_padding=ANKNOTES.FORMATTING.LINE_PADDING_HEADER, line_padding_plus=0, line_padding_header='',
@@ -705,7 +705,7 @@ def log_dump(obj, title="Object", filename='', crosspost_to_default=True, **kwar
         content = prefix + content.replace(', ', ', \n ')
         content = content.replace("': {", "': {\n ")
         content = content.replace('\r', '\r' + ' ' * 30).replace('\n', '\n' + ' ' * 30)
-    except:
+    except Exception:
         pass
 
     if not os.path.exists(os.path.dirname(full_path)):
@@ -735,7 +735,7 @@ def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clea
             print_content += "Unable to print content."
         with open(full_path, 'w+' if clear else 'a+') as fileLog:
             print>> fileLog, print_content
-    except Exception, e:
+    except Exception as e:
         if attempt < 8:
             try_print(full_path, content, prefix=prefix, line_prefix=line_prefix, attempt=attempt + 1,
                                   clear=clear)
@@ -824,13 +824,13 @@ class CallerInfo:
         del parentframe
 
 
-def create_log_filename(strr):
-    if strr is None:
+def create_log_filename(str_):
+    if str_ is None:
         return ""
-    strr = strr.replace('.', '\\')
-    strr = re.sub(r"(^|\\)([^\\]+)\\\2(\b.|\\.|$)", r"\1\2\\", strr)
-    strr = re.sub(r"^\\*(.+?)\\*$", r"\1", strr)
-    return strr
+    str_ = str_.replace('.', '\\')
+    str_ = re.sub(r"(^|\\)([^\\]+)\\\2(\b.|\\.|$)", r"\1\2\\", str_)
+    str_ = re.sub(r"^\\*(.+?)\\*$", r"\1", str_)
+    return str_
 
 
 # @clockit

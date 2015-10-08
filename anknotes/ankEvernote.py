@@ -117,7 +117,7 @@ class Evernote(object):
             if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.RateLimitError
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.SocketError
@@ -289,11 +289,11 @@ class Evernote(object):
             if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.RateLimitError, None
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.SocketError, None
-        except EDAMUserException, edue:
+        except EDAMUserException as edue:
             ## Something was wrong with the note data
             ## See EDAMErrorCode enumeration for error code explanation
             ## http://dev.evernote.com/documentation/reference/Errors.html#Enum_EDAMErrorCode
@@ -306,7 +306,7 @@ class Evernote(object):
             if EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.UserError, None
-        except EDAMNotFoundException, ednfe:
+        except EDAMNotFoundException as ednfe:
             print "EDAMNotFoundException:", ednfe
             log_error("-" * 50, crosspost_to_default=False)
             log_error("EDAMNotFoundException:  " + str(ednfe), crosspost='api')
@@ -318,7 +318,7 @@ class Evernote(object):
             if EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return EvernoteAPIStatus.NotFoundError, None
-        except Exception, e:
+        except Exception as e:
             print "Unknown Exception:", e
             log_error("-" * 50, crosspost_to_default=False)
             log_error("Unknown Exception:  " + str(e))
@@ -375,26 +375,26 @@ class Evernote(object):
 
     @staticmethod
     def report_ancillary_data_results(new_tags, new_nbs, title_prefix='', report_blank=False):
-        strr = ''
+        str_ = ''
         if new_tags is 0 and new_nbs is 0:
             if not report_blank:
                 return
-            strr = 'No new tags or notebooks found'
+            str_ = 'No new tags or notebooks found'
         elif new_tags is None and new_nbs is None:
-            strr = 'Error downloading ancillary data'
+            str_ = 'Error downloading ancillary data'
         elif new_tags is None:
-            strr = 'Error downloading tags list, and '
+            str_ = 'Error downloading tags list, and '
         elif new_nbs is None:
-            strr = 'Error downloading notebooks list, and '
+            str_ = 'Error downloading notebooks list, and '
 
         if new_tags > 0 and new_nbs > 0:
-            strr = '%d new tag%s and %d new notebook%s found' % (
+            str_ = '%d new tag%s and %d new notebook%s found' % (
             new_tags, '' if new_tags is 1 else 's', new_nbs, '' if new_nbs is 1 else 's')
         elif new_nbs > 0:
-            strr += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
+            str_ += '%d new notebook%s found' % (new_nbs, '' if new_nbs is 1 else 's')
         elif new_tags > 0:
-            strr += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
-        show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + strr, do_log=True)
+            str_ += '%d new tag%s found' % (new_tags, '' if new_tags is 1 else 's')
+        show_tooltip("%sUpdate of ancillary data complete: " % title_prefix + str_, do_log=True)
 
     def set_notebook_data(self):
         if not hasattr(self, 'notebook_data') or not self.notebook_data or len(self.notebook_data.keys()) == 0:
@@ -450,7 +450,7 @@ class Evernote(object):
             if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return None
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return None
@@ -488,7 +488,7 @@ class Evernote(object):
             if not HandleEDAMRateLimitError(e, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return None
-        except socket.error, v:
+        except socket.error as v:
             if not HandleSocketError(v, api_action_str) or EVERNOTE.API.DEBUG_RAISE_ERRORS:
                 raise
             return None

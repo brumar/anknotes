@@ -1,6 +1,6 @@
 import os
 from anknotes import stopwatch
-from anknotes.shared import import_etree
+from anknotes.imports import import_etree
 import time
 
 if import_etree():
@@ -8,7 +8,7 @@ if import_etree():
         from pysqlite2 import dbapi2 as sqlite
     except ImportError:
         from sqlite3 import dbapi2 as sqlite
-    from anknotes.shared import lxml, etree
+    from anknotes.imports import lxml, etree
 
     ### Anknotes Module Imports for Stand Alone Scripts
     from anknotes import evernote as evernote

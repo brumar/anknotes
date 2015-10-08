@@ -138,7 +138,7 @@ class ANKI:
 
 class TAGS:
     TOC = '#TOC'
-    AUTO_TOC = '#TOC.Auto'
+    TOC_AUTO = '#TOC.Auto'
     OUTLINE = '#Outline'
     OUTLINE_TESTABLE = '#Outline.Testable'
     REVERSIBLE = '#Reversible'
@@ -187,7 +187,7 @@ class EVERNOTE:
 class TABLES:
     SEE_ALSO = "anknotes_see_also"
     NOTE_VALIDATION_QUEUE = "anknotes_note_validation_queue"
-    AUTO_TOC = u'anknotes_auto_toc'
+    TOC_AUTO = u'anknotes_toc_auto'
 
     class EVERNOTE:
         NOTEBOOKS = "anknotes_evernote_notebooks"

@@ -47,20 +47,18 @@ def import_timer_toggle():
         td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
         minimum = timedelta(seconds=max(EVERNOTE.IMPORT.INTERVAL, 20 * 60))
         if td < minimum:
-            importDelay = (minimum - td).total_seconds() * 1000
+            importDelay = (minimum - td).total_seconds() 
     if importDelay is 0:
-        menu.import_from_evernote()
-    else:
-        m, s = divmod(importDelay / 1000, 60)
-        log("> Starting Auto Import, Triggered by Profile Load, in %d:%02d min" % (m, s))
-        mw.progress.timer(importDelay, menu.import_from_evernote, False)
-
+        return menu.import_from_evernote()    
+    m, s = divmod(importDelay, 60)
+    log("> Starting Auto Import, Triggered by Profile Load, in %d:%02d min" % (m, s))
+    return create_timer(importDelay, menu.import_from_evernote)
 
 def _findEdited((val, args)):
     try:
         days = int(val)
     except ValueError:
-        return
+        return None
     return "c.mod > %d" % (time.time() - days * 86400)
 
 
@@ -138,7 +136,7 @@ def anknotes_browser_get_icon(icon=None):
 def anknotes_browser_add_treeitem(self, tree, name, cmd, icon=None, index=None, root=None):
     if root is None:
         root = tree
-    onclick = lambda c=cmd: self.setFilter(c)
+    def onclick(c=cmd): return self.setFilter(c)
     if index:
         widgetItem = QTreeWidgetItem([_(name)])
         widgetItem.onclick = onclick

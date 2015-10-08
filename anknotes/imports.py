@@ -22,7 +22,7 @@ def import_module(name, path=None, sublevels=2, path_suffix=''):
     try:
         modfile, modpath, description = imp.find_module(name, [path + os.path.sep])
         modobject = imp.load_module(name, modfile, modpath, description)
-    except ImportError, e:
+    except ImportError as e:
         print path + '\n' + str(e)
         import pdb;
         import traceback;
@@ -31,7 +31,7 @@ def import_module(name, path=None, sublevels=2, path_suffix=''):
         return None
     try:
         modfile.close()
-    except:
+    except Exception:
         pass
     return modobject
 
@@ -49,7 +49,7 @@ def import_etree():
         return False
     try:
         from lxml import etree; return True
-    except:
+    except Exception:
         return False
 
 
@@ -57,11 +57,11 @@ def import_lxml():
     global lxml
     try:
         assert lxml; return True
-    except:
+    except Exception:
         pass
     try:
         import lxml; return True
-    except ImportError, e:
+    except ImportError as e:
         pass
     import os
     import imp

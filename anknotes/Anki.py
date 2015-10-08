@@ -23,9 +23,10 @@ from anknotes import stopwatch
 try:
     import anki
     from anki.notes import Note as AnkiNote
+    from anki.utils import intTime
     import aqt
     from aqt import mw
-except:
+except Exception:
     pass
 
 
@@ -102,7 +103,7 @@ class Anki:
                     FIELDS.UPDATE_SEQUENCE_NUM: str(ankiNote.UpdateSequenceNum),
                     FIELDS.SEE_ALSO:            u''
                 }
-            except:
+            except Exception:
                 log_error("Unable to set field info for: Note '%s': '%s'" % (ankiNote.Title, ankiNote.Guid))
                 log_dump(ankiNote.Content, " NOTE CONTENTS ")
                 # log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
@@ -290,7 +291,7 @@ class Anki:
         note = self.collection().getNote(a_id)
         try:
             items = note.items()
-        except:
+        except Exception:
             log_error("Unable to get note items for Note ID: %d" % a_id)
             raise
         return get_dict_from_list(items, fields_to_ignore)
@@ -361,7 +362,7 @@ class Anki:
             ankiNote = self.collection().getNote(a_id)
             try:
                 items = ankiNote.items()
-            except:
+            except Exception:
                 log_error("Unable to get note items for Note ID: %d" % a_id)
                 raise
             fields = {}
@@ -661,7 +662,7 @@ class Anki:
                 elif FIELDS.OUTLINE in fld.get('name'):
                     note.fields[fld.get('ord')] = note_outline
             log(" > Flushing Note \r\n", 'See Also')
-            note.flush()
+            note.flush(intTime())
 
     def start_editing(self):
         self.window().requireReset()

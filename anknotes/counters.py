@@ -135,7 +135,7 @@ class DictCaseInsensitive(Dict):
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
                     try:
                         return super(Dict, self).__getattr__(key.lower())
-                    except:
+                    except Exception:
                         raise (KeyError("Could not find protected item " + key))
                 return super(DictCaseInsensitive, self).__getattr__(key.lower())
             # print "Creating missing item: " + self.parent_label + ('.' if self.parent_label else '') + self.label  + ' -> ' + repr(adjkey)
@@ -207,7 +207,7 @@ class DictCaseInsensitive2(Dict):
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
                     try:
                         return super(Dict, self).__getattr__(key.lower())
-                    except:
+                    except Exception:
                         raise (KeyError("Could not find protected item " + key))
                 return super(Dict, self).__getattr__(key.lower())
             self[adjkey] = DictCaseInsensitive(label=adjkey, parent_label=self.full_label)
@@ -390,9 +390,9 @@ class Counter(Dict):
                 lines.append(
                     "<%s%s:%s:%d>" % (exclusive_sum_marker.strip(), item.class_name, item.full_label, item.value))
                 continue
-            # strr = '%s%d' % (exclusive_sum_marker, item.value)
-            strr = (' ' * (item.level * 2 - 1) + exclusive_sum_marker + item.label + ':').ljust(16 + item.level * 2)
-            lines.append(strr + ' ' + str(item.value).rjust(3) + exclusive_sum_marker)
+            # str_ = '%s%d' % (exclusive_sum_marker, item.value)
+            str_ = (' ' * (item.level * 2 - 1) + exclusive_sum_marker + item.label + ':').ljust(16 + item.level * 2)
+            lines.append(str_ + ' ' + str(item.value).rjust(3) + exclusive_sum_marker)
         return '\n'.join(lines)
 
     def __repr__(self):
@@ -408,7 +408,7 @@ class Counter(Dict):
                 if key.lower() not in self.__my_attrs__.lower().split('|'):
                     try:
                         return super(Dict, self).__getattr__(key.lower())
-                    except:
+                    except Exception:
                         raise (KeyError("Could not find protected item " + key))
                 return super(Counter, self).__getattr__(key.lower())
             # print "Creating missing item: " + self.parent_label + ('.' if self.parent_label else '') + self.label  + ' -> ' + repr(adjkey)
@@ -422,7 +422,7 @@ class Counter(Dict):
             return "<null>"
             # print "Unexpected type of self in __getitem__: " + str(type(self))
             # raise TypeError
-            # except:
+            # except Exception:
             # raise
 
 

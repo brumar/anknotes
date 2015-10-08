@@ -222,19 +222,19 @@ class TOCHierarchyClass:
         selfLevel = self.Title.Level
         selfDepth = self.Title.Depth
         selfListPrefix = self.ListPrefix
-        strr = ''
+        str_ = ''
         if selfLevel == 1:
-            strr += '  [%d]           ' % len(self.Children)
+            str_ += '  [%d]           ' % len(self.Children)
         else:
             if len(self.Children):
-                strr += '  [%d:%2d]       ' % (selfDepth, len(self.Children))
+                str_ += '  [%d:%2d]       ' % (selfDepth, len(self.Children))
             else:
-                strr += '  [%d]          ' % selfDepth
-            strr += ' ' * (selfDepth * 3)
-            strr += ' %s ' % selfListPrefix
+                str_ += '  [%d]          ' % selfDepth
+            str_ += ' ' * (selfDepth * 3)
+            str_ += ' %s ' % selfListPrefix
 
-        strr += '%-60s  %s' % (selfTitleStr if fullTitle else selfNameStr, '' if self.Note else '(No Note)')
-        return strr
+        str_ += '%-60s  %s' % (selfTitleStr if fullTitle else selfNameStr, '' if self.Note else '(No Note)')
+        return str_
 
     def __str__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()
@@ -302,10 +302,10 @@ class TOCHierarchyClass:
         # selfLevel = self.title.Level
         # selfDepth = self.title.Depth
         selfListPrefix = self.ListPrefix
-        strr = "<%s:%s[%d] %s%s>" % (
+        str_ = "<%s:%s[%d] %s%s>" % (
             self.__class__.__name__, selfListPrefix, len(self.Children), selfTitleStr if fullTitle else selfNameStr,
             '' if self.Note else ' *')
-        return strr
+        return str_
 
     def __repr__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()

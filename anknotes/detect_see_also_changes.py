@@ -164,22 +164,22 @@ class notes:
     match_type = 'NA'
 
 
-def str_process(strr):
-    if not strr:
-        return strr
-    strr = strr.replace(u"evernote:///", u"evernote://")
-    strr = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
-                  r'evernote://view/\2/\1/\3/\3/', strr)
-    strr = strr.replace(u"evernote://", u"evernote:///").replace(u'<BR>', u'<br />')
-    strr = re.sub(r'<br ?/?>', u'<br/>', strr, 0, re.IGNORECASE)
-    strr = re.sub(r'(?s)&lt;&lt;(?P<PrefixKeep>(?:</div>)?)<div class="occluded">(?P<OccludedText>.+?)</div>&gt;&gt;',
-                  r'&lt;&lt;\g<PrefixKeep>&gt;&gt;', strr)
-    strr = strr.replace('<span class="occluded">', '<span style="color: rgb(255, 255, 255);">')
-    return strr
+def str_process(str_):
+    if not str_:
+        return str_
+    str_ = str_.replace(u"evernote:///", u"evernote://")
+    str_ = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
+                  r'evernote://view/\2/\1/\3/\3/', str_)
+    str_ = str_.replace(u"evernote://", u"evernote:///").replace(u'<BR>', u'<br />')
+    str_ = re.sub(r'<br ?/?>', u'<br/>', str_, 0, re.IGNORECASE)
+    str_ = re.sub(r'(?s)&lt;&lt;(?P<PrefixKeep>(?:</div>)?)<div class="occluded">(?P<OccludedText>.+?)</div>&gt;&gt;',
+                  r'&lt;&lt;\g<PrefixKeep>&gt;&gt;', str_)
+    str_ = str_.replace('<span class="occluded">', '<span style="color: rgb(255, 255, 255);">')
+    return str_
 
 
-def str_process_full(strr):
-    return clean_evernote_css(strr)
+def str_process_full(str_):
+    return clean_evernote_css(str_)
 
 
 def main(evernote=None, anki=None):

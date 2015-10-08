@@ -6,7 +6,7 @@ from anknotes.logging import log
 
 try:
     from aqt import mw
-except:
+except Exception:
     pass
 
 
@@ -64,7 +64,7 @@ def unescape_text(title, try_decoding=False):
         for i in range(0, len(__text_escape_phrases__), 2):
             title = title.replace(__text_escape_phrases__[i + 1], __text_escape_phrases__[i])
         title = title.replace(u"&nbsp;", u" ")
-    except:
+    except Exception:
         if try_decoding:
             raise UnicodeError
         title_new = unescape_text(title, True)
@@ -282,7 +282,7 @@ class EvernoteAccountIDs:
             self.shard = mw.col.conf.get(SETTINGS.EVERNOTE.ACCOUNT.SHARD, SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE)
             if self.Valid:
                 return
-        except:
+        except Exception:
             pass
         self.uid = SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE
         self.shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE
@@ -293,7 +293,7 @@ class EvernoteAccountIDs:
         try:
             mw.col.conf[SETTINGS.EVERNOTE.ACCOUNT.UID] = uid
             mw.col.conf[SETTINGS.EVERNOTE.ACCOUNT.SHARD] = shard
-        except:
+        except Exception:
             return False
         self.uid = uid
         self.shard = shard

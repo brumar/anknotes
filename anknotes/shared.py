@@ -21,13 +21,22 @@ from anknotes.db import *
 from anknotes.html import *
 from anknotes.structs import *
 
-# if inAnki:
-from aqt import mw
-from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
-from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
-    EDAMNotFoundException
+if inAnki:
+    from aqt import mw
+    from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
+    from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
+        EDAMNotFoundException
 
-
+def create_timer(delay, callback, *a, **kw):
+    kw, repeat = get_kwargs(kw, ['repeat', False])
+    if a or kw: 
+        def cb():
+            log('within cb: \n   Args: %s\n KWArgs: %s' % (str(a), str(kw))) 
+            return callback(*a, **kw)
+    else:
+        cb = callback
+    return mw.progress.timer(abs(delay) * 1000, cb, repeat)
+    
 def get_friendly_interval_string(lastImport):
     if not lastImport:
         return ""
@@ -49,11 +58,11 @@ def get_friendly_interval_string(lastImport):
     return lastImportStr
 
 
-def clean_evernote_css(strr):
+def clean_evernote_css(str_):
     remove_style_attrs = '-webkit-text-size-adjust: auto|-webkit-text-stroke-width: 0px|background-color: rgb(255, 255, 255)|color: rgb(0, 0, 0)|font-family: Tahoma|font-size: medium;|font-style: normal|font-variant: normal|font-weight: normal|letter-spacing: normal|orphans: 2|text-align: -webkit-auto|text-indent: 0px|text-transform: none|white-space: normal|widows: 2|word-spacing: 0px|word-wrap: break-word|-webkit-nbsp-mode: space|-webkit-line-break: after-white-space'.replace(
         '(', '\\(').replace(')', '\\)')
     # 'margin: 0px; padding: 0px 0px 0px 40px; '
-    return re.sub(r' ?(%s);? ?' % remove_style_attrs, '', strr).replace(' style=""', '')
+    return re.sub(r' ?(%s);? ?' % remove_style_attrs, '', str_).replace(' style=""', '')
 
 
 class UpdateExistingNotes:
@@ -136,7 +145,7 @@ def check_evernote_guid_is_valid(guid):
     return ankDB().scalar("SELECT COUNT(*) FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, guid)
 
 
-def escape_regex(strr): return re.sub(r"(?sx)(\(|\||\))", r"\\\1", strr)
+def escape_regex(str_): return re.sub(r"(?sx)(\(|\||\))", r"\\\1", str_)
 
 
 def remove_evernote_link(link, html):
