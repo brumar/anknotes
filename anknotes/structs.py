@@ -2,10 +2,12 @@ import re
 # from BeautifulSoup import UnicodeDammit
 import anknotes
 from bs4 import UnicodeDammit
+from anknotes.constants import *
+from anknotes.base import item_to_set, item_to_list
 from anknotes.db import *
 from anknotes.enum import Enum
 from anknotes.html import strip_tags
-from anknotes.logging import PadList, JoinList, item_to_set, item_to_list
+from anknotes.logging import PadList, JoinList
 from anknotes.enums import *
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
@@ -30,37 +32,35 @@ class EvernoteStruct(object):
     success = False
     Name = ""
     Guid = ""
-    __sql_columns__ = "name"
-    __sql_table__ = TABLES.EVERNOTE.TAGS
-    __sql_where__ = "guid"
-    __attr_order__ = None
-    __additional__attr__ = None
-    __title_is_note_title = False
+    _sql_columns_ = "name"
+    _sql_table_ = TABLES.EVERNOTE.TAGS
+    _sql_where_ = "guid"
+    _attr_order_ = None
+    _additional_attr_ = None
+    _title_is_note_title_ = False
 
     @staticmethod
-    def __attr_from_key__(key):
+    def _attr_from_key_(key):
         return upperFirst(key)
 
     def keys(self):
         return self._valid_attributes_()
 
     def items(self):
-        return [self.getAttribute(key) for key in self.__attr_order__]
+        return [self.getAttribute(key) for key in self._attr_order_]
 
     def sqlUpdateQuery(self):
-        columns = self.__attr_order__ if self.__attr_order__ else self.__sql_columns__
+        columns = self._attr_order_ if self._attr_order_ else self._sql_columns_
         return "INSERT OR REPLACE INTO `%s`(%s) VALUES (%s)" % (
-            self.__sql_table__, '`' + '`,`'.join(columns) + '`', ', '.join(['?'] * len(columns)))
+            self._sql_table_, '`' + '`,`'.join(columns) + '`', ', '.join(['?'] * len(columns)))
 
     def sqlSelectQuery(self, allColumns=True):
-        return "SELECT %s FROM %s WHERE %s = '%s'" % (
-            '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
+        return "SELECT %s FROM %s WHERE %s = ?" % (
+            '*' if allColumns else ','.join(self._sql_columns_), self._sql_table_, self._sql_where_)
 
     def getFromDB(self, allColumns=True):
-        query = "SELECT %s FROM %s WHERE %s = '%s'" % (
-            '*' if allColumns else ','.join(self.__sql_columns__), self.__sql_table__, self.__sql_where__, self.Where)
         ankDB().setrowfactory()
-        result = ankDB().first(self.sqlSelectQuery(allColumns))
+        result = ankDB().first(self.sqlSelectQuery(allColumns), self.Where)
         if result:
             self.success = True
             self.setFromKeyedObject(result)
@@ -70,28 +70,28 @@ class EvernoteStruct(object):
 
     @property
     def Where(self):
-        return self.getAttribute(self.__sql_where__)
+        return self.getAttribute(self._sql_where_)
 
     @Where.setter
     def Where(self, value):
-        self.setAttribute(self.__sql_where__, value)
+        self.setAttribute(self._sql_where_, value)
 
     def getAttribute(self, key, default=None, raiseIfInvalidKey=False):
         if not self.hasAttribute(key):
             if raiseIfInvalidKey:
                 raise KeyError
             return default
-        return getattr(self, self.__attr_from_key__(key))
+        return getattr(self, self._attr_from_key_(key))
 
     def hasAttribute(self, key):
-        return hasattr(self, self.__attr_from_key__(key))
+        return hasattr(self, self._attr_from_key_(key))
 
     def setAttribute(self, key, value):
-        if key == "fetch_" + self.__sql_where__:
-            self.setAttribute(self.__sql_where__, value)
+        if key == "fetch_" + self._sql_where_:
+            self.setAttribute(self._sql_where_, value)
             self.getFromDB()
         elif self._is_valid_attribute_(key):
-            setattr(self, self.__attr_from_key__(key), value)
+            setattr(self, self._attr_from_key_(key), value)
         else:
             raise KeyError("%s: %s is not a valid attribute" % (self.__class__.__name__, key))
 
@@ -110,13 +110,13 @@ class EvernoteStruct(object):
             pass
         elif isinstance(keyed_object, type(re.search('', ''))):
             regex_attr = 'wholeRegexMatch'
-            self.__additional__attr__.add(regex_attr)
+            self._additional_attr_.add(regex_attr)
             whole_match = keyed_object.group(0)
             keyed_object = keyed_object.groupdict()
             keyed_object[regex_attr] = whole_match
         elif hasattr(keyed_object, 'keys'):
             keys = getattrcallable(keyed_object, 'keys')
-        elif hasattr(keyed_object, self.__sql_where__):
+        elif hasattr(keyed_object, self._sql_where_):
             for key in self.keys():
                 if hasattr(keyed_object, key):
                     self.setAttribute(key, getattr(keyed_object, key))
@@ -127,7 +127,7 @@ class EvernoteStruct(object):
         if keys is None:
             keys = keyed_object
         for key in keys:
-            if key == "fetch_" + self.__sql_where__:
+            if key == "fetch_" + self._sql_where_:
                 self.Where = keyed_object[key]
                 self.getFromDB()
             elif key in lst:
@@ -135,27 +135,27 @@ class EvernoteStruct(object):
         return True
 
     def setFromListByDefaultOrder(self, args):
-        max = len(self.__attr_order__)
+        max = len(self._attr_order_)
         for i, value in enumerate(args):
             if i > max:
                 raise Exception("Argument #%d for %s (%s) exceeds the default number of attributes for the class." % (
                     i, self.__class__.__name__, str(value)))
-            self.setAttribute(self.__attr_order__[i], value)
+            self.setAttribute(self._attr_order_[i], value)
 
     def _valid_attributes_(self):
-        return self.__additional__attr__.union(self.__sql_columns__, [self.__sql_where__], self.__attr_order__)
+        return self._additional_attr_.union(self._sql_columns_, [self._sql_where_], self._attr_order_)
 
     def _is_valid_attribute_(self, attribute):
         return (attribute[0].lower() + attribute[1:]) in self._valid_attributes_()
 
     def __init__(self, *args, **kwargs):
-        if self.__attr_order__ is None:
-            self.__attr_order__ = []
-        if self.__additional__attr__ is None:
-            self.__additional__attr__ = set()
-        self.__sql_columns__ = item_to_list(self.__sql_columns__, chrs=' ,;')
-        self.__attr_order__ = item_to_list(self.__attr_order__, chrs=' ,;')
-        self.__additional__attr__ = item_to_set(self.__additional__attr__, chrs=' ,;')
+        if self._attr_order_ is None:
+            self._attr_order_ = []
+        if self._additional_attr_ is None:
+            self._additional_attr_ = set()
+        self._sql_columns_ = item_to_list(self._sql_columns_, chrs=' ,;')
+        self._attr_order_ = item_to_list(self._attr_order_, chrs=' ,;')
+        self._additional_attr_ = item_to_set(self._additional_attr_, chrs=' ,;')
         args = list(args)
         if args and self.setFromKeyedObject(args[0]):
             del args[0]
@@ -165,29 +165,29 @@ class EvernoteStruct(object):
 
 class EvernoteNotebook(EvernoteStruct):
     Stack = ""
-    __sql_columns__ = ["name", "stack"]
-    __sql_table__ = TABLES.EVERNOTE.NOTEBOOKS
+    _sql_columns_ = ["name", "stack"]
+    _sql_table_ = TABLES.EVERNOTE.NOTEBOOKS
 
 
 class EvernoteTag(EvernoteStruct):
     ParentGuid = ""
     UpdateSequenceNum = -1
-    __sql_columns__ = ["name", "parentGuid"]
-    __sql_table__ = TABLES.EVERNOTE.TAGS
-    __attr_order__ = 'guid|name|parentGuid|updateSequenceNum'
+    _sql_columns_ = ["name", "parentGuid"]
+    _sql_table_ = TABLES.EVERNOTE.TAGS
+    _attr_order_ = 'guid|name|parentGuid|updateSequenceNum'
 
 
 class EvernoteLink(EvernoteStruct):
-    __uid__ = -1
+    _uid_ = -1
     Shard = 'x999'
     Guid = ""
     WholeRegexMatch = ""
-    __title__ = None
+    _title_ = None
     """:type: EvernoteNoteTitle.EvernoteNoteTitle """
-    __attr_order__ = 'uid|shard|guid|title'
+    _attr_order_ = 'uid|shard|guid|title'
 
     def __init__(self, *args, **kwargs):
-        return super(self.__class__, self).__init__(*args, **kwargs)
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     @property
     def HTML(self):
@@ -196,7 +196,7 @@ class EvernoteLink(EvernoteStruct):
     @property
     def Title(self):
         """:rtype : EvernoteNoteTitle.EvernoteNoteTitle"""
-        return self.__title__
+        return self._title_
 
     @property
     def FullTitle(self): return self.Title.FullTitle
@@ -208,16 +208,16 @@ class EvernoteLink(EvernoteStruct):
         :type value : EvernoteNoteTitle.EvernoteNoteTitle | str | unicode
         :return:
         """
-        self.__title__ = anknotes.EvernoteNoteTitle.EvernoteNoteTitle(value)
+        self._title_ = anknotes.EvernoteNoteTitle.EvernoteNoteTitle(value)
         """:type : EvernoteNoteTitle.EvernoteNoteTitle"""
 
     @property
     def Uid(self):
-        return int(self.__uid__)
+        return int(self._uid_)
 
     @Uid.setter
     def Uid(self, value):
-        self.__uid__ = int(value)
+        self._uid_ = int(value)
 
     @property
     def NoteTitle(self):
@@ -247,7 +247,7 @@ class EvernoteTOCEntry(EvernoteStruct):
     NotebookGuid = ""
 
     def __init__(self, *args, **kwargs):
-        self.__attr_order__ = 'realTitle|orderedList|tagNames|notebookGuid'
+        self._attr_order_ = 'realTitle|orderedList|tagNames|notebookGuid'
         super(self.__class__, self).__init__(*args, **kwargs)
 
 
@@ -265,9 +265,9 @@ class EvernoteValidationEntry(EvernoteStruct):
 
     def __init__(self, *args, **kwargs):
         # spr = super(self.__class__ , self)
-        # spr.__attr_order__ = self.__attr_order__
+        # spr._attr_order_ = self._attr_order_
         # spr.__init__(*args, **kwargs)
-        self.__attr_order__ = 'guid|title|contents|tagNames|notebookGuid|noteType'
+        self._attr_order_ = 'guid|title|contents|tagNames|notebookGuid|noteType'
         super(self.__class__, self).__init__(*args, **kwargs)
 
 
@@ -330,6 +330,8 @@ class EvernoteAPIStatus(AutoNumberedEnum):
     """:type : EvernoteAPIStatus"""
     Disabled = -25
     """:type : EvernoteAPIStatus"""
+    Unchanged = -15
+    """:type : EvernoteAPIStatus"""
     EmptyRequest = -10
     """:type : EvernoteAPIStatus"""
     Manual = -5
@@ -349,6 +351,8 @@ class EvernoteAPIStatus(AutoNumberedEnum):
     SocketError = ()
     """:type : EvernoteAPIStatus"""
     UserError = ()
+    """:type : EvernoteAPIStatus"""
+    UnchangedError = ()
     """:type : EvernoteAPIStatus"""
     NotFoundError = ()
     """:type : EvernoteAPIStatus"""

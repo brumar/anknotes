@@ -1,6 +1,7 @@
 import errno
 from anknotes.evernote.edam.error.ttypes import EDAMErrorCode
-from anknotes.logging import log_error, log, showInfo, show_tooltip
+from anknotes.base import str_safe
+from anknotes.logging import log_error, log, showInfo, show_tooltip, log_dump
 from anknotes.constants import *
 
 latestSocketError = {'code': 0, 'friendly_error_msg': '', 'constant': ''}
@@ -60,7 +61,7 @@ lastUnicodeError = None
 
 def HandleUnicodeError(log_header, e, guid, title, action='', attempt=1, content=None, field=None, attempt_max=3,
                        attempt_min=1):
-    do_log = False
+    global lastUnicodeError
     object = ""
     e_type = e.__class__.__name__
     is_unicode = e_type.find("Unicode") > -1
@@ -81,7 +82,7 @@ def HandleUnicodeError(log_header, e, guid, title, action='', attempt=1, content
     if is_unicode:
         return_val = 1 if attempt < attempt_max else -1
         if new_error:
-            log(save_header + '\n' + '-' * ANKNOTES.FORMATTING.LINE_LENGTH, 'unicode', replace_newline=False);
+            log(save_header + '\n' + '-' * ANKNOTES.FORMATTING.LINE_LENGTH, 'unicode', replace_newline=False)
             lastUnicodeError = save_header
         log(ANKNOTES.FORMATTING.TIMESTAMP_PAD + '\t - ' + (
             ('Field %s' % field if field else 'Unknown Field') + ': ').ljust(20) + str_safe(object), 'unicode',

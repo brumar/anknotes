@@ -1,6 +1,7 @@
 import re
 from HTMLParser import HTMLParser
 from anknotes.constants import SETTINGS
+from anknotes.base import is_str_type
 from anknotes.db import get_evernote_title_from_guid
 from anknotes.logging import log
 
@@ -24,15 +25,16 @@ class MLStripper(HTMLParser):
 
 
 def strip_tags(html, strip_entities=False):
+    __html_entity_repl = '_!_DONT_STRIP_HTML_ENTITIES_!_'
     if html is None:
         return None
     if not strip_entities:
-        html = html.replace('&', '__DONT_STRIP_HTML_ENTITIES___')
+        html = html.replace('&', __html_entity_repl)
     s = MLStripper()
     s.feed(html)
     html = s.get_data()
     if not strip_entities:
-        html = html.replace('__DONT_STRIP_HTML_ENTITIES___', '&')
+        html = html.replace(__html_entity_repl, '&')
     return html
     # s = MLStripper()
     # s.feed(html)
@@ -45,24 +47,24 @@ def strip_tags_and_new_lines(html):
     return re.sub(r'[\r\n]+', ' ', strip_tags(html))
 
 
-__text_escape_phrases__ = u'&|&amp;|\'|&apos;|"|&quot;|>|&gt;|<|&lt;'.split('|')
+__text_escape_phrases = u'&|&amp;|\'|&apos;|"|&quot;|>|&gt;|<|&lt;'.split('|')
 
 
 def escape_text(title):
-    global __text_escape_phrases__
-    for i in range(0, len(__text_escape_phrases__), 2):
-        title = title.replace(__text_escape_phrases__[i], __text_escape_phrases__[i + 1])
+    global __text_escape_phrases
+    for i in range(0, len(__text_escape_phrases), 2):
+        title = title.replace(__text_escape_phrases[i], __text_escape_phrases[i + 1])
     return title
 
 
 def unescape_text(title, try_decoding=False):
     title_orig = title
-    global __text_escape_phrases__
+    global __text_escape_phrases
     if try_decoding:
         title = title.decode('utf-8')
     try:
-        for i in range(0, len(__text_escape_phrases__), 2):
-            title = title.replace(__text_escape_phrases__[i + 1], __text_escape_phrases__[i])
+        for i in range(0, len(__text_escape_phrases), 2):
+            title = title.replace(__text_escape_phrases[i + 1], __text_escape_phrases[i])
         title = title.replace(u"&nbsp;", u" ")
     except Exception:
         if try_decoding:
@@ -130,7 +132,7 @@ def generate_evernote_html_element_style_attribute(link_type, value, bold=True, 
     if not colors:
         colors = evernote_link_colors['Default']
     colorDefault = colors
-    if not isinstance(colorDefault, str) and not isinstance(colorDefault, unicode):
+    if not is_str_type(colorDefault):
         colorDefault = colorDefault['Default']
     if not colorDefault[-1] is ';':
         colorDefault += ';'

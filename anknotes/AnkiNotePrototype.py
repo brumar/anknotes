@@ -40,7 +40,7 @@ class AnkiNotePrototype:
     # """:type : str"""
     NotebookGuid = ""
     """:type : str"""
-    __cloze_count__ = 0
+    __cloze_count = 0
 
     class Counts:
         Updated = 0
@@ -59,7 +59,7 @@ class AnkiNotePrototype:
         return get_evernote_guid_from_anki_fields(self.Fields)
 
     def __init__(self, anki=None, fields=None, tags=None, base_note=None, notebookGuid=None, count=-1, count_update=0,
-                 max_count=1, counts=None, light_processing=False, enNote=None):
+                 max_count=1, counts=None, light_processing=False, enNote=None, **kw):
         """
         Create Anki Note Prototype Class from fields or Base Anki Note
         :param anki: Anki: Anknotes Main Class Instance
@@ -79,6 +79,8 @@ class AnkiNotePrototype:
         :type counts :  AnkiNotePrototype.Counts
         :return: AnkiNotePrototype
         """
+        self.loggedSeeAlsoError = None
+        self.__log_name = 'Add\\AnkiNotePrototype'
         self.light_processing = light_processing
         self.Anki = anki
         self.Fields = fields
@@ -112,8 +114,8 @@ class AnkiNotePrototype:
         self._deck_parent_ = self.Anki.deck if self.Anki else ''
         assert tags is not None
         self.Tags = tags
-        self.__cloze_count__ = 0
-        self.process_note()
+        self.__cloze_count = 0
+        self.process_note(**kw)
 
     def initialize_fields(self):
         if self.BaseNote:
@@ -140,13 +142,13 @@ class AnkiNotePrototype:
 
     def evernote_cloze_regex(self, match):
         matchText = match.group(2)
-        if matchText[0] == "#":
+        if matchText.startswith("#"):
             matchText = matchText[1:]
         else:
-            self.__cloze_count__ += 1
-        if self.__cloze_count__ == 0:
-            self.__cloze_count__ = 1
-        return "%s{{c%d::%s}}%s" % (match.group(1), self.__cloze_count__, matchText, match.group(3))
+            self.__cloze_count += 1
+        if self.__cloze_count == 0:
+            self.__cloze_count = 1
+        return "%s{{c%d::%s}}%s" % (match.group(1), self.__cloze_count, matchText, match.group(3))
 
     def regex_occlude_match(self, match):
         matchText = match.group(0)
@@ -158,27 +160,26 @@ class AnkiNotePrototype:
     def process_note_see_also(self):
         if not FIELDS.SEE_ALSO in self.Fields or not FIELDS.EVERNOTE_GUID in self.Fields:
             return
-        db = ankDB()
-        db.execute("DELETE FROM %s WHERE source_evernote_guid = '%s' " % (TABLES.SEE_ALSO, self.Guid))
+        db = ankDB(TABLES.SEE_ALSO)
+        db.delete("source_evernote_guid = '%s' " % self.Guid)
         link_num = 0
         for enLink in find_evernote_links(self.Fields[FIELDS.SEE_ALSO]):
             if not check_evernote_guid_is_valid(enLink.Guid):
-                self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(
-                enLink, self.Fields[FIELDS.SEE_ALSO]); continue
+                self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(enLink, self.Fields[FIELDS.SEE_ALSO])
+                continue
             link_num += 1
-            title_text = enLink.FullTitle.replace(u'\'', u'\'\'')
-            from_toc = 1 if ',%s,' % TAGS.TOC in self.Tags else 0
-            is_toc = 1 if (title_text == "TOC" or title_text == "TABLE OF CONTENTS") else 0
-            is_outline = 1 if (title_text == "O" or title_text == "Outline") else 0
-            db.execute(
-                "INSERT OR REPLACE INTO %s (source_evernote_guid, number, uid, shard, target_evernote_guid, html, title, from_toc, is_toc, is_outline) VALUES('%s', %d, %d, '%s', '%s', '%s', '%s', %d, %d, %d)" % (
-                    TABLES.SEE_ALSO, self.Guid, link_num, enLink.Uid, enLink.Shard,
-                    enLink.Guid, enLink.HTML, title_text, from_toc, is_toc, is_outline))
+            values = DictCaseInsensitive(source_evernote_guid=self.Guid, target_evernote_guid=enLink.Guid, 
+                                         number=link_num, uid=enLink.Uid, shard=enLink.Shard, 
+                                         html=enLink.HTML, title=enLink.FullTitle)
+            values.from_toc = 1 if ',%s,' % TAGS.TOC in self.Tags else 0
+            values.is_toc = 1 if (values.title == "TOC" or values.title == "TABLE OF CONTENTS") else 0
+            values.is_outline = 1 if (values.title == "O" or values.title == "Outline") else 0
+            db.insert_or_replace(values)
         if link_num is 0:
             self.Fields[FIELDS.SEE_ALSO] = ""
         db.commit()
 
-    def process_note_content(self):
+    def process_note_content(self, steps=None):
         def step_0_remove_evernote_css_attributes():
             ################################### Step 0: Correct weird Evernote formatting
             self.Fields[FIELDS.CONTENT] = clean_evernote_css(self.Fields[FIELDS.CONTENT])
@@ -263,7 +264,7 @@ class AnkiNotePrototype:
                         self.Fields[FIELDS.CONTENT][i_div:i_see_also + 50] + '\n', 'SeeAlso\\MatchExpected')
                     log(self.Fields[FIELDS.CONTENT], 'SeeAlso\\MatchExpected\\' + self.FullTitle)
                     # raise ValueError
-                return
+                return False
             self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace(see_also_match.group(0),
                                                                               see_also_match.group('Suffix'))
             self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace('<div><b><br/></b></div></en-note>',
@@ -281,24 +282,29 @@ class AnkiNotePrototype:
                                                                                   self.Fields[
                                                                                       FIELDS.SEE_ALSO] + see_also_match.group(
                                                                                       'Suffix'))
-                return
-            self.process_note_see_also()
+                return False
+            return True
 
         if not FIELDS.CONTENT in self.Fields:
             return
         self._unprocessed_content_ = self.Fields[FIELDS.CONTENT]
         self._unprocessed_see_also_ = self.Fields[FIELDS.SEE_ALSO]
-        steps = [0, 1, 6] if self.light_processing else range(0, 7)
+        if steps is None:
+            steps = [0, 1, 6] if self.light_processing else range(0, 7)
         if self.light_processing and not ANKI.NOTE_LIGHT_PROCESSING_INCLUDE_CSS_FORMATTING:
             steps.remove(0)
         if 0 in steps:
             step_0_remove_evernote_css_attributes()
-        step_1_modify_evernote_links()
+        if 1 in steps:
+            step_1_modify_evernote_links()
         if 2 in steps:
             step_2_modify_image_links()
+        if 3 in steps:
             step_3_occlude_text()
+        if 5 in steps:
             step_5_create_cloze_fields()
-        step_6_process_see_also_links()
+        if (6 in steps and step_6_process_see_also_links()) or (6 not in steps and 7 in steps):
+            self.process_note_see_also()
         # TODO: Add support for extracting an 'Extra' field from the Evernote Note contents
         ################################### Note Processing complete.
 
@@ -324,8 +330,8 @@ class AnkiNotePrototype:
             return None
         return long(self.Anki.models().byName(self.ModelName)['id'])
 
-    def process_note(self):
-        self.process_note_content()
+    def process_note(self, **kw):
+        self.process_note_content(**kw)
         if not self.light_processing:
             self.detect_note_model()
 
@@ -370,7 +376,7 @@ class AnkiNotePrototype:
                 count_str += ' (%2d%%)' % (float(self.Counts.Current) / self.Counts.Max * 100)
             log_title = '!' if content else ''
             log_title += 'UPDATING NOTE%s: %-80s %s' % (count_str, self.FullTitle + ':', self.Guid)
-            log(log_title, 'AddUpdateNote', timestamp=(content is ''),
+            log(log_title, self.__log_name, timestamp=(content is ''),
                 clear=((self.Counts.Current == 1 or self.Counts.Current == 100) and not self.logged))
             self.logged = True
         if not content:
@@ -379,7 +385,7 @@ class AnkiNotePrototype:
         content = content.replace('\n', '\n        ')
         if content.lstrip()[:
             1] != '>': content = '> ' + content
-        log(' %s\n' % content, 'AddUpdateNote', timestamp=False)
+        log(' %s\n' % content, self.__log_name, timestamp=False)
 
     def update_note_tags(self):
         if len(self.Tags) == 0:
@@ -412,7 +418,7 @@ class AnkiNotePrototype:
         self.log_update(
             "Changing deck:\n From: '%s' \n To:   '%s'" % (self.Anki.decks().nameOrNone(deckIDOld), self.deck()))
         # Not sure if this is necessary or Anki does it by itself:
-        ankDB().execute("UPDATE cards SET did = ? WHERE nid = ?", deckIDNew, self.note.id)
+        ankDB().execute("UPDATE cards SET did = ? WHERE nid = ?", [deckIDNew, self.note.id])
         return True
 
     def update_note_fields(self):
@@ -457,12 +463,12 @@ class AnkiNotePrototype:
             self.Changed = True
         return flag_changed
 
-    def update_note(self):
+    def update_note(self, error_if_unchanged=True):
         self.note = self.BaseNote
         self.logged = False
         if not self.BaseNote:
             self.log_update("Not updating Note: Could not find base note")
-            return -1
+            return EvernoteAPIStatus.NotFoundError, self.note.id
         self.Changed = False
         self.update_note_tags()
         self.update_note_fields()
@@ -471,7 +477,7 @@ class AnkiNotePrototype:
             i_div = self.Fields[FIELDS.CONTENT].rfind("<div", 0, i_see_also)
             if i_div is -1:
                 i_div = i_see_also
-            if not hasattr(self, 'loggedSeeAlsoError') or self.loggedSeeAlsoError != self.Guid:
+            if self.loggedSeeAlsoError != self.Guid:
                 log_error(
                     "No See Also Content Found, but phrase 'See Also' exists in " + self.Guid + ": " + self.FullTitle,
                     crosspost_to_default=False)
@@ -482,14 +488,14 @@ class AnkiNotePrototype:
         if not (self.Changed or self.update_note_deck()):
             if self._log_update_if_unchanged_:
                 self.log_update("Not updating Note: The fields, tags, and deck are the same")
-            elif (
-                            self.Counts.Updated is 0 or self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
+            elif (self.Counts.Updated is 0 or
+                  self.Counts.Current / self.Counts.Updated > 9) and self.Counts.Current % 100 is 0:
                 self.log_update()
-            return 0
+            return EvernoteAPIStatus.UnchangedError if error_if_unchanged else EvernoteAPIStatus.Unchanged, self.note.id
         if not self.Changed:
             # i.e., the note deck has been changed but the tags and fields have not
             self.Counts.Updated += 1
-            return 1
+            return EvernoteAPIStatus.UnchangedError if error_if_unchanged else EvernoteAPIStatus.Success, self.note.id
         if not self.OriginalGuid:
             flds = get_dict_from_list(self.BaseNote.items())
             self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
@@ -501,7 +507,7 @@ class AnkiNotePrototype:
         self.log_update("  > Flushing Note")
         self.update_note_model()
         self.Counts.Updated += 1
-        return 1
+        return EvernoteAPIStatus.Success, self.note.id
 
     def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
         do_log_title = False
@@ -590,16 +596,16 @@ class AnkiNotePrototype:
     def add_note(self):
         self.create_note()
         if self.note is None:
-            return -1
+            return EvernoteAPIStatus.NotFoundError, None
         collection = self.Anki.collection()
         db_title = get_evernote_title_from_guid(self.Guid)
-        log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, 'AddUpdateNote')
+        log(' %s:    ADD: ' % self.Guid + '    ' + self.FullTitle, self.__log_name)
         self.check_titles_equal(db_title, self.FullTitle, self.Guid, 'NEW NOTE TITLE UNEQUAL TO DB ENTRY')
         if self.add_note_try() is not 1:
-            return -1
+            return EvernoteAPIStatus.GenericError, None
         collection.autosave()
         self.Anki.start_editing()
-        return self.note.id
+        return EvernoteAPIStatus.Success, self.note.id
 
     def create_note(self, attempt=1):
         id_deck = self.Anki.decks().id(self.deck())

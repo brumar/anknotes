@@ -11,6 +11,7 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.constants import *
 from anknotes.counters import DictCaseInsensitive
+from anknotes.logging import show_tooltip
 
 # Anknotes Main Imports
 import anknotes.Controller
@@ -82,7 +83,8 @@ def auto_reload_modules(function):
         log_banner('AUTO RELOAD MODULES - RELOADING', 'automation', claar=True)
         anknotes.shared = reload(anknotes.shared)
         if not anknotes.Controller:
-            importlib.import_module('anknotes.Controller')
+            from anknotes.imports import import_module
+            import_module('anknotes.Controller', sublevels=1)
         reload(anknotes.Controller)
     else:
         log_banner('AUTO RELOAD MODULES - SKIPPING RELOAD', 'automation', clear=True)
@@ -108,6 +110,7 @@ def add_menu_items(menu_items, parent=None):
                     checkable = options['checkable']
             # if ANKNOTES.DEVELOPER_MODE.ENABLED and ANKNOTES.DEVELOPER_MODE.AUTO_RELOAD_MODULES:
             action = auto_reload_wrapper(action)
+            # noinspection PyArgumentList
             menu_action = QAction(_(title), mw, checkable=checkable)
             parent.addAction(menu_action)
             parent.connect(menu_action, SIGNAL("triggered()"), action)
@@ -164,14 +167,12 @@ def create_subnotes(guids):
                 # heading = strip_tags(unicode(li.contents[0]), True).strip()
                 sublist.heading = strip_tags(unicode(''.join(sublist.list_items)), True).strip()
                 sublist.is_reversible = matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) is -1                 
-                last_char = sublist.heading[-1:]
-                sublist.use_descriptor = last_char in ["'", '`']
+                sublist.use_descriptor = sublist.heading[-1:] in ["'", '`']
                 if sublist.use_descriptor:
                     sublist.is_reversible = not sublist.is_reversible
                     sublist.heading = sublist.heading[:-1]
-                    last_char = sublist.heading[-1:]
                 sublist.is_subnote = matches_list(sublist.heading, HEADINGS.TOP) > -1 or matches_list(sublist.heading, HEADINGS.BOTTOM) > -1
-                if last_char == ':':
+                if sublist.heading.endswith(':'):
                     sublist.is_subnote = True 
                     sublist.heading = sublist.heading[:-1]
                 if not sublist.is_subnote:
@@ -189,7 +190,8 @@ def create_subnotes(guids):
 
             def process_list_item(contents, under_ul=False):
                 list_items_full = []
-                sublist = DictCaseInsensitive(is_subnote=False, list_items=[])
+                sublist = DictCaseInsensitive(is_subnote=False)
+                sublist.list_items=[]
                 for li in contents:
                     if not isinstance(li, Tag): 
                         sublist.list_items.append(unicode(li))
@@ -254,7 +256,7 @@ def create_subnotes(guids):
                 else:
                     l.go('LST ITEMS:'.ljust(16) + lst_items.__class__.__name__, crosspost='*\\..\\unexpected-type')
 
-        content = ankDB().scalar("SELECT content FROM %s WHERE guid = '%s'" % (TABLES.EVERNOTE.NOTES, guid))
+        content = db.scalar("guid = ?", guid, columns='content')
         title = note_title = get_evernote_title_from_guid(guid)
         l.path_suffix = '\\' + title
         soup = BeautifulSoup(content)
@@ -276,6 +278,7 @@ def create_subnotes(guids):
         l.go(str(lists), filename='lists', clear=True)
         l.go(soup.prettify(), filename='full', clear=True)
 
+    db = ankDB()
     myNotes = []
     if import_lxml() is False:
         return False
@@ -288,8 +291,7 @@ def create_subnotes(guids):
 
 
 def lxml_test():
-    guids = ankDB().list("SELECT guid FROM %s WHERE tagNames LIKE '%%,%s,%%' ORDER BY title ASC " % (
-        TABLES.EVERNOTE.NOTES, TAGS.OUTLINE))
+    guids = ankDB().list("tagNames LIKE '{t_out}' ORDER BY title ASC ", columns='guid')
     create_subnotes(guids)
 
 
@@ -344,7 +346,7 @@ Once the command line tool is done running, you will get a summary of the result
                 "Please enter code 'ANKNOTES_DEL_%d' to delete your orphan Anknotes DB note(s)" % anknotes_dels_count)[
                 0]
         if code == 'ANKNOTES_DEL_%d' % anknotes_dels_count:
-            ankDB().executemany("DELETE FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES, [[x] for x in anknotes_dels])
+            ankDB().executemany("DELETE FROM {n} WHERE guid = ?", [[x] for x in anknotes_dels])
             delete_anki_notes_and_cards_by_guid(anknotes_dels)
             db_changed = True
             show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5, 3)
@@ -416,6 +418,7 @@ def modify_collection(collection_operation, action_str='modifying collection', c
     passed = False
     retry = (
         "Will try again in %ds" % delay + ' (Attempt #%d)' % attempt if attempt > 0 else '') if attempt <= max_attempts else "Max attempts of %d exceeded... Aborting operation" % max_attempts
+    return_val = None
     try:
         return_val = collection_operation()
         passed = True
@@ -429,7 +432,7 @@ def modify_collection(collection_operation, action_str='modifying collection', c
                 log_error('**locked', crosspost='automation',
                                                                              crosspost_to_default=False)
             import traceback
-            type = str(e.__class__);
+            type = str(e.__class__)
             type = type[type.find("'") + 1:type.rfind("'")]
             friendly_message = ('Unhandled Error' if type == 'Exception' else type) + ':\n Full Error: ' + ' '.join(
                 str(e).split()) + '\n Message: "%s"' % e.message + '\n Trace: ' + traceback.format_exc() + '\n'
@@ -453,9 +456,11 @@ def modify_collection(collection_operation, action_str='modifying collection', c
 def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *a, **kw):
     if not mw.col is None:
         try:
-            myDB = ankDB(True)
+            myDB = ankDB(reset=True)
             db = myDB._db
-            cur = db.execute("SELECT title FROM %s WHERE 1 ORDER BY RANDOM() LIMIT 1" % TABLES.EVERNOTE.NOTES)
+            assert db is not None
+            cur = myDB.execute("SELECT title FROM {t} WHERE 1 ORDER BY RANDOM() LIMIT 1")
+            assert cur is not None
             result = cur.fetchone()
             log(" > Reload Collection: Not needed: ankDB exists and cursor created: %s" % (str_safe(result[0])),
                 'automation')
@@ -484,7 +489,7 @@ def do_load_collection():
     log("    > Do Load Collection: Attempting mw.loadCollection()", 'automation')
     mw.loadCollection()
     log("    > Do Load Collection: Attempting ankDB(True)", 'automation')
-    ankDB(True)
+    ankDB(reset=True)
 
 
 def do_unload_collection():
@@ -503,27 +508,38 @@ def load_controller(callback=None, callback_failure=True, *args, **kwargs):
     # return anknotes.Controller.Controller()
 
 
-def see_also(steps=None, showAlerts=None, validationComplete=False, controller=None):
+def see_also(steps=None, showAlerts=None, validationComplete=False, controller=None, upload=True):
+    all_args = locals()
+    show_tooltip_enabled = False
     if controller is None:
         check = reload_collection()
         if check:
             log("See Also --> 2. Loading Controller", 'automation')
-            def callback(x, *xa, **xkw): return see_also(steps, showAlerts, validationComplete, x)
-            load_controller(callback)
+            callback_args = dict(all_args)
+            del callback_args['controller']
+            load_controller(lambda x, *xa, **xkw: see_also(controller=x, **callback_args))
         else:
             log("See Also --> 1. Loading Collection", 'automation')
-            def callback(*xa, **xkw): return see_also(steps, showAlerts, validationComplete)
-            reload_collection(callback)
+            reload_collection(lambda *xa, **xkw: see_also(**all_args))
         return False
     if not steps:
         steps = range(1, 10)
     if isinstance(steps, int):
         steps = [steps]
+
+    if not upload:
+        if 3 in steps:
+            steps.remove(3)
+        if 7 in steps:
+            steps.remove(7)
     steps = list(steps)
     log("See Also --> 3. Proceeding: " + ', '.join(map(str, steps)), 'automation')
     multipleSteps = (len(steps) > 1)
     if showAlerts is None:
         showAlerts = not multipleSteps
+    if multipleSteps:
+        show_tooltip_enabled = show_tooltip.enabled if hasattr(show_tooltip, 'enabled') else None
+        show_tooltip.enabled = False
     remaining_steps = steps
     if 1 in steps:
         # Should be unnecessary once See Also algorithms are finalized
@@ -566,8 +582,11 @@ def see_also(steps=None, showAlerts=None, validationComplete=False, controller=N
         log(" > See Also: Step %dA: Validate and Upload %s Notes: Validate Notes" % (
             do_validation, {3: 'Auto TOC', 7: 'Modified Evernote'}[do_validation]), crosspost='automation')
         remaining_steps = remaining_steps[remaining_steps.index(do_validation):]
-        validate_pending_notes(showAlerts, callback=lambda *xargs, **xkwargs: see_also(remaining_steps, False, True))
-
+        callback_args = all_args
+        callback_args.update(dict(steps=remaining_steps, showAlerts=False, validationComplete=True))
+        validate_pending_notes(showAlerts, callback=lambda *xargs, **xkwargs: see_also(**callback_args))
+    if multipleSteps:
+        show_tooltip.enabled = show_tooltip_enabled
 
 def update_ancillary_data():
     controller = anknotes.Controller.Controller()

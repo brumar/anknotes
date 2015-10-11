@@ -25,8 +25,8 @@ def do_find_deleted_notes(all_anki_notes=None):
     enTableOfContents = file(FILES.USER.TABLE_OF_CONTENTS_ENEX, 'r').read()
     # find = file(os.path.join(PATH, "powergrep-find.txt") , 'r').read().splitlines()
     # replace = file(os.path.join(PATH, "powergrep-replace.txt") , 'r').read().replace('https://www.evernote.com/shard/s175/nl/19775535/' , '').splitlines()
-
-    all_anknotes_notes = ankDB().all("SELECT guid, title, tagNames FROM %s " % TABLES.EVERNOTE.NOTES)
+    db=ankDB()
+    all_anknotes_notes = db.all(columns='guid, title, tagNames')
     find_guids = {}
     log_banner(' FIND DELETED EVERNOTE NOTES: UNIMPORTED EVERNOTE NOTES ', FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES)
     log_banner(' FIND DELETED EVERNOTE NOTES: ORPHAN ANKI NOTES ', FILES.LOGS.FDN.ANKI_ORPHANS)
@@ -37,8 +37,7 @@ def do_find_deleted_notes(all_anki_notes=None):
                FILES.LOGS.FDN.ANKI_TITLE_MISMATCHES + '_possibletoc')
     anki_mismatch = 0
     is_toc_or_outline = []
-    all_anki_notes = ankDB().all("SELECT n.sfld, n.flds FROM notes n WHERE n.flds LIKE ? || '%'",
-                                 FIELDS.EVERNOTE_GUID_PREFIX)
+    all_anki_notes = db.all("SELECT n.sfld, n.flds FROM notes n WHERE n.flds LIKE ? || '%'", FIELDS.EVERNOTE_GUID_PREFIX)
     all_anki_notes = {get_evernote_guid_from_anki_fields(flds): clean_title(sfld) for sfld, flds in all_anki_notes}
     delete_title_mismatches = True
     for line in all_anknotes_notes:

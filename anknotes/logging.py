@@ -3,14 +3,16 @@ from datetime import datetime, timedelta
 import difflib
 import pprint
 import re
-import inspect
 import shutil
 import time
 from fnmatch import fnmatch
 # Anknotes Shared Imports
 from anknotes.constants import *
+from anknotes.base import item_to_list, is_str_type, caller_name, create_log_filename, str_safe
+from anknotes.methods import create_timer
+from anknotes.args import Args
 from anknotes.graphics import *
-from anknotes.counters import DictCaseInsensitive, item_to_list, item_to_set
+from anknotes.counters import DictCaseInsensitive
 
 # Anki Imports
 try:
@@ -21,19 +23,9 @@ except Exception:
     pass
 
 
-def str_safe(str_, prefix=''):
-    try:
-        str_ = str((prefix + str_.__repr__()))
-    except Exception:
-        str_ = str((prefix + str_.__repr__().encode('utf8', 'replace')))
-    return str_
-
-
-def print_safe(str_, prefix=''):
-    print str_safe(str_, prefix)
-
-
 def show_tooltip(text, time_out=7, delay=None, do_log=False, **kwargs):
+    if not hasattr(show_tooltip, 'enabled'):
+        show_tooltip.enabled = None
     if do_log:
         log(text, **kwargs)
     if delay:
@@ -41,30 +33,37 @@ def show_tooltip(text, time_out=7, delay=None, do_log=False, **kwargs):
             return create_timer(delay, tooltip, text, time_out * 1000)
         except Exception:
             pass
-    tooltip(text, time_out * 1000)
+    if show_tooltip.enabled is not False:
+        tooltip(text, time_out * 1000)
 
 
-def counts_as_str(count, max=None):
+def counts_as_str(count, max_=None):
     from anknotes.counters import Counter
     if isinstance(count, Counter):
         count = count.val
-    if isinstance(max, Counter):
-        max = max.val
-    if max is None or max <= 0:
+    if isinstance(max_, Counter):
+        max_ = max_.val
+    if max_ is None or max_ <= 0:
         return str(count).center(3)
-    if count == max:
+    if count == max_:
         return "All  %s" % str(count).center(3)
-    return "Total %s of %s" % (str(count).center(3), str(max).center(3))
+    return "Total %s of %s" % (str(count).center(3), str(max_).center(3))
 
 
 def format_count(format_str, count):
+    """
+    :param format_str:
+    :type format_str : str | unicode
+    :param count:
+    :return:
+    """
     if not count > 0:
         return ' ' * len(format_str % 1)
     return format_str % count
 
 
-def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix=' ' * 5, filename=None,
-                blank_line_before=True, blank_line_after=True, hr_if_empty=False):
+def show_report(title, header=None, log_lines=None, delay=None, log_header_prefix=' ' * 5,
+                blank_line_before=True, blank_line_after=True, hr_if_empty=False, **kw):
     if log_lines is None:
         log_lines = []
     if header is None:
@@ -84,17 +83,16 @@ def show_report(title, header=None, log_lines=None, delay=None, log_header_prefi
     else:
         show_tooltip(log_text.replace('\t', '&nbsp; ' * 4), delay=delay)
     if blank_line_before:
-        log_blank(filename=filename)
-    log(title, filename=filename)
+        log_blank(**kw)
+    log(title, **kw)
     if len(lines) == 1 and not lines[0]:
         if hr_if_empty:
-            log(" " + "-" * ANKNOTES.FORMATTING.LINE_LENGTH, timestamp=False, filename=filename)
+            log("-" * ANKNOTES.FORMATTING.LINE_LENGTH, timestamp=False, **kw)
         return
-    log(" " + "-" * ANKNOTES.FORMATTING.LINE_LENGTH + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'),
-        timestamp=False, replace_newline=True, filename=filename)
+    log("-" * ANKNOTES.FORMATTING.LINE_LENGTH + '\n' + log_header_prefix + log_text.replace('<BR>', '\n'),
+        timestamp=False, replace_newline=True, **kw)
     if blank_line_after:
-        log_blank(filename=filename)
-
+        log_blank(**kw)
 
 def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0, cancelButton=False, richText=False,
              minHeight=None, minWidth=400, styleSheet=None, convertNewLines=True):
@@ -104,7 +102,7 @@ def showInfo(message, title="Anknotes: Evernote Importer for Anki", textFormat=0
     if not styleSheet:
         styleSheet = file(FILES.ANCILLARY.CSS_QMESSAGEBOX, 'r').read()
 
-    if not isinstance(message, str) and not isinstance(message, unicode):
+    if not is_str_type(message):
         message = str(message)
 
     if richText:
@@ -177,10 +175,10 @@ def PadList(lst, length=ANKNOTES.FORMATTING.LIST_PAD):
 
 
 def JoinList(lst, joiners='\n', pad=0, depth=1):
-    if isinstance(joiners, str) or isinstance(joiners, unicode):
+    if is_str_type(joiners):
         joiners = [joiners]
     str_ = ''
-    if pad and (isinstance(lst, str) or isinstance(lst, unicode)):
+    if pad and is_str_type(lst):
         return lst.center(pad)
     if not lst or not isinstance(lst, list):
         return lst
@@ -209,160 +207,8 @@ def PadLines(content, line_padding=ANKNOTES.FORMATTING.LINE_PADDING_HEADER, line
     return line_padding + content.replace('\n', '\n' + line_padding + line_padding_plus)
 
 
-def key_transform(keys, key):
-    if keys is None:
-        keys = self.keys()
-    key = key.strip()
-    for k in keys:
-        if k.lower() == key.lower():
-            return k
-    return key
-
-
-def get_kwarg(func_kwargs, key, **kwargs):
-    kwargs['update_kwargs'] = False
-    return process_kwarg(func_kwargs, key, **kwargs)
-
-
-def process_kwarg(kwargs, key, default=None, replace_none_type=True, update_kwargs=True, return_value=True):
-    key = key_transform(kwargs.keys(), key)
-    if key not in kwargs:
-        return (kwargs, default) if update_kwargs else default
-    val = kwargs[key]
-    if val is None and replace_none_type:
-        val = default
-    if not update_kwargs:
-        return val
-    del kwargs[key]
-    return kwargs, val
-
-
-def process_kwargs(kwargs, get_args=None, set_dict=None, name=None, update_kwargs=True):
-    keys = kwargs.keys()
-    for key, value in set_dict.items() if set_dict else []:
-        key = key_transform(keys, key)
-        if not key in kwargs:
-            kwargs[key] = value
-    kwargs = DictCaseInsensitive(kwargs, label=name)
-    if not get_args:
-        return kwargs
-    keys = kwargs.keys()
-    gets = []
-    for args in get_args:
-        for arg in args:
-            if len(arg) is 1 and isinstance(arg[0], list):
-                arg = arg[0]
-            result = process_kwarg(kwargs, arg[0], arg[1], update_kwargs=update_kwargs)
-            if update_kwargs:
-                kwargs = result[0]; result = result[1]
-            gets += [result]
-    if update_kwargs:
-        return [kwargs] + gets
-    return gets
-
-
-def __get_args__(args, func_kwargs, *args_list, **kwargs_):
-    kwargs = DictCaseInsensitive({
-        'suffix_type_to_name': True, 'max_args': -1, 'default_value': None,
-        'return_expanded':     True, 'return_values_only': False
-    })
-    kwargs.update(kwargs_)
-    max_args = kwargs.max_args
-    args = list(args)
-    results = DictCaseInsensitive()
-    max_args = len(args) if max_args < 1 else min(len(args), max_args)
-    values = []
-    args_to_del = []
-    get_names = [
-        [names[i * 2:i * 2 + 2] for i in range(0, len(names) / 2)] if isinstance(names, list) else [[name, None] for
-                                                                                                    name in
-                                                                                                    item_to_list(names)]
-        for names in args_list]
-
-    for get_name in get_names:
-        for get_name_item in get_name:
-            if len(get_name_item) is 1 and isinstance(get_name_item[0], list):
-                get_name_item = get_name_item[0]
-            name = get_name_item[0]
-            types = get_name_item[1]
-            name = name.replace('*', '')
-            types = item_to_list(types)
-            is_none_type = types[0] is None
-            key = name + ('_' + types[0].__name__) if kwargs.suffix_type_to_name and not is_none_type else ''
-            key = key_transform(func_kwargs.keys(), key)
-            result = DictCaseInsensitive(Match=False, MatchedKWArg=False, MatchedArg=False, Name=key,
-                                         value=kwargs.default_value)
-            if key in func_kwargs:
-                result.value = func_kwargs[key]
-                del func_kwargs[key]
-                result.Match = True
-                result.MatchedKWArg = True
-                continue
-            if is_none_type:
-                continue
-            for i in range(0, max_args):
-                if i in args_to_del:
-                    continue
-                arg = args[i]
-                for t in types:
-                    if not isinstance(arg, t):
-                        continue
-                    result.value = arg
-                    result.Match = True
-                    result.MatchedArg = True
-                    args_to_del.append(i)
-                    break
-                if result.Match:
-                    break
-            values.append(result.value)
-            results[name] = result
-    args = [x for i, x in enumerate(args) if i not in args_to_del]
-    results.func_kwargs = func_kwargs
-    results.args = args
-    if kwargs.return_values_only:
-        return values
-    if kwargs.return_expanded:
-        return [args, func_kwargs] + values
-    return results
-
-
-def __get_default_listdict_args__(args, kwargs, name):
-    results_expanded = __get_args__(args, kwargs, [name + '*', [list, str, unicode], name, [dict, DictCaseInsensitive]])
-    if results_expanded[2] is None:
-        results_expanded[2] = []
-    if results_expanded[3] is None:
-        results_expanded[3] = {}
-    return results_expanded
-
-
-def get_kwarg_values(func_kwargs, *args, **kwargs):
-    kwargs['update_kwargs'] = False
-    return get_kwargs(func_kwargs, *args, **kwargs)
-
-
-def get_kwargs(func_kwargs, *args_list, **kwargs):
-    lst = [
-        [args[i * 2:i * 2 + 2] for i in range(0, len(args) / 2)] if isinstance(args, list) else [[arg, None] for arg in
-                                                                                                 item_to_list(args)] for
-        args in args_list]
-    return process_kwargs(func_kwargs, get_args=lst, **kwargs)
-
-
-def set_kwargs(func_kwargs, *args, **kwargs):
-    new_args = []
-    kwargs, name, update_kwargs = get_kwargs(kwargs, ['name', None, 'update_kwargs', None])
-    args, kwargs, lst, dct = __get_default_listdict_args__(args, kwargs, 'set')
-    if isinstance(lst, list):
-        dct.update({lst[i * 2]: lst[i * 2 + 1] for i in range(0, len(lst) / 2)}); lst = []
-    for arg in args:
-        new_args += item_to_lst(arg, False)
-    dct.update({key: None for key in item_to_list(lst, chrs=',') + new_args})
-    dct.update(kwargs)
-    return DictCaseInsensitive(process_kwargs(func_kwargs, set_dict=dct, name=name, update_kwargs=update_kwargs))
-
-
 def obj2log_simple(content):
-    if not isinstance(content, str) and not isinstance(content, unicode):
+    if not is_str_type(content):
         content = str(content)
     return content
 
@@ -377,8 +223,10 @@ class Logger(object):
     caller_info = None
     default_filename = None
     defaults = {}
+    auto_header=True
+    default_banner=None
 
-    def wrap_filename(self, filename=None, final_suffix='', **kwargs):
+    def wrap_filename(self, filename=None, final_suffix='', wrap_fn_auto_header=True, crosspost=None, **kwargs):
         if filename is None:
             filename = self.default_filename
         if self.base_path is not None:
@@ -388,33 +236,42 @@ class Logger(object):
             if i_asterisk > -1:
                 final_suffix += filename[i_asterisk + 1:]; filename = filename[:i_asterisk]
             filename += self.path_suffix + final_suffix
-        if 'crosspost' in kwargs:
-            fns = []
-            for cp in item_to_list(kwargs['crosspost'], False):
-                fns.append(self.wrap_filename(cp)[0])
-            kwargs['crosspost'] = fns
+        if crosspost is not None:
+            crosspost = [self.wrap_filename(cp)[0] for cp in item_to_list(crosspost, False)]
+            kwargs['crosspost'] = crosspost
+            
+        if wrap_fn_auto_header and self.auto_header and self.default_banner and not os.path.exists(get_log_full_path(filename)):
+            log_banner(self.default_banner, filename)
         return filename, kwargs
 
+    def error(self, content, crosspost=None, *a, **kw):        
+        if crosspost is None:
+            crosspost = []
+        crosspost.append(self.wrap_filename('error'), **DictCaseInsensitive(self.defaults, kw))
+        log_error(content, crosspost=crosspost, *a, **kw)
+    
     def dump(self, obj, title='', filename=None, *args, **kwargs):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
-        log_dump(obj=obj, title=title, filename=filename, *args, **kwargs)
+        # noinspection PyArgumentList
+        log_dump(obj, title, filename, *args, **kwargs)
 
     def blank(self, filename=None, *args, **kwargs):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
-        log_blank(filename=filename, *args, **kwargs)
+        log_blank(filename, *args, **kwargs)
 
-    def banner(self, title, filename=None, *args, **kwargs):
-        filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
-        log_banner(title=title, filename=filename, *args, **kwargs)
+    def banner(self, title, filename=None, *args, **kwargs):        
+        filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs, wrap_fn_auto_header=False))
+        self.default_banner = title
+        log_banner(title, filename, *args, **kwargs)
 
     def go(self, content=None, filename=None, wrap_filename=True, *args, **kwargs):
         if wrap_filename:
-            filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs));
-        log(content=content, filename=filename, *args, **kwargs)
+            filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
+        log(content, filename, *args, **kwargs)
 
     def plain(self, content=None, filename=None, *args, **kwargs):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
-        log_plain(content=content, filename=filename, *args, **kwargs)
+        log_plain(content, filename, *args, **kwargs)
 
     log = do = add = go
 
@@ -431,13 +288,13 @@ class Logger(object):
         elif not no_base_path:
             self.caller_info = caller_name()
             if self.caller_info:
-                self.base_path = create_log_filename(self.caller_info.Base)
+                self.base_path = create_log_filename(self.caller_info.Base) + os.path.sep
         if rm_path:
             rm_log_path(self.base_path)
 
 
-def log_blank(filename=None, *args, **kwargs):
-    log(filename=filename, *args, **DictCaseInsensitive(kwargs, timestamp=False, content=None))
+def log_blank(*args, **kwargs):
+    log(None, *args, **DictCaseInsensitive(kwargs, timestamp=False, delete='content'))
 
 
 def log_plain(*args, **kwargs):
@@ -478,20 +335,21 @@ def rm_log_path(filename='*', subfolders_only=False, retry_errors=0, *args, **kw
 
 
 def log_banner(title, filename=None, length=ANKNOTES.FORMATTING.BANNER_MINIMUM, append_newline=True, timestamp=False,
-               chr='-', center=True, clear=True, crosspost=None, *args, **kwargs):
+               chr='-', center=True, clear=True, crosspost=None, prepend_newline=False, *args, **kwargs):
     if crosspost is not None:
         for cp in item_to_list(crosspost, False):
-            log_banner(title, cp, **DictCaseInsensitive(kwargs, locals(),
-                                                                                              delete='title crosspost kwargs args filename'))
+            log_banner(title, cp, **DictCaseInsensitive(kwargs, locals(), delete='title crosspost kwargs args filename'))
     if length is 0:
         length = ANKNOTES.FORMATTING.LINE_LENGTH + 1
     if center:
         title = title.center(length - (ANKNOTES.FORMATTING.TIMESTAMP_PAD_LENGTH if timestamp else 0))
-    log(chr * length, filename, clear=clear, timestamp=False, *args, **kwargs)
-    log(title, filename, timestamp=timestamp, *args, **kwargs)
-    log(chr * length, filename, timestamp=False, *args, **kwargs)
+    if prepend_newline:
+        log_blank(filename, **kwargs)
+    log(chr * length, filename, clear=clear, timestamp=False, **kwargs)
+    log(title, filename, timestamp=timestamp, **kwargs)
+    log(chr * length, filename, timestamp=False, **kwargs)
     if append_newline:
-        log_blank(filename, *args, **kwargs)
+        log_blank(filename, **kwargs)
 
 
 _log_filename_history = []
@@ -514,7 +372,7 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
     global _log_filename_history
     log_base_name = FILES.LOGS.BASE_NAME
     filename_suffix = ''
-    if filename and filename[0] == '*':
+    if filename and filename.startswith('*'):
         filename_suffix = '\\' + filename[1:]
         log_base_name = ''
         filename = None
@@ -534,7 +392,7 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
             filename = filename[1:]
         filename = (log_base_name + '-' if log_base_name and log_base_name[-1] != '\\' else '') + filename
     filename += filename_suffix
-    if filename and filename[-1] == os.path.sep:
+    if filename and filename.endswith(os.path.sep):
         filename += 'main'
     filename = re.sub(r'[^\w\-_\.\\]', '_', filename)
     if filter_disabled and filter(lambda x:
@@ -565,13 +423,13 @@ def encode_log_text(content, encode_text=True, **kwargs):
 def parse_log_content(content, prefix='', **kwargs):
     if content is None:
         return '', prefix
-    if not isinstance(content, str) and not isinstance(content, unicode):
+    if not is_str_type(content):
         content = pf(content,
                                                                                        pf_replace_newline=False,
                                                                                        pf_encode_text=False)
-    if len(content) == 0:
+    if not content:
         content = '{EMPTY STRING}'
-    if content[0] == "!":
+    if content.startswith("!"):
         content = content[1:]; prefix = '\n'
     return content, prefix
 
@@ -623,7 +481,8 @@ def write_file_contents(content, full_path, clear=False, try_encode=True, do_pri
 
 # @clockit
 def log(content=None, filename=None, **kwargs):
-    kwargs = set_kwargs(kwargs, 'line_padding, line_padding_plus, line_padding_header', timestamp=True)
+    kwargs = Args(kwargs).set_kwargs('line_padding, line_padding_plus, line_padding_header', timestamp=True)
+    write_file_contents(pf(kwargs), 'args\\log_kwargs')
     content, prefix = parse_log_content(content, **kwargs)
     crosspost_log(content, filename, **kwargs)
     full_path = get_log_full_path(filename, **kwargs)
@@ -634,9 +493,14 @@ def log(content=None, filename=None, **kwargs):
 
 
 def log_sql(content, a=None, kw=None, self=None, sql_fn_prefix='', **kwargs):
-    table = content.replace('`', '').replace(',', '')
-    i = table.find("FROM")
-    table = table[i + 4:].strip()
+    table = content.upper().replace('`', '').replace(',', '')
+    stmts = 'FROM,INTO,DROP TABLE IF EXISTS,UPDATE,TABLE'.split(',')
+    for stmt in stmts:
+        i = table.find(stmt)
+        if i is -1:
+            continue
+        table = table[i + len(stmt):].strip()
+        break
     table = table[:table.find(' ')]
     if a or kw:
         content = u"SQL: %s" % content
@@ -649,12 +513,12 @@ def log_sql(content, a=None, kw=None, self=None, sql_fn_prefix='', **kwargs):
     log(content, 'sql\\' + sql_fn_prefix + table, **kwargs)
 
 
-def log_error(content, **kwargs):
-    kwargs = set_kwargs(kwargs, ['crosspost_to_default', True])
+def log_error(content, *a, **kw):
+    kwargs = Args(a, kw, set_list=['crosspost_to_default', True], use_set_list_as_arg_list=True, require_all_args=False).kwargs
     log(content, 'error', **kwargs)
 
 
-def pf(obj, title='', pf_replace_newline=True, pf_encode_text=True, pf_decode_text=False):
+def pf(obj, title='', pf_replace_newline=True, pf_encode_text=True, pf_decode_text=False, *a, **kw):
     content = pprint.pformat(obj, indent=4, width=ANKNOTES.FORMATTING.PPRINT_WIDTH)
     content = content.replace(', ', ', \n ')
     if pf_replace_newline:
@@ -668,8 +532,8 @@ def pf(obj, title='', pf_replace_newline=True, pf_encode_text=True, pf_decode_te
     return content
 
 
-def print_dump():
-    content = pf(*args, **kwargs)
+def print_dump(*a, **kw):
+    content = pf(*a, **kw)
     print content
     return content
 
@@ -692,11 +556,11 @@ def log_dump(obj, title="Object", filename='', crosspost_to_default=True, **kwar
         return
     if not title:
         title = "<%s>" % obj.__class__.__name__
-    if title[0] == '-':
+    if title.startswith('-'):
         crosspost_to_default = False; title = title[1:]
-    prefix = " **** Dumping %s" % title + " to " + os.path.splitext(os.path.basename(full_path))[0].replace('dump-', '')
+    prefix = " **** Dumping %s" % title
     if crosspost_to_default:
-        log(prefix)
+        log(prefix + + " to " + os.path.splitext(full_path.replace(FOLDERS.LOGS + os.path.sep, ''))[0])
 
     content = encode_log_text(content)
 
@@ -743,10 +607,10 @@ def try_print(full_path, content, prefix='', line_prefix=u'\n ', attempt=0, clea
             log("Try print error to %s: %s" % (os.path.split(full_path)[1], str(e)))
 
 
-def log_api(method, content='', **kwargs):
+def log_api(method, content='', **kw):
     if content:
         content = ': ' + content
-    log(" API_CALL [%3d]: %10s%s" % (get_api_call_count(), method, content), 'api', **kwargs)
+    log(" API_CALL [%3d]: %10s%s" % (get_api_call_count(), method, content), 'api', **kw)
 
 
 def get_api_call_count():
@@ -757,102 +621,12 @@ def get_api_call_count():
     count = 1
     for i in range(len(api_log), 0, -1):
         call = api_log[i - 1]
-        if not "API_CALL" in call:
+        if "API_CALL" not in call:
             continue
         ts = call.replace(':\t', ': ').split(': ')[0][2:-1]
         td = datetime.now() - datetime.strptime(ts, ANKNOTES.DATE_FORMAT)
-        if td < timedelta(hours=1):
-            count += 1
-        else:
-            return count
+        if td >= timedelta(hours=1):
+            break
+        count += 1
     return count
 
-
-def caller_names(return_string=True, simplify=True):
-    return [c.Base if return_string else c for c in [__caller_name__(i, simplify) for i in range(0, 20)] if
-            c and c.Base]
-
-
-class CallerInfo:
-    Class = []
-    Module = []
-    Outer = []
-    Name = ""
-    simplify = True
-    __keywords_exclude__ = ['pydevd', 'logging', 'stopwatch']
-    __keywords_strip__ = ['__maxin__', 'anknotes', '<module>']
-    __outer__ = []
-    filtered = True
-
-    @property
-    def __trace__(self):
-        return self.Module + self.Outer + self.Class + [self.Name]
-
-    @property
-    def Trace(self):
-        t = self._strip_(self.__trace__)
-        return t if not self.filtered or not [e for e in self.__keywords_exclude__ if e in t] else []
-
-    @property
-    def Base(self):
-        return '.'.join(self._strip_(self.Module + self.Class + [self.Name])) if self.Trace else ''
-
-    @property
-    def Full(self):
-        return '.'.join(self.Trace)
-
-    def _strip_(self, lst):
-        return [t for t in lst if t and t not in self.__keywords_strip__]
-
-    def __init__(self, parentframe=None):
-        """
-
-        :rtype : CallerInfo
-        """
-        if not parentframe:
-            return
-        self.Class = parentframe.f_locals['self'].__class__.__name__.split(
-            '.') if 'self' in parentframe.f_locals else []
-        module = inspect.getmodule(parentframe)
-        self.Module = module.__name__.split('.') if module else []
-        self.Name = parentframe.f_code.co_name if parentframe.f_code.co_name is not '<module>' else ''
-        self.__outer__ = [[f[1], f[3]] for f in inspect.getouterframes(parentframe) if f]
-        self.__outer__.reverse()
-        self.Outer = [f[1] for f in self.__outer__ if
-                      f and f[1] and not [exclude for exclude in self.__keywords_exclude__ + [self.Name] if
-                                          exclude in f[0] or exclude in f[1]]]
-        del parentframe
-
-
-def create_log_filename(str_):
-    if str_ is None:
-        return ""
-    str_ = str_.replace('.', '\\')
-    str_ = re.sub(r"(^|\\)([^\\]+)\\\2(\b.|\\.|$)", r"\1\2\\", str_)
-    str_ = re.sub(r"^\\*(.+?)\\*$", r"\1", str_)
-    return str_
-
-
-# @clockit
-def caller_name(skip=None, simplify=True, return_string=False, return_filename=False):
-    if skip is None:
-        names = [__caller_name__(i, simplify) for i in range(0, 20)]
-    else:
-        names = [__caller_name__(skip, simplify=simplify)]
-    for c in [c for c in names if c and c.Base]:
-        return create_log_filename(c.Base) if return_filename else c.Base if return_string else c
-    return "" if return_filename or return_string else None
-
-
-def __caller_name__(skip=0, simplify=True):
-    """
-    :rtype : CallerInfo
-    """
-    stack = inspect.stack()
-    start = 0 + skip
-    if len(stack) < start + 1:
-        return None
-    parentframe = stack[start][0]
-    c_info = CallerInfo(parentframe)
-    del parentframe
-    return c_info

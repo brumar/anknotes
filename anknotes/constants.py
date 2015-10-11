@@ -29,7 +29,7 @@ class FILES:
         MAIN = DEFAULT_NAME
         ACTIVE = DEFAULT_NAME
         USE_CALLER_NAME = False
-        DISABLED = ['finder*', 'counter*']
+        DISABLED = ['finder*', 'args*', 'counter*']
 
     class ANCILLARY:
         TEMPLATE = os.path.join(FOLDERS.ANCILLARY, 'FrontTemplate.htm')
@@ -48,7 +48,8 @@ class FILES:
             TOMATO = os.path.join(FOLDERS.GRAPHICS, u'Tomato-icon.ico')
 
         class IMAGE:
-            pass
+            EVERNOTE_WEB = None
+            EVERNOTE_ARTCORE = None
 
         IMAGE.EVERNOTE_WEB = ICON.EVERNOTE_WEB.replace('.ico', '.png')
         IMAGE.EVERNOTE_ARTCORE = ICON.EVERNOTE_ARTCORE.replace('.ico', '.png')
@@ -78,7 +79,8 @@ class ANKNOTES:
         BANNER_MINIMUM = 80
         COUNTER_BANNER_MINIMUM = 40
         LINE_PADDING_HEADER = 31
-        LINE_LENGTH = 185
+        LINE_LENGTH_TOTAL = 189
+        LINE_LENGTH = LINE_LENGTH_TOTAL - 4
         LIST_PAD = 25
         PROGRESS_SUMMARY_PAD = 31
         PPRINT_WIDTH = 80
@@ -119,6 +121,7 @@ class FIELDS:
             UPDATE_SEQUENCE_NUM]
 
     class ORD:
+        SEE_ALSO = None
         EVERNOTE_GUID = 0
 
     ORD.CONTENT = LIST.index(CONTENT) + 1
@@ -152,6 +155,7 @@ class EVERNOTE:
             # Auto Paging is probably only useful in the first 24 hours, when API usage is unlimited, or when executing a search that is likely to have most of the notes up-to-date locally
             # To keep from overloading Evernote's servers, and flagging our API key, I recommend pausing 5-15 minutes in between searches, the higher the better.
             class RESTART:
+                INTERVAL = None
                 DELAY_MINIMUM_API_CALLS = 10
                 INTERVAL_OVERRIDE = 60 * 5
                 ENABLED = False

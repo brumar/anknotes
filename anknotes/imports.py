@@ -7,6 +7,8 @@ inAnki = 'anki' in sys.modules
 ### Anknotes Imports
 from anknotes.constants import *
 
+lxml = None
+etree = None
 
 def import_module(name, path=None, sublevels=2, path_suffix=''):
     print "Import " + str(path) + " Level " + str(sublevels)
@@ -24,9 +26,9 @@ def import_module(name, path=None, sublevels=2, path_suffix=''):
         modobject = imp.load_module(name, modfile, modpath, description)
     except ImportError as e:
         print path + '\n' + str(e)
-        import pdb;
-        import traceback;
-        print traceback.format_exc();
+        import pdb
+        import traceback
+        print traceback.format_exc()
         pdb.set_trace()
         return None
     try:
@@ -56,12 +58,15 @@ def import_etree():
 def import_lxml():
     global lxml
     try:
-        assert lxml; return True
+        assert lxml
+        return True
     except Exception:
         pass
     try:
-        import lxml; return True
+        import lxml
+        return True
     except ImportError as e:
+        lxml = None
         pass
     import os
     import imp

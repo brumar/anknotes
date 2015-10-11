@@ -13,9 +13,9 @@ def generateTOCTitle(title):
 
 class EvernoteNoteTitle:
     level = 0
-    __title__ = ""
+    __title = ""
     """:type: str"""
-    __titleParts__ = None
+    __titleParts = None
     """:type: list[str]"""
 
     # # Parent = None
@@ -29,9 +29,9 @@ class EvernoteNoteTitle:
     def TitleParts(self):
         if not self.FullTitle:
             return []
-        if not self.__titleParts__:
-            self.__titleParts__ = generateTitleParts(self.FullTitle)
-        return self.__titleParts__
+        if not self.__titleParts:
+            self.__titleParts = generateTitleParts(self.FullTitle)
+        return self.__titleParts
 
     @property
     def Level(self):
@@ -99,7 +99,7 @@ class EvernoteNoteTitle:
             print "Slicing: %s ~ %d,%d from parts %s" % (self.FullTitle, start, end, str(oldParts))
         assert start is not None or end is not None
         newParts = oldParts[start:end]
-        if len(newParts) == 0:
+        if not newParts:
             log_error("Slice failed for %s-%s of %s" % (str(start), str(end), self.FullTitle))
             # return None
         assert len(newParts) > 0
@@ -145,7 +145,7 @@ class EvernoteNoteTitle:
         if title is None:
             # log('NoneType', 'tOTS', timestamp=False)
             return ""
-        if isinstance(title, str) or isinstance(title, unicode):
+        if is_str_type(title):
             # log('str/unicode', 'tOTS', timestamp=False)
             return title
         if hasattr(title, 'FullTitle'):
@@ -168,7 +168,7 @@ class EvernoteNoteTitle:
                     elif 'Title' in keys:
                         # log('keys[Title]', 'tOTS', timestamp=False)
                         title = title['Title']
-                    elif len(keys) == 0:
+                    elif not keys:
                         # log('keys[empty dict?]', 'tOTS', timestamp=False)
                         raise
                     else:
@@ -199,16 +199,16 @@ class EvernoteNoteTitle:
     @property
     def FullTitle(self):
         """:rtype: str"""
-        return self.__title__
+        return self.__title
 
     @property
     def HTML(self):
-        return self.__html__
+        return self.__html
 
     def __init__(self, titleObj=None):
         """:type titleObj: str | unicode | sqlite.Row | EvernoteNoteTitle | evernote.edam.type.ttypes.Note | EvernoteNotePrototype.EvernoteNotePrototype  """
-        self.__html__ = self.titleObjectToString(titleObj)
-        self.__title__ = strip_tags_and_new_lines(self.__html__)
+        self.__html = self.titleObjectToString(titleObj)
+        self.__title = strip_tags_and_new_lines(self.__html)
 
 
 def generateTitleParts(title):
@@ -219,19 +219,13 @@ def generateTitleParts(title):
         log('generateTitleParts Unable to re.sub')
         log(type(title))
         raise
-    if strTitle[-1] == ':':
-        strTitle = strTitle[:-1]
-    if strTitle[0] == ':':
-        strTitle = strTitle[1:]
+    strTitle = strTitle.strip(':')
     partsText = strTitle.split(':')
     count = len(partsText)
     for i in range(1, count + 1):
         txt = partsText[i - 1]
         try:
-            if txt[-1] == ' ':
-                txt = txt[:-1]
-            if txt[0] == ' ':
-                txt = txt[1:]
+            txt = txt.strip()
         except Exception:
             print_safe(title + ' -- ' + '"' + txt + '"')
             raise

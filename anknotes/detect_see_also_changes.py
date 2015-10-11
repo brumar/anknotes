@@ -25,56 +25,56 @@ from anknotes.Anki import Anki
 class notes:
     class version(object):
         class pstrings:
-            __updated__ = None
-            __processed__ = None
-            __original__ = None
-            __regex_updated__ = None
+            __updated = None
+            __processed = None
+            __original = None
+            __regex_updated = None
             """: type : notes.version.see_also_match """
-            __regex_processed__ = None
+            __regex_processed = None
             """: type : notes.version.see_also_match """
-            __regex_original__ = None
+            __regex_original = None
             """: type : notes.version.see_also_match """
 
             @property
             def regex_original(self):
                 if self.original is None:
                     return None
-                if self.__regex_original__ is None:
-                    self.__regex_original__ = notes.version.see_also_match(self.original)
-                return self.__regex_original__
+                if self.__regex_original is None:
+                    self.__regex_original = notes.version.see_also_match(self.original)
+                return self.__regex_original
 
             @property
             def regex_processed(self):
                 if self.processed is None:
                     return None
-                if self.__regex_processed__ is None:
-                    self.__regex_processed__ = notes.version.see_also_match(self.processed)
-                return self.__regex_processed__
+                if self.__regex_processed is None:
+                    self.__regex_processed = notes.version.see_also_match(self.processed)
+                return self.__regex_processed
 
             @property
             def regex_updated(self):
                 if self.updated is None:
                     return None
-                if self.__regex_updated__ is None:
-                    self.__regex_updated__ = notes.version.see_also_match(self.updated)
-                return self.__regex_updated__
+                if self.__regex_updated is None:
+                    self.__regex_updated = notes.version.see_also_match(self.updated)
+                return self.__regex_updated
 
             @property
             def processed(self):
-                if self.__processed__ is None:
-                    self.__processed__ = str_process(self.original)
-                return self.__processed__
+                if self.__processed is None:
+                    self.__processed = str_process(self.original)
+                return self.__processed
 
             @property
             def updated(self):
-                if self.__updated__ is None:
-                    return str_process(self.__original__)
-                return self.__updated__
+                if self.__updated is None:
+                    return str_process(self.__original)
+                return self.__updated
 
             @updated.setter
             def updated(self, value):
-                self.__regex_updated__ = None
-                self.__updated__ = value
+                self.__regex_updated = None
+                self.__updated = value
 
             @property
             def final(self):
@@ -82,36 +82,36 @@ class notes:
 
             @property
             def original(self):
-                return self.__original__
+                return self.__original
 
             def useProcessed(self):
                 self.updated = self.processed
 
             def __init__(self, original=None):
-                self.__original__ = original
+                self.__original = original
 
         class see_also_match(object):
-            __subject__ = None
-            __content__ = None
-            __matchobject__ = None
+            __subject = None
+            __content = None
+            __matchobject = None
             """:type : anknotes._re.__Match """
-            __match_attempted__ = 0
+            __match_attempted = 0
 
             @property
             def subject(self):
-                if not self.__subject__:
+                if not self.__subject:
                     return self.content
-                return self.__subject__
+                return self.__subject
 
             @subject.setter
             def subject(self, value):
-                self.__subject__ = value
-                self.__match_attempted__ = 0
-                self.__matchobject__ = None
+                self.__subject = value
+                self.__match_attempted = 0
+                self.__matchobject = None
 
             @property
             def content(self):
-                return self.__content__
+                return self.__content
 
             def groups(self, group=0):
                 """
@@ -121,17 +121,17 @@ class notes:
                 """
                 if not self.successful_match:
                     return None
-                return self.__matchobject__.group(group)
+                return self.__matchobject.group(group)
 
             @property
             def successful_match(self):
-                if self.__matchobject__:
+                if self.__matchobject:
                     return True
-                if self.__match_attempted__ is 0 and self.subject is not None:
-                    self.__matchobject__ = notes.rgx.search(self.subject)
+                if self.__match_attempted is 0 and self.subject is not None:
+                    self.__matchobject = notes.rgx.search(self.subject)
                     """:type : anknotes._re.__Match """
-                    self.__match_attempted__ += 1
-                return self.__matchobject__ is not None
+                    self.__match_attempted += 1
+                return self.__matchobject is not None
 
             @property
             def main(self):
@@ -150,9 +150,9 @@ class notes:
 
                 :type content: str | unicode
                 """
-                self.__content__ = content
-                self.__match_attempted__ = 0
-                self.__matchobject__ = None
+                self.__content = content
+                self.__match_attempted = 0
+                self.__matchobject = None
                 """:type : anknotes._re.__Match """
 
         content = pstrings()
@@ -238,7 +238,7 @@ def main(evernote=None, anki=None):
                 # see_also_replace_old = n.old.content.original.match.processed.see_also.processed.content
                 n.old.see_also.updated = n.old.content.regex_updated.see_also
                 n.new.see_also.updated = n.new.see_also.processed
-                n.match_type + 'V4'
+                n.match_type += 'V4'
             else:
                 assert (n.old.content.regex_processed.see_also_content == notes.version.see_also_match(
                     str_process(n.old.content.regex_original.main)).see_also_content)
@@ -248,51 +248,54 @@ def main(evernote=None, anki=None):
                 n.match_type += 'V5'
             n.new.content.updated = n.old.content.updated.replace(n.old.see_also.updated, n.new.see_also.updated)
 
-    log = Logger(default_filename='SeeAlsoDiff\\__ALL', rm_path=True)
-    # SELECT DISTINCT s.target_evernote_guid FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid   ORDER BY n.title ASC
-    # SELECT DISTINCT s.target_evernote_guid, n.* FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid   ORDER BY n.title ASC;
-    # SELECT DISTINCT s.target_evernote_guid, n.* FROM anknotes_see_also as s, anknotes_evernote_notes as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%,#TOC,%' AND n.tagNames NOT LIKE '%,#Outline,%'  ORDER BY n.title ASC;
-    noteType = 'SeeAlso-Step7'
-    ankDB().execute("DELETE FROM %s WHERE noteType = '%s'" % (TABLES.NOTE_VALIDATION_QUEUE, noteType))
-    sql = "SELECT DISTINCT s.target_evernote_guid, n.* FROM %s as s, %s as n  WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '%%,%s,%%' AND n.tagNames NOT LIKE '%%,%s,%%' ORDER BY n.title ASC;"
-    results = ankDB().all(sql % (TABLES.SEE_ALSO, TABLES.EVERNOTE.NOTES, TAGS.TOC, TAGS.OUTLINE))
+    def print_results_fail(title, status=None):
+        log.go(title + ' for %s' % enNote.FullTitle, 'NoUpdate')
+        print_results('NoMatch\\SeeAlso')
+        print_results('NoMatch\\Contents', full=True)
+        if status is None:
+            status = EvernoteAPIStatus.GenericError
+        tmr.reportStatus(status)
+
+    noteType = 'SeeAlso-Step6'
+    db = ankDB()
+    db.delete("noteType = '%s'" % noteType, table=TABLES.NOTE_VALIDATION_QUEUE)
+    results = db.all("SELECT DISTINCT s.target_evernote_guid, n.* FROM {s} as s, {n} as n  "
+                     "WHERE s.target_evernote_guid = n.guid AND n.tagNames NOT LIKE '{t_toc}' "
+                     "AND n.tagNames NOT LIKE '{t_out}' ORDER BY n.title ASC;")
     # count_queued = 0
-    tmr = stopwatch.Timer(len(results), 25, 'Updating See Also Notes', label=noteType, display_initial_info=False)
-    log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True, crosspost=tmr.label)
+    log = Logger('See Also\\6-update_see_also_footer_in_evernote_notes\\', rm_path=True)
+    tmr = stopwatch.Timer(len(results), 25, infoStr='Updating Evernote See Also Notes',
+                          label=log.base_path, do_print=True)
+    # log.banner("UPDATING EVERNOTE SEE ALSO CONTENT: %d NOTES" % len(results), do_print=True)
     notes_updated = []
     # number_updated = 0
     for result in results:
         enNote = EvernoteNotePrototype(db_note=result)
         n = notes()
-        if tmr.step():
-            log.go("Note %5s: %s: %s" % (
-                '#' + str(tmr.count), tmr.progress,
-                enNote.FullTitle if enNote.Status.IsSuccess else '(%s)' % enNote.Guid),
-                   do_print=True, print_timestamp=False)
-        flds = ankDB().scalar(
-            "SELECT flds FROM notes WHERE flds LIKE '%%%s%s%%'" % (FIELDS.EVERNOTE_GUID_PREFIX, enNote.Guid)).split(
-            "\x1f")
+        tmr.step(enNote.FullTitle if enNote.Status.IsSuccess else '(%s)' % enNote.Guid)
+        flds = get_anki_fields_from_evernote_guids(enNote.Guid)
+        if not flds:
+            print_results_fail('No Anki Note Found')
+            continue
+        flds = flds.split("\x1f")
         n.new.see_also = notes.version.pstrings(flds[FIELDS.ORD.SEE_ALSO])
         result = process_note()
         if result is False:
-            log.go('No match for %s' % enNote.FullTitle, tmr.label + '-NoUpdate')
-            print_results('NoMatch\\SeeAlso')
-            print_results('NoMatch\\Contents', full=True)
+            print_results_fail('No Match')
             continue
         if n.match_type != 'V1' and str_process(n.old.see_also.updated) == n.new.see_also.updated:
-            log.go('Match but contents are the same for %s' % enNote.FullTitle, tmr.label + '-NoUpdate')
-            print_results('Same\\SeeAlso')
-            print_results('Same\\Contents', full=True)
+            print_results_fail('Match but contents are the same', EvernoteAPIStatus.RequestSkipped)
             continue
         print_results()
         print_results('Diff\\Contents', final=True)
         enNote.Content = n.new.content.final
         if not EVERNOTE.UPLOAD.ENABLED:
+            tmr.reportStatus(EvernoteAPIStatus.Disabled)
             continue
         if not evernote:
             evernote = Evernote()
-        whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote, noteType=noteType), enNote.FullTitle, True)
-        if tmr.reportStatus(status) == False:
+        whole_note = tmr.autoStep(evernote.makeNote(enNote=enNote, noteType=noteType), update=True)
+        if tmr.report_result is False:
             raise ValueError
         if tmr.status.IsDelayableError:
             break
@@ -301,10 +304,4 @@ def main(evernote=None, anki=None):
     if tmr.is_success and not anki:
         anki = Anki()
     tmr.Report(0, anki.update_evernote_notes(notes_updated) if tmr.is_success else 0)
-    # log.go("Total %d of %d note(s) successfully uploaded to Evernote" % (tmr.count_success, tmr.max), tmr.label, do_print=True)
-    # if number_updated > 0: log.go("  > %4d updated in Anki" % number_updated, tmr.label, do_print=True)
-    # if tmr.count_queued > 0: log.go("  > %4d queued for validation" % tmr.count_queued, tmr.label, do_print=True)
-    # if tmr.count_error > 0:  log.go("  > %4d error(s) occurred" % tmr.count_error, tmr.label, do_print=True)
 
-
-    ## HOCM/MVP

@@ -15,6 +15,7 @@ from anknotes.EvernoteNoteTitle import *
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.toc import TOCHierarchyClass
 from anknotes.db import ankDB
+from anknotes import stopwatch
 
 
 class EvernoteNoteProcessingFlags:
@@ -105,7 +106,8 @@ class EvernoteNotes:
             self.addDBNote(dbNote)
 
     def addDbQuery(self, sql_query, order=''):
-        sql_query = "SELECT *  FROM %s WHERE (%s) AND (%s) " % (TABLES.EVERNOTE.NOTES, self.baseQuery, sql_query)
+        if self.baseQuery != '1':
+            sql_query = "(%s) AND (%s) " % (self.baseQuery, sql_query)
         if order:
             sql_query += ' ORDER BY ' + order
         dbNotes = ankDB().execute(sql_query)
@@ -119,8 +121,7 @@ class EvernoteNotes:
         :return:
         :rtype : sqlite.Row
         """
-        sql_query = "SELECT *  FROM %s WHERE %s " % (TABLES.EVERNOTE.NOTES, query)
-        dbNote = ankDB().first(sql_query)
+        dbNote = ankDB().first(query)
         if not dbNote:
             return None
         return dbNote
@@ -146,6 +147,7 @@ class EvernoteNotes:
 
     def processNote(self, enNote):
         """:type enNote: EvernoteNote.EvernoteNote"""
+        db = ankDB()
         if self.processingFlags.populateRootTitlesList or self.processingFlags.populateRootTitlesDict or self.processingFlags.populateMissingRootTitlesList or self.processingFlags.populateMissingRootTitlesDict:
             if enNote.IsChild:
                 # log([enNote.Title, enNote.Level, enNote.Title.TitleParts, enNote.IsChild])
@@ -189,8 +191,7 @@ class EvernoteNotes:
                     if not rootTitleStr in self.RootNotesExisting.TitlesList:
                         self.RootNotesExisting.TitlesList.append(rootTitleStr)
                 if self.processingFlags.populateChildRootTitles:
-                    childNotes = ankDB().execute("SELECT * FROM %s WHERE title LIKE '%s:%%' ORDER BY title ASC" % (
-                        TABLES.EVERNOTE.NOTES, rootTitleStr.replace("'", "''")))
+                    childNotes = db.execute("title LIKE ? || ':%' ORDER BY title ASC", rootTitleStr)
                     child_count = 0
                     for childDbNote in childNotes:
                         child_count += 1
@@ -259,10 +260,8 @@ class EvernoteNotes:
         processingFlags.populateMissingRootTitlesDict = True
         self.processingFlags = processingFlags
 
-        log(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles\\TOC', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles\\TOC', timestamp=False)
-        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
+        log_banner(" CHECKING FOR ALL POTENTIAL ROOT TITLES ", 'RootTitles\\TOC', clear=True, timestamp=False)
+        log_banner(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
         self.getChildNotes()
         log("Total %d Missing Root Titles" % len(self.RootNotesMissing.TitlesList), 'RootTitles\\TOC',
             timestamp=False)
@@ -287,10 +286,8 @@ class EvernoteNotes:
         # log(', '.join(self.RootNotesMissing.TitlesList))
         self.getRootNotes()
 
-        log(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles\\Missing', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles\\Missing', timestamp=False)
-        log(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
-        log("------------------------------------------------", 'RootTitles\\Isolated', timestamp=False)
+        log_banner(" CHECKING FOR MISSING ROOT TITLES ", 'RootTitles\\Missing', clear=True, timestamp=False)
+        log_banner(" CHECKING FOR ISOLATED ROOT TITLES ", 'RootTitles\\Isolated', clear=True, timestamp=False)
         log("Total %d Existing Root Titles" % len(self.RootNotesExisting.TitlesList), 'RootTitles\\Missing',
             timestamp=False)
         self.getChildNotes()
@@ -303,8 +300,6 @@ class EvernoteNotes:
     def processAllRootNotesMissing(self):
         """:rtype : list[EvernoteTOCEntry]"""
         DEBUG_HTML = False
-        count = 0
-        count_isolated = 0
         # log (" CREATING TOC's "        , 'tocList', clear=True, timestamp=False)
         # log ("------------------------------------------------"        , 'tocList', timestamp=False)
         # if DEBUG_HTML: log('<h1>CREATING TOCs</h1>', 'extra\\logs\\toc-ols\\toc-index.htm', timestamp=False, clear=True, extension='htm')
@@ -312,9 +307,11 @@ class EvernoteNotes:
         dbRows = []
         returns = []
         """:type : list[EvernoteTOCEntry]"""
-        ankDB().execute("DELETE FROM %s WHERE 1 " % TABLES.TOC_AUTO)
-        ankDB().commit()
+        db = ankDB(TABLES.TOC_AUTO)
+        db.delete("1", table=db.table)
+        db.commit()
         # olsz = None
+        tmr = stopwatch.Timer(self.RootNotesMissing.TitlesList, infoStr='Processing Root Notes', label='RootTitles\\')
         for rootTitleStr in self.RootNotesMissing.TitlesList:
             count_child = 0
             childTitlesDictSortedKeys = sorted(self.RootNotesMissing.ChildTitlesDict[rootTitleStr],
@@ -327,72 +324,77 @@ class EvernoteNotes:
                 escape_text_sql(rootTitleStr.upper()), TAGS.TOC_AUTO))
             notebookGuids = {}
             childGuid = None
-            if total_child is 1 and not outline:
-                count_isolated += 1
+            is_isolated = total_child is 1 and not outline
+            if is_isolated:
+                tmr.counts.isolated.step()
                 childBaseTitle = childTitlesDictSortedKeys[0]
                 childGuid = self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitle]
                 enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
                 # tags = enChildNote.Tags
-                log("  > ISOLATED ROOT TITLE: [%-3d]:  %-40s --> %-20s: %s %s" % (
-                    count_isolated, rootTitleStr + ':', childBaseTitle, childGuid, enChildNote), 'RootTitles\\Isolated',
+                log("  > ISOLATED ROOT TITLE: [%-3d]:  %-60s --> %-40s: %s" % (
+                    tmr.counts.isolated.val, rootTitleStr + ':', childBaseTitle, childGuid), tmr.label + 'Isolated',
                     timestamp=False)
             else:
-                count += 1
-                log("  [%-3d] %s %s" % (count, rootTitleStr, '(O)' if outline else '   '), 'RootTitles\\TOC',
+                tmr.counts.created.completed.step()
+                log_blank(tmr.label + 'TOC')
+                log("  [%-3d] %s %s" % (tmr.count, rootTitleStr, '(O)' if outline else '   '), tmr.label + 'TOC',
                     timestamp=False)
-                # tocList = TOCList(rootTitleStr)
-                tocHierarchy = TOCHierarchyClass(rootTitleStr)
-                if outline:
-                    tocHierarchy.Outline = TOCHierarchyClass(note=outline)
-                    tocHierarchy.Outline.parent = tocHierarchy
 
-                for childBaseTitle in childTitlesDictSortedKeys:
-                    count_child += 1
-                    childGuid = self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitle]
-                    enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
-                    if count_child == 1:
-                        tags = enChildNote.Tags
-                    else:
-                        tags = [x for x in tags if x in enChildNote.Tags]
-                    if not enChildNote.NotebookGuid in notebookGuids:
-                        notebookGuids[enChildNote.NotebookGuid] = 0
-                    notebookGuids[enChildNote.NotebookGuid] += 1
-                    level = enChildNote.Title.Level
-                    # childName = enChildNote.Title.Name
-                    # childTitle = enChildNote.FullTitle
-                    log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
-                        'RootTitles\\TOC', timestamp=False)
-                    # tocList.generateEntry(childTitle, enChildNote)
-                    tocHierarchy.addNote(enChildNote)
-                realTitle = get_evernote_title_from_guid(childGuid)
-                realTitle = realTitle[0:realTitle.index(':')]
-                # realTitleUTF8 = realTitle.encode('utf8')
-                notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]
+            tmr.step(rootTitleStr)
 
-                real_root_title = generateTOCTitle(realTitle)
+            if is_isolated:
+                continue
 
-                ol = tocHierarchy.GetOrderedList()
-                tocEntry = EvernoteTOCEntry(real_root_title, ol, ',' + ','.join(tags) + ',', notebookGuid)
-                returns.append(tocEntry)
-                dbRows.append(tocEntry.items())
-                # ol = realTitleUTF8
-                # if olsz is None: olsz = ol
-                # olsz += ol
-                # ol = '<OL>\r\n%s</OL>\r\n'
-                # str_ = tocHierarchy.__str__()
-                if DEBUG_HTML:
-                    ols.append(ol)
-                    olutf8 = ol.encode('utf8')
-                    fn = 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
-                    full_path = os.path.join(FOLDERS.LOGS, fn)
-                    if not os.path.exists(os.path.dirname(full_path)):
-                        os.mkdir(os.path.dirname(full_path))
-                    file_object = open(full_path, 'w')
-                    file_object.write(olutf8)
-                    file_object.close()
+            tocHierarchy = TOCHierarchyClass(rootTitleStr)
+            if outline:
+                tocHierarchy.Outline = TOCHierarchyClass(note=outline)
+                tocHierarchy.Outline.parent = tocHierarchy
 
-                    # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
-                    # log("Created TOC #%d:\n%s\n\n" % (count, str_), 'tocList', timestamp=False)
+            for childBaseTitle in childTitlesDictSortedKeys:
+                count_child += 1
+                childGuid = self.RootNotesMissing.ChildTitlesDict[rootTitleStr][childBaseTitle]
+                enChildNote = self.RootNotesMissing.ChildNotesDict[rootTitleStr][childGuid]
+                if count_child == 1:
+                    tags = enChildNote.Tags
+                else:
+                    tags = [x for x in tags if x in enChildNote.Tags]
+                if not enChildNote.NotebookGuid in notebookGuids:
+                    notebookGuids[enChildNote.NotebookGuid] = 0
+                notebookGuids[enChildNote.NotebookGuid] += 1
+                level = enChildNote.Title.Level
+                # childName = enChildNote.Title.Name
+                # childTitle = enChildNote.FullTitle
+                log("              %2d: %d.  --> %-60s" % (count_child, level, childBaseTitle),
+                    tmr.label + 'TOC', timestamp=False)
+                # tocList.generateEntry(childTitle, enChildNote)
+                tocHierarchy.addNote(enChildNote)
+            realTitle = get_evernote_title_from_guid(childGuid)
+            realTitle = realTitle[0:realTitle.index(':')]
+            # realTitleUTF8 = realTitle.encode('utf8')
+            notebookGuid = sorted(notebookGuids.items(), key=itemgetter(1), reverse=True)[0][0]
+
+            real_root_title = generateTOCTitle(realTitle)
+
+            ol = tocHierarchy.GetOrderedList()
+            tocEntry = EvernoteTOCEntry(real_root_title, ol, ',' + ','.join(tags) + ',', notebookGuid)
+            returns.append(tocEntry)
+            dbRows.append(tocEntry.items())
+
+            if not DEBUG_HTML:
+                continue
+
+            ols.append(ol)
+            olutf8 = ol.encode('utf8')
+            fn = 'toc-ols\\toc-' + str(tmr.count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
+            full_path = os.path.join(FOLDERS.LOGS, fn)
+            if not os.path.exists(os.path.dirname(full_path)):
+                os.mkdir(os.path.dirname(full_path))
+            file_object = open(full_path, 'w')
+            file_object.write(olutf8)
+            file_object.close()
+
+            # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
+            # log("Created TOC #%d:\n%s\n\n" % (count, str_), 'tocList', timestamp=False)
         if DEBUG_HTML:
             ols_html = u'\r\n<BR><BR><HR><BR><BR>\r\n'.join(ols)
             fn = 'toc-ols\\toc-index.htm'
@@ -407,10 +409,8 @@ class EvernoteNotes:
 
             file_object.close()
 
-        ankDB().executemany(
-            "INSERT INTO %s (root_title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?)" % TABLES.TOC_AUTO,
-            dbRows)
-        ankDB().commit()
+        db.executemany("INSERT INTO {t} (root_title, contents, tagNames, notebookGuid) VALUES(?, ?, ?, ?)", dbRows)
+        db.commit()
 
         return returns
 

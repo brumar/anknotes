@@ -14,8 +14,10 @@ if not inAnki:
 
     tags = ',#Imported,#Anki_Import,#Anki_Import_High_Priority,'
     # ankDB().setrowfactory()
-    dbRows = ankDB().all("SELECT * FROM %s WHERE  ? LIKE '%%,' || name || ',%%' " % TABLES.EVERNOTE.TAGS, tags)
+    db = ankDB(TABLES.EVERNOTE.TAGS)
+    dbRows = db.all("SELECT * FROM {t} WHERE  ? LIKE '%%,' || name || ',%%' ", tags)
 
     for dbRow in dbRows:
-        ankDB().execute("UPDATE %s SET tagNames = REPLACE(tagNames, ',%s,', ','), tagGuids = REPLACE(tagGuids, ',%s,', ',') WHERE tagGuids LIKE '%%,%s,%%'" % (TABLES.EVERNOTE.NOTES, dbRow['name'], dbRow['guid'],dbRow['guid'] ))
-    ankDB().commit()
+        db.execute(fmt("UPDATE {n} SET tagNames = REPLACE(tagNames, ',{row[name]},', ','), tagGuids = "
+                            "REPLACE(tagGuids, ',{row[guid]},', ',') WHERE tagGuids LIKE '%,{row[guid]},%'", row=dbRow))
+    db.commit()

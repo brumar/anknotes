@@ -35,88 +35,80 @@ if import_etree():
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
     # from anknotes.evernote.api.client import EvernoteClient
 
+    def mk_banner(fn, display_initial_info=False):
+        l.default_filename = fn
+        my_info_str = info_str % l.default_filename.upper()
+        myTmr = stopwatch.Timer(len(queued_items[fn]), 10, infoStr=my_info_str, do_print=True, label=l.base_path,
+                                display_initial_info=display_initial_info)
+        l.go("------------------------------------------------", clear=True)
+        l.go(my_info_str)
+        l.go("------------------------------------------------")
+        return myTmr
 
     ankDBSetLocal()
-    db = ankDB()
+    db = ankDB(TABLES.NOTE_VALIDATION_QUEUE)
     db.Init()
 
-    failed_queued_items = db.all("SELECT * FROM %s WHERE validation_status = -1 " % TABLES.NOTE_VALIDATION_QUEUE)
-    pending_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 0" % TABLES.NOTE_VALIDATION_QUEUE)
-    success_queued_items = db.all("SELECT * FROM %s WHERE validation_status = 1 " % TABLES.NOTE_VALIDATION_QUEUE)
+    queued_items = {'Failed': db.all("validation_status = -1"),
+                    'Pending': db.all("validation_status = 0"),
+                    'Successful': db.all("validation_status = 1")}
+    info_str = 'CHECKING {num} %s MAKE NOTE QUEUE ITEMS'
 
-    currentLog = 'Successful'
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True, clear=True)
-    log(" CHECKING %3d SUCCESSFUL MAKE NOTE QUEUE ITEMS " % len(success_queued_items), 'MakeNoteQueue\\' + currentLog,
-        timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True)
+    l = Logger('Validation\\validate_notes\\', rm_path=True, do_print=True, timestamp=False)
 
-    for result in success_queued_items:
+    tmr = mk_banner('Successful')
+    for result in queued_items[l.default_filename]:
         line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
         line += result['title']
-        log(line, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=False)
+        l.go(line)
 
-    currentLog = 'Failed'
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True, clear=True)
-    log(" CHECKING %3d FAILED MAKE NOTE QUEUE ITEMS " % len(failed_queued_items), 'MakeNoteQueue\\' + currentLog,
-        clear=False, timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True)
-
-    for result in failed_queued_items:
+    tmr = mk_banner('Failed')
+    for result in queued_items[l.default_filename]:
         line = '%-60s ' % (result['title'] + ':')
         line += ("       [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW"
         line += '\n' + result['validation_result']
-        log(line, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
-        log("------------------------------------------------\n", 'MakeNoteQueue\\' + currentLog, timestamp=False)
-        log(result['contents'], 'MakeNoteQueue\\' + currentLog, timestamp=False)
-        log("------------------------------------------------\n", 'MakeNoteQueue\\' + currentLog, timestamp=False)
+        l.go(line)
+        l.go("------------------------------------------------\n")
+        l.go(result['contents'])
+        l.go("------------------------------------------------\n")
 
     EN = Evernote()
 
-    currentLog = 'Pending'
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True, clear=True)
-    log(" CHECKING %3d PENDING MAKE NOTE QUEUE ITEMS " % len(pending_queued_items), 'MakeNoteQueue\\' + currentLog,
-        clear=False, timestamp=False, do_print=True)
-    log("------------------------------------------------", 'MakeNoteQueue\\' + currentLog, timestamp=False,
-        do_print=True)
-
+    tmr = mk_banner('Pending', display_initial_info=True)
     timerFull = stopwatch.Timer()
-    for result in pending_queued_items:
+    for result in queued_items[l.default_filename]:
         guid = result['guid']
         noteContents = result['contents']
         noteTitle = result['title']
         line = ("    [%-30s] " % ((result['guid']) + ':')) if result['guid'] else "NEW   [%-30s] " % ''
-        success, errors = EN.validateNoteContent(noteContents, noteTitle)
-        validation_status = 1 if success else -1
+        errors = tmr.autoStep(EN.validateNoteContent(noteContents, noteTitle), noteTitle)
+        validation_status = 1 if tmr.status.IsSuccess else -1
 
-        line = " SUCCESS! " if success else " FAILURE: "
+        line = " SUCCESS! " if tmr.status.IsSuccess else " FAILURE: "
         line += '     ' if result['guid'] else ' NEW '
         # line += ' %-60s ' % (result['title'] + ':')
-        log_dump(errors, 'LXML ERRORS', 'lxml_errors', crosspost_to_default=False)
-        if not success:
-            if not isinstance(errors, unicode) and not isinstance(errors, str):
+        l.dump(errors, 'LXML ERRORS', 'lxml_errors', wrap_filename=False, crosspost_to_default=False)
+        if not tmr.status.IsSuccess:
+            if not is_str_type(errors):
                 errors = '\n    * ' + '\n    * '.join(errors)
-            log(line + errors, 'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
+            l.go(line + errors)
         else:
-            if not isinstance(errors, unicode) and not isinstance(errors, str):
+            if not is_str_type(errors):
                 errors = '\n'.join(errors)
 
-        sql = "UPDATE %s SET validation_status = %d, validation_result = '%s' WHERE " % (
-            TABLES.NOTE_VALIDATION_QUEUE, validation_status, escape_text_sql(errors))
+        sql = "UPDATE {t} SET validation_status = ?, validation_result = ? WHERE "
+        data = [validation_status, errors]
         if guid:
-            sql += "guid = '%s'" % guid
+            sql += "guid = ?"
+            data += [guid]
         else:
-            sql += "title = '%s' AND contents = '%s'" % (escape_text_sql(noteTitle), escape_text_sql(noteContents))
+            sql += "title = ? AND contents = ?"
+            data += [noteTitle, noteContents]
 
-        db.execute(sql)
+        db.execute(sql, data)
 
     timerFull.stop()
-    log("Validation of %d results completed in %s" % (len(pending_queued_items), str(timerFull)),
-        'MakeNoteQueue\\' + currentLog, timestamp=False, do_print=True)
+    l.go("Validation of %d results completed in %s" % (tmr.max, str(timerFull)))
 
     db.commit()
     db.close()

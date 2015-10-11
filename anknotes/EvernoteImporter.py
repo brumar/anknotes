@@ -85,7 +85,7 @@ class EvernoteImporter:
         self.MetadataProgress = EvernoteMetadataProgress(self.currentPage)
         spec = NotesMetadataResultSpec(includeTitle=False, includeUpdated=False, includeUpdateSequenceNum=True,
                                        includeTagGuids=True, includeNotebookGuid=True)
-        notestore_status = self.initialize_note_store()
+        notestore_status = self.evernote.initialize_note_store()
         if not notestore_status.IsSuccess:
             self.MetadataProgress.Status = notestore_status
             return False  # notestore_status
@@ -144,9 +144,9 @@ class EvernoteImporter:
         :rtype: list[str]
         """
         notes_already_up_to_date = []
+        db = ankDB()
         for evernote_guid in evernote_guids:
-            db_usn = ankDB().scalar("SELECT updateSequenceNum FROM %s WHERE guid = ?" % TABLES.EVERNOTE.NOTES,
-                                    evernote_guid)
+            db_usn = db.scalar({'guid': evernote_guid}, columns='updateSequenceNumber')
             if not self.evernote.metadata[evernote_guid].updateSequenceNum:
                 server_usn = 'N/A'
             else:

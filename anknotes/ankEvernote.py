@@ -46,6 +46,8 @@ if inAnki:
 # QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, QMessageBox, QPixmap, QMenu, QAction
 # from aqt import mw
 
+etree = None
+
 class Evernote(object):
     metadata = {}
     """:type : dict[str, evernote.edam.type.ttypes.Note]"""
@@ -54,15 +56,18 @@ class Evernote(object):
     tag_data = {}
     """:type : dict[str, anknotes.structs.EvernoteTag]"""
     DTD = None
-    __hasValidator__ = None
+    __hasValidator = None
     token = None
     client = None
     """:type : EvernoteClient """
 
     def hasValidator(self):
-        if self.__hasValidator__ is None:
-            self.__hasValidator__ = import_etree()
-        return self.__hasValidator__
+        global etree
+        if self.__hasValidator is None:
+            self.__hasValidator = import_etree()
+            if self.__hasValidator:
+                from anknotes.imports import etree
+        return self.__hasValidator
 
     def __init__(self):
         self.tag_data = {}
@@ -134,6 +139,14 @@ class Evernote(object):
         del timerInterval
 
     def validateNoteBody(self, noteBody, title="Note Body"):
+        """
+
+        :param noteBody:
+        :type noteBody : str | unicode
+        :param title:
+        :return:
+        :rtype : (EvernoteAPIStatus, [str|unicode])
+        """
         self.loadDTD()
         noteBody = noteBody.replace('"http://xml.evernote.com/pub/enml2.dtd"',
                                     '"%s"' % convert_filename_to_local_link(FILES.ANCILLARY.ENML_DTD))
@@ -144,14 +157,14 @@ class Evernote(object):
             log_str = "XML Loading of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str, False)
-            return False, [log_str]
+            return EvernoteAPIStatus.UserError, [log_str]
         try:
             success = self.DTD.validate(root)
         except Exception as e:
             log_str = "DTD Validation of %s failed.\n    - Error Details: %s" % (title, str(e))
             log(log_str, "lxml", timestamp=False, do_print=True)
             log_error(log_str, False)
-            return False, [log_str]
+            return EvernoteAPIStatus.UserError, [log_str]
         log("Validation %-9s for %s" % ("Succeeded" if success else "Failed", title), "lxml", timestamp=False,
             do_print=True)
         errors = [str(x) for x in self.DTD.error_log.filter_from_errors()]
@@ -159,13 +172,15 @@ class Evernote(object):
             log_str = "DTD Validation Errors for %s: \n%s\n" % (title, str(errors))
             log(log_str, "lxml", timestamp=False)
             log_error(log_str, False)
-        return success, errors
+        return EvernoteAPIStatus.Success if success else EvernoteAPIStatus.UserError, errors
 
     def validateNoteContent(self, content, title="Note Contents"):
         """
 
         :param content: Valid ENML without the <en-note></en-note> tags. Will be processed by makeNoteBody
+        :type content : str|unicode
         :return:
+        :rtype : (EvernoteAPIStatus, [str|unicode])
         """
         return self.validateNoteBody(self.makeNoteBody(content), title)
 
@@ -200,20 +215,26 @@ class Evernote(object):
     def addNoteToMakeNoteQueue(noteTitle, noteContents, tagNames=list(), parentNotebook=None, resources=None,
                                noteType=None,
                                guid=None):
+        db = ankDB(TABLES.NOTE_VALIDATION_QUEUE)
         if not noteType:
             noteType = 'Unspecified'
         if resources is None:
             resources = []
-        sql = "FROM %s WHERE noteType = '%s' AND " % (TABLES.NOTE_VALIDATION_QUEUE, noteType) + (
-            ("guid = '%s'" % guid) if guid else "title = '%s' AND contents = '%s'" % (
-                escape_text_sql(noteTitle), escape_text_sql(noteContents)))
-        statuses = ankDB().all('SELECT validation_status ' + sql)
-        if len(statuses) > 0:
+        args = [noteType]
+        sql = "FROM {t} WHERE noteType = ? AND "
+        if guid:
+            sql += 'guid = ?'
+            args.append(guid)
+        else:
+            sql += 'title = ? AND contents = ?'
+            args += [noteTitle, noteContents]
+        statuses = db.all('SELECT validation_status ' + sql, args)
+        if statuses:
             if str(statuses[0]['validation_status']) == '1':
                 return EvernoteAPIStatus.Success
-            ankDB().execute("DELETE " + sql)
-        ankDB().execute(
-            "INSERT INTO %s(guid, title, contents, tagNames, notebookGuid, noteType) VALUES(?, ?, ?, ?, ?, ?)" % TABLES.NOTE_VALIDATION_QUEUE,
+            db.execute("DELETE " + sql, args)
+        db.execute(
+            "INSERT INTO {t}(guid, title, contents, tagNames, notebookGuid, noteType) VALUES(?, ?, ?, ?, ?, ?)",
             guid, noteTitle, noteContents, ','.join(tagNames), parentNotebook, noteType)
         return EvernoteAPIStatus.RequestQueued
 
@@ -245,7 +266,7 @@ class Evernote(object):
                                                                 resources, guid)
                 if not validation_status.IsSuccess and not self.hasValidator:
                     return validation_status, None
-        log('%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle),
+        log('%s%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle),
             'validation')
         ourNote = EvernoteNote()
         ourNote.title = noteTitle.encode('utf-8')
@@ -255,9 +276,10 @@ class Evernote(object):
         ## Build body of note
         nBody = self.makeNoteBody(noteContents, resources)
         if validated is not True and not validation_status.IsSuccess:
-            success, errors = self.validateNoteBody(nBody, ourNote.title)
-            if not success:
-                return EvernoteAPIStatus.UserError, None
+            status, errors = self.validateNoteBody(nBody, ourNote.title)
+            assert isinstance(status, EvernoteAPIStatus)
+            if not status.IsSuccess:
+                return status, None
         ourNote.content = nBody
 
         notestore_status = self.initialize_note_store()
@@ -265,7 +287,7 @@ class Evernote(object):
             return notestore_status, None
 
         while '' in tagNames: tagNames.remove('')
-        if len(tagNames) > 0:
+        if tagNames:
             if EVERNOTE.API.IS_SANDBOXED and not '#Sandbox' in tagNames:
                 tagNames.append("#Sandbox")
             ourNote.tagNames = tagNames
@@ -346,8 +368,13 @@ class Evernote(object):
             self.evernote_guids = evernote_guids
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()
+        action_str_base = 'CREATE'
+        action_str = 'CREATION OF'
+        tmr = stopwatch.Timer(len(evernote_guids), 100,
+                              infoStr=action_str + " EVERNOTE NOTES",
+                              label='Add\\Evernote-%sNotes' % (action_str_base.capitalize()))
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
-        if len(evernote_guids) == 0:
+        if not evernote_guids:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
         if inAnki:
             fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
@@ -360,6 +387,9 @@ class Evernote(object):
         for evernote_guid in self.evernote_guids:
             if not fetcher.getNote(evernote_guid):
                 return fetcher.results
+            tmr.reportSuccess()
+            tmr.step(fetcher.result.Note.FullTitle)
+        tmr.Report()
         return fetcher.results
 
     def check_ancillary_data_up_to_date(self):
@@ -399,7 +429,7 @@ class Evernote(object):
     def set_notebook_data(self):
         if not hasattr(self, 'notebook_data') or not self.notebook_data or len(self.notebook_data.keys()) == 0:
             self.notebook_data = {x['guid']: EvernoteNotebook(x) for x in
-                                  ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS)}
+                                  ankDB().execute("SELECT guid, name FROM {nb} WHERE 1")}
 
     def check_notebook_metadata(self, notes):
         """
@@ -460,16 +490,15 @@ class Evernote(object):
             self.notebook_data[notebook.guid] = {"stack": notebook.stack, "name": notebook.name}
             data.append(
                 [notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.serviceUpdated, notebook.stack])
-        db = ankDB()
-        old_count = db.scalar("SELECT COUNT(*) FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS)
-        db.execute("DROP TABLE %s " % TABLES.EVERNOTE.NOTEBOOKS)
-        db.InitNotebooks(True)
+        db = ankDB(TABLES.EVERNOTE.NOTEBOOKS)
+        old_count = db.count()
+        db.drop(db.table)
+        db.recreate()
         # log_dump(data, 'update_notebooks_database table data', crosspost_to_default=False)
         db.executemany(
-            "INSERT INTO `%s`(`guid`,`name`,`updateSequenceNum`,`serviceUpdated`, `stack`) VALUES (?, ?, ?, ?, ?)" % TABLES.EVERNOTE.NOTEBOOKS,
+            "INSERT INTO `{t}`(`guid`,`name`,`updateSequenceNum`,`serviceUpdated`, `stack`) VALUES (?, ?, ?, ?, ?)",
             data)
         db.commit()
-        # log_dump(ankDB().all("SELECT * FROM %s WHERE 1" % TABLES.EVERNOTE.NOTEBOOKS), 'sql data', crosspost_to_default=False)
         return len(self.notebook_data) - old_count
 
     def update_tags_database(self, reason_str=''):
@@ -501,18 +530,17 @@ class Evernote(object):
             data.append(enTag.items())
         if not enTag:
             return None
-        db = ankDB()
-        old_count = db.scalar("SELECT COUNT(*) FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)
-        ankDB().execute("DROP TABLE %s " % TABLES.EVERNOTE.TAGS)
-        ankDB().InitTags(True)
-        ankDB().executemany(enTag.sqlUpdateQuery(), data)
-        ankDB().commit()
+        db = ankDB(TABLES.EVERNOTE.TAGS)
+        old_count = db.count()
+        db.drop(db.table)
+        db.recreate()
+        db.executemany(enTag.sqlUpdateQuery(), data)
+        db.commit()
         return len(self.tag_data) - old_count
 
     def set_tag_data(self):
         if not hasattr(self, 'tag_data') or not self.tag_data or len(self.tag_data.keys()) == 0:
-            self.tag_data = {x['guid']: EvernoteTag(x) for x in
-                             ankDB().execute("SELECT guid, name FROM %s WHERE 1" % TABLES.EVERNOTE.TAGS)}
+            self.tag_data = {x['guid']: EvernoteTag(x) for x in ankDB().execute("SELECT guid, name FROM {tt} WHERE 1")}
 
     def get_missing_tags(self, current_tags, from_guids=True):
         if isinstance(current_tags, list):

@@ -25,10 +25,10 @@ try:
         QMessageBox, QPixmap
     from aqt import mw
 except Exception:
-    import pdb;
-    import traceback;
+    import pdb
+    import traceback
 
-    print traceback.format_exc();
+    print traceback.format_exc()
     pdb.set_trace()
     pass
 
@@ -96,6 +96,7 @@ def setup_evernote(self):
     # Evernote Query: Match Any Terms
     evernote_query_any = QCheckBox("     Match Any Terms", self)
     evernote_query_any.setChecked(mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.ANY, True))
+    # noinspection PyUnresolvedReferences
     evernote_query_any.stateChanged.connect(update_evernote_query_any)
     evernote_query_any.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 

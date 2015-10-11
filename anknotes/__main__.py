@@ -67,17 +67,16 @@ def _findAnknotes((val, args)):
     log_banner("FINDANKNOTES SEARCH: " + val.upper().replace('_', ' '), tmr.label, append_newline=False, clear=False)
     if not hasattr(_findAnknotes, 'note_ids'):
         _findAnknotes.note_ids = {}
-    if val == 'hierarchical' or val == 'hierarchical_alt':
-        if val not in _findAnknotes.note_ids or not ANKNOTES.CACHE_SEARCHES:
-            tmr.reset()
-            val_root = val.replace('hierarchical', 'root')
-            val_child = val.replace('hierarchical', 'child')
-            _findAnknotes((val_root, None), );
-            _findAnknotes((val_child, None), )
-            _findAnknotes.note_ids[val] = _findAnknotes.note_ids[val_root] + _findAnknotes.note_ids[val_child]
-            log("  > %s Search Complete: ".ljust(25) % val.upper().replace('_', ' ') + "%-5s --> %3d results" % (
-                tmr.str_long, len(_findAnknotes.note_ids[val])), tmr.label)
-            # return "c.nid IN (%s)" % ids2str(_findAnknotes.note_ids[val])
+    if val == 'hierarchical' or val == 'hierarchical_alt' and (
+            val not in _findAnknotes.note_ids or not ANKNOTES.CACHE_SEARCHES):
+        tmr.reset()
+        val_root = val.replace('hierarchical', 'root')
+        val_child = val.replace('hierarchical', 'child')
+        _findAnknotes((val_root, None), )
+        _findAnknotes((val_child, None), )
+        _findAnknotes.note_ids[val] = _findAnknotes.note_ids[val_root] + _findAnknotes.note_ids[val_child]
+        log("  > %s Search Complete: ".ljust(25) % val.upper().replace('_', ' ') + "%-5s --> %3d results" % (
+            tmr.str_long, len(_findAnknotes.note_ids[val])), tmr.label)
 
     if not hasattr(_findAnknotes, 'queries'):
         _findAnknotes.queries = {
@@ -158,7 +157,7 @@ def anknotes_browser_add_tree(self, tree, items, root=None, name=None, icon=None
             new_tree = self.CallbackItem(tree, _(new_name), None)
             new_tree.setExpanded(True)
             new_tree.setIcon(0, anknotes_browser_get_icon(icon))
-            root = anknotes_browser_add_tree(self, new_tree, item[1], root, new_name, icon);
+            root = anknotes_browser_add_tree(self, new_tree, item[1], root, new_name, icon)
         else:
             # log('Tree Item: Name: %s: \n' % str(name) + repr(item))
             root, tree = anknotes_browser_add_treeitem(self, tree, *item, root=root)
@@ -258,10 +257,13 @@ def anknotes_search_hook(search):
         if key not in search: 
             search[key] = anknotes_search[key]
             
-def reset_everything():
+def reset_everything(upload=True):
+    show_tooltip_enabled = show_tooltip.enabled if hasattr(show_tooltip, 'enabled') else None
+    show_tooltip.enabled = False
     ankDB().InitSeeAlso(True)
     menu.resync_with_local_db()
-    menu.see_also([1, 2, 4, 5, 6, 8])
+    menu.see_also(upload=upload)
+    show_tooltip.enabled = show_tooltip_enabled
 
 
 def anknotes_profile_loaded():
@@ -283,42 +285,33 @@ def anknotes_profile_loaded():
          Add a function here and it will automatically run on profile load
          You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder
         '''
-        reset_everything()
+        # menu.see_also([8])
+        menu.see_also(upload=False)
+        # reset_everything(False)
         return
         # menu.see_also(set(range(0,10)) - {3,4,8})
-        ankDB().InitSeeAlso(True)
+        # ankDB().InitSeeAlso(True)
         # menu.resync_with_local_db()
-        menu.see_also([1, 2, 6, 7, 9])
-        menu.lxml_test()
+        # menu.see_also([1, 2, 6, 7, 9])
+        # menu.lxml_test()
         # menu.see_also()
         # reset_everything()
-        # menu.see_also([7])
-
-        # menu.resync_with_local_db()
-        # menu.see_also([1, 2, 5, 6, 7])
-        # menu.see_also([6, 7])
-        # menu.resync_with_local_db()
-        # menu.see_also()
         # menu.import_from_evernote(auto_page_callback=lambda: lambda: menu.see_also(3))
-        # menu.see_also(3)
-        # menu.see_also(4)
         # mw.progress.timer(20000, lambda : menu.find_deleted_notes(True), False)
-        # menu.see_also([3,4])
-        # menu.resync_with_local_db()
         pass
 
 def anknotes_scalar(self, *a, **kw):
     log_text = 'Call to DB.scalar():'
     if not isinstance(self, DB): 
         log_text += '\n   - Self:       ' + pf(self)
-    if len(a)>0:
+    if a:
         log_text += '\n   - Args:       ' + pf(a)
-    if len(kw)>0:
+    if kw:
         log_text += '\n   - KWArgs:     ' + pf(kw)    
     last_query='<None>'
     if hasattr(self, 'ank_lastquery'):
         last_query = self.ank_lastquery
-        if isinstance(last_query, str) or isinstance(last_query, unicode):
+        if is_str_type(last_query):
             last_query = last_query[:50]
         else:
             last_query = pf(last_query)
@@ -326,14 +319,14 @@ def anknotes_scalar(self, *a, **kw):
     log(log_text + '\n', 'sql\\scalar')    
     try:
         res = self.execute(*a, **kw)
-    except TypeError:
+    except TypeError as e:
         log(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
         raise 
     if not isinstance(res, sqlite.Cursor):
         log(' > Cursor: %s' % pf(res), 'sql\\scalar')    
     try:
         res = res.fetchone()
-    except TypeError:
+    except TypeError as e:
         log(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
         raise     
     log_blank('sql\\scalar')
@@ -345,12 +338,12 @@ def anknotes_execute(self, sql, *a, **kw):
     log_text = 'Call to DB.execute():'
     if not isinstance(self, DB): 
         log_text += '\n   - Self:       ' + pf(self)
-    if len(a)>0:
+    if a:
         log_text += '\n   - Args:       ' + pf(a)
-    if len(kw)>0:
+    if kw:
         log_text += '\n   - KWArgs:     ' + pf(kw)    
     last_query=sql
-    if isinstance(last_query, str) or isinstance(last_query, unicode):
+    if is_str_type(last_query):
         last_query = last_query[:50]
     else:
         last_query = pf(last_query)

@@ -26,7 +26,7 @@ def TOCNameSort(title1, title2):
     priority2 = TOCNamePriority(title2)
     # Lower value for item 1 = item 1 placed BEFORE item 2
     if priority1 != priority2: 
-        return priority1 - priority2
+        return int((priority1 - priority2)*1000)
     return cmp(title1, title2)
 
 
@@ -56,7 +56,7 @@ class TOCHierarchyClass:
     """:type : list[TOCHierarchyClass]"""
     Parent = None
     """:type : TOCHierarchyClass"""
-    __isSorted__ = False
+    __isSorted = False
 
     @staticmethod
     def TOCItemSort(tocHierarchy1, tocHierarchy2):
@@ -79,7 +79,7 @@ class TOCHierarchyClass:
         return TAGS.OUTLINE in self.Note.Tags
 
     def sortIfNeeded(self):
-        if self.__isSorted__:
+        if self.__isSorted:
             return
         self.sortChildren()
 
@@ -204,7 +204,7 @@ class TOCHierarchyClass:
             print "%-60s Child %-20s Created Title-Only Child for %-40s: Match %s." % (
                 self.FullTitle + ':', newChild.Title.Name, tocNewChildNamesTitle,
                 "succeeded" if success else "failed")
-        self.__isSorted__ = False
+        self.__isSorted = False
         self.Children.append(newChild)
 
         print "%-60s Child %-20s Appended Child for %s. Operation was an overall %s." % (
@@ -214,9 +214,9 @@ class TOCHierarchyClass:
 
     def sortChildren(self):
         self.Children = sorted(self.Children, self.TOCItemSort)
-        self.__isSorted__ = True
+        self.__isSorted = True
 
-    def __strsingle__(self, fullTitle=False):
+    def __strsingle(self, fullTitle=False):
         selfTitleStr = self.FullTitle
         selfNameStr = self.Title.Name
         selfLevel = self.Title.Level
@@ -238,7 +238,7 @@ class TOCHierarchyClass:
 
     def __str__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()
-        lst = [self.__strsingle__(fullTitle)]
+        lst = [self.__strsingle(fullTitle)]
         for child in self.Children:
             lst.append(child.__str__(fullChildrenTitles, fullChildrenTitles))
         return '\n'.join(lst)
@@ -296,7 +296,7 @@ class TOCHierarchyClass:
         base = base % (header, childHTML)
         return base
 
-    def __reprsingle__(self, fullTitle=True):
+    def __reprsingle(self, fullTitle=True):
         selfTitleStr = self.FullTitle
         selfNameStr = self.Title.Name
         # selfLevel = self.title.Level
@@ -309,7 +309,7 @@ class TOCHierarchyClass:
 
     def __repr__(self, fullTitle=True, fullChildrenTitles=False):
         self.sortIfNeeded()
-        lst = [self.__reprsingle__(fullTitle)]
+        lst = [self.__reprsingle(fullTitle)]
         for child in self.Children:
             lst.append(child.__repr__(fullChildrenTitles, fullChildrenTitles))
         return '\n'.join(lst)
@@ -332,7 +332,7 @@ class TOCHierarchyClass:
             self.Note = None
         self.Number = number
         self.Children = []
-        self.__isSorted__ = False
+        self.__isSorted = False
 
         #
         # tocTest = TOCHierarchyClass("My Root Title")

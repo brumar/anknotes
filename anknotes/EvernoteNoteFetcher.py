@@ -16,32 +16,33 @@ class EvernoteNoteFetcher(object):
 
         :type evernote: ankEvernote.Evernote
         """
-        self.__reset_data__()
+        self.__reset_data()
         self.results = EvernoteNoteFetcherResults()
         self.result = EvernoteNoteFetcherResult()
         self.api_calls = 0
         self.keepEvernoteTags, self.deleteQueryTags = True, True
         self.evernoteQueryTags, self.tagsToDelete = [], []
         self.use_local_db_only = use_local_db_only
-        self.__update_sequence_number__ = -1
+        self.__update_sequence_number = -1
         self.evernote = evernote if evernote else None
         if not guid:
             self.guid = ""; return
         self.guid = guid
         if evernote and not self.use_local_db_only:
-            self.__update_sequence_number__ = self.evernote.metadata[
+            self.__update_sequence_number = self.evernote.metadata[
             self.guid].updateSequenceNum
         self.getNote()
 
-    def __reset_data__(self):
+    def __reset_data(self):
         self.tagNames = []
         self.tagGuids = []
         self.whole_note = None
 
+    @property
     def UpdateSequenceNum(self):
         if self.result.Note:
             return self.result.Note.UpdateSequenceNum
-        return self.__update_sequence_number__
+        return self.__update_sequence_number
 
     def reportSuccess(self, note, source=None):
         self.reportResult(EvernoteAPIStatus.Success, note, source)
@@ -60,10 +61,9 @@ class EvernoteNoteFetcher(object):
 
     def getNoteLocal(self):
         # Check Anknotes database for note
-        query = "SELECT * FROM %s WHERE guid = '%s'" % (
-            TABLES.EVERNOTE.NOTES, self.guid)
-        if self.UpdateSequenceNum() > -1:
-            query += " AND `updateSequenceNum` = %d" % self.UpdateSequenceNum()
+        query = "guid = '%s'" % self.guid
+        if self.UpdateSequenceNum > -1:
+            query += " AND `updateSequenceNum` = %d" % self.UpdateSequenceNum
         db_note = ankDB().first(query)
         """:type : sqlite.Row"""
         if not db_note:
@@ -102,32 +102,21 @@ class EvernoteNoteFetcher(object):
             self.whole_note = whole_note
         if tag_names:
             self.tagNames = tag_names
-        title = self.whole_note.title
-        log('Adding  %s: %s' % (self.whole_note.guid, title), 'ankDB')
-        content = self.whole_note.content
-        tag_names = u',' + u','.join(self.tagNames).decode('utf-8') + u','
-        if isinstance(title, str):
-            title = unicode(title, 'utf-8')
-        if isinstance(content, str):
-            content = unicode(content, 'utf-8')
-        if isinstance(tag_names, str):
-            tag_names = unicode(tag_names, 'utf-8')
-        title = title.replace(u'\'', u'\'\'')
-        content = content.replace(u'\'', u'\'\'')
-        tag_names = tag_names.replace(u'\'', u'\'\'')
+        log('Adding  %s: %s' % (self.whole_note.guid, self.whole_note.title), 'ankDB')
         if not self.tagGuids:
             self.tagGuids = self.whole_note.tagGuids
-        sql_query_header = u'INSERT OR REPLACE INTO `%s`' % TABLES.EVERNOTE.NOTES
-        sql_query_header_history = u'INSERT INTO `%s`' % TABLES.EVERNOTE.NOTES_HISTORY
-        sql_query_columns = u'(`guid`,`title`,`content`,`updated`,`created`,`updateSequenceNum`,`notebookGuid`,`tagGuids`,`tagNames`) VALUES (\'%s\',\'%s\',\'%s\',%d,%d,%d,\'%s\',\'%s\',\'%s\');' % (
-            self.whole_note.guid.decode('utf-8'), title, content, self.whole_note.updated, self.whole_note.created,
-            self.whole_note.updateSequenceNum, self.whole_note.notebookGuid.decode('utf-8'),
-            u',' + u','.join(self.tagGuids).decode('utf-8') + u',', tag_names)
-        sql_query = sql_query_header + sql_query_columns
-        ankDB().execute(sql_query)
-        sql_query = sql_query_header_history + sql_query_columns
-        ankDB().execute(sql_query)
-        ankDB().commit()
+        auto_columns = ['guid', 'title', 'content', 'updated', 'created', 'updateSequenceNum', 'notebookGuid']
+        columns = {key: getattr(self.whole_note, key) for key in auto_columns}
+        columns.update({key: getattr(self, key) for key in ['tagNames', 'tagGuids']})
+        for key, value in columns.items():
+            if isinstance(value, list):
+                columns[key] = u',' + u','.join(map(lambda x: unicode(x, 'utf-8'), value)) + u','
+            elif isinstance(value, str):
+                columns[key] = unicode(value, 'utf-8')
+        db = ankDB()
+        db.insert_or_replace(columns)
+        db.insert(columns, table=TABLES.EVERNOTE.NOTES_HISTORY)
+        db.commit()
 
     def getNoteRemoteAPICall(self):
         notestore_status = self.evernote.initialize_note_store()
@@ -174,12 +163,12 @@ class EvernoteNoteFetcher(object):
         self.addNoteFromServerToDB()
 
     def getNote(self, guid=None):
-        self.__reset_data__()
+        self.__reset_data()
         if guid:
             self.result.Note = None
             self.guid = guid
             self.evernote.guid = guid
-            self.__update_sequence_number__ = self.evernote.metadata[
+            self.__update_sequence_number = self.evernote.metadata[
                 self.guid].updateSequenceNum if not self.use_local_db_only else -1
         if self.getNoteLocal():
             return True
