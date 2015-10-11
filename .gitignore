@@ -3,7 +3,8 @@ anknotes/extra/logs/
 anknotes/extra/dev/anknotes.developer*
 anknotes/extra/dev/beyond*
 anknotes/extra/dev/auth_tokens.txt
-anknotes/extra/user/
+anknotes/extra/user/*.enex
+anknotes/extra/user/anki.profile
 anknotes/constants_user.py
 *.bk
 *.lnk
