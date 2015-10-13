@@ -28,7 +28,7 @@ def create_subnotes(guids):
     def create_subnote(guid):
         def process_lists(note, lst, levels=None, names=None):
             def get_log_fn():
-                return u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
+                return u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names[1:])
                 
             def add_log_entry(title, content, filename=None, prefix_content=True, **kw):                
                 fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, levels)),

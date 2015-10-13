@@ -409,6 +409,7 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
         if fn != '.' + extension:
             fn = '-' + fn
         full_path = os.path.join(parent, prefix + fn)
+    full_path = os.path.abspath(full_path)
     if not os.path.exists(os.path.dirname(full_path)):
         os.makedirs(os.path.dirname(full_path))
     if as_url_link:
