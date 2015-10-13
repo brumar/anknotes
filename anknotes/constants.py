@@ -74,7 +74,7 @@ class ANKNOTES:
         AUTO_RELOAD_MODULES = True
 
     class HIERARCHY:
-        ROOT_TITLES_BASE_QUERY = "notebookGuid != 'fdccbccf-ee70-4069-a587-82772a96d9d3'"
+        ROOT_TITLES_BASE_QUERY = ""
 
     class FORMATTING:
         BANNER_MINIMUM = 80
@@ -201,7 +201,7 @@ class TABLES:
         NOTES_HISTORY = u'anknotes_evernote_notes_history'
 
 class HEADINGS:
-    TOP = "Summary|Definition|Classification|Type|Presentation|Organ Involvement|Age of Onset|Si/Sx|Sx|Sign|Trigger|MCC's|MCC|Inheritance|Incidence|Prognosis|Mechanism|MOA|Pathophysiology|Indication|Example|Cause|Causative Organism|Risk Factor|Complication|Side Effect|Drug S/E|Associated Condition|A/w|Diagnosis|Dx|Physical Exam|Lab|Hemodynamic Parameter|Lab Finding|Imaging|Screening Test|Confirmatory Test|Xray|CT|MRI"
+    TOP = "Summary|Definitions|Classifications|Types|Presentations|Organ Involvement|Age of Onset|Si/Sx|Sx|Signs|Triggers|MCC's|MCCs|Inheritance|Incidence|Prognosis|Mechanisms|MOA|Pathophysiology|Indications|Examples|Causes|Causative Organisms|Risk Factors|Complications|Side Effects|Drug S/Es|Associated Conditions|A/w|Diagnosis|Dx|Physical Exam|Labs|Hemodynamic Parameters|Lab Findings|Imaging|Screening Tests|Confirmatory Tests|Xray|CT|MRI"
     BOTTOM = "Management|Work Up|Tx"
     NOT_REVERSIBLE = BOTTOM + "|Dx|Diagnosis"
 
