@@ -230,7 +230,7 @@ class EvernoteLink(EvernoteStruct):
         return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.FullTitle)
 
     def __repr__(self):
-        # id = 
+        # id =
         return "<%s> %s: %s" % (self.__class__.__name__, self.Guid, self.NoteTitle)
 
 

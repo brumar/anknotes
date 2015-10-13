@@ -95,9 +95,9 @@ def matches_list(item, lst):
     for index, value in enumerate(item_to_list(lst)):
         value = value.lower()
         if fnmatch(item, value) or fnmatch(item + 's', value):
-            return index 
-    return -1     
-    
+            return index + 1
+    return 0
+
 def get_friendly_interval_string(lastImport):
     if not lastImport:
         return ""

@@ -195,7 +195,7 @@ class ActionInfo(object):
         if bh_wrap_filename:
             filename = self.Label + filename
             if crosspost is not None:
-                crosspost = [self.Label + cp for cp in item_to_list(crosspost, False)]                
+                crosspost = [self.Label + cp for cp in item_to_list(crosspost, False)]
         log_banner(self.ActionNumeric.upper(), do_print=self.__do_print, **DictCaseInsensitive(kw, locals(), delete='self kw bh_wrap_filename cp'))
 
     def setStatus(self, status):
@@ -556,7 +556,7 @@ class Timer(object):
         self.counts.step(**kw)
         return self.step(*a, **kw)
 
-    def step(self, title=None, **kw): 
+    def step(self, title=None, **kw):
         if self.hasActionInfo and self.isProgressCheck and title:
             title_str = ("%" + str(len('#' + str(self.max))) + "s:   %s") % ('#' + str(self.count), title)
             progress_str = ' [%s]' % self.progress

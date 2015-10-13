@@ -182,7 +182,7 @@ def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs)
     return map(mapper, data)
 
 
-# def __get_anknotes_root_notes_titles_query(): 
+# def __get_anknotes_root_notes_titles_query():
 # return '(%s)' % ' OR '.join(["title LIKE '%s'" % (escape_text_sql(x) + ':%') for x in get_anknotes_root_notes_titles()])
 
 def __get_anknotes_root_notes_pred(base=None, column='guid', **kwargs):
@@ -288,12 +288,12 @@ def update_anknotes_nids():
     db = ankDB()
     count = db.count('nid <= 0')
     if not count:
-        return count 
+        return count
     paired_data = db.all("SELECT n.id, n.flds FROM notes n WHERE " + get_evernote_model_ids(True))
     paired_data = [[nid, get_evernote_guid_from_anki_fields(flds)] for nid, flds in paired_data]
     db.executemany('UPDATE {n} SET nid = ? WHERE guid = ?', paired_data)
     db.commit()
-    return count 
+    return count
 
 
 class ank_DB(object):
@@ -422,7 +422,7 @@ class ank_DB(object):
         keys = formats.keys()
         formats.update(kw)
         formats['t'] = formats['table']
-        formats.update(override)        
+        formats.update(override)
         sql = fmt(sql, formats)
         if 'order' in kw and 'order by' not in sql.lower():
             sql += ' ORDER BY ' + kw['order']
@@ -470,15 +470,15 @@ class ank_DB(object):
 
     def count(self, *a, **kw):
         return self.scalar('SELECT COUNT(*) FROM {t} WHERE {where}', *a, **kw)
-        
+
     def scalar(self, sql='1', *a, **kw):
         log_text = 'Call to DB.ankdb_scalar():'
-        if not isinstance(self, ank_DB): 
+        if not isinstance(self, ank_DB):
             log_text += '\n   - Self:       ' + pf(self)
         if a:
             log_text += '\n   - Args:       ' + pf(a)
         if kw:
-            log_text += '\n   - KWArgs:     ' + pf(kw)    
+            log_text += '\n   - KWArgs:     ' + pf(kw)
         last_query='<None>'
         if hasattr(self, 'ankdb_lastquery'):
             last_query = self.ankdb_lastquery
@@ -487,23 +487,23 @@ class ank_DB(object):
             else:
                 last_query = pf(last_query)
             log_text += '\n   - Last Query: ' + last_query
-        log(log_text + '\n', 'sql\\ankdb_scalar')    
+        log(log_text + '\n', 'sql\\ankdb_scalar')
         try:
             res = self.execute(sql, a, kw)
         except TypeError as e:
-            log(" > ERROR with ankdb_scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
-            raise 
+            log(" > ERROR with ankdb_scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error')
+            raise
         if not isinstance(res, sqlite.Cursor):
-            log(' > Cursor: %s' % pf(res), 'sql\\ankdb_scalar')    
+            log(' > Cursor: %s' % pf(res), 'sql\\ankdb_scalar')
         try:
             res = res.fetchone()
         except TypeError as e:
-            log(" > ERROR with ankdb_scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error') 
-            raise     
+            log(" > ERROR with ankdb_scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\ankdb_scalar', crosspost='sql\\ankdb_scalar-error')
+            raise
         log_blank('sql\\ankdb_scalar')
         if res:
             return res[0]
-        return None  
+        return None
 
     def all(self, sql='1', *a, **kw):
         return self.execute(sql, a, kw).fetchall()

@@ -388,7 +388,7 @@ class Anki:
         self.insert_toc_into_see_also()
         self.insert_toc_and_outline_contents_into_notes()
 
-    def insert_toc_into_see_also(self):        
+    def insert_toc_into_see_also(self):
         db = ankDB()
         db._db.row_factory = None
         results = db.all(
@@ -447,7 +447,7 @@ class Anki:
             see_also_whole_links = find_evernote_links(see_also_html)
             see_also_links = {x.Guid for x in see_also_whole_links}
             invalid_see_also_links = {x for x in see_also_links if x not in all_child_guids and x not in all_toc_guids}
-            new_tocs = set(toc_guids) - see_also_links 
+            new_tocs = set(toc_guids) - see_also_links
             if TAGS.TOC_AUTO in ankiNote.tags:
                 new_tocs -= set(content_links)
             log.dump([new_tocs, toc_guids, invalid_see_also_links, see_also_links, content_links],

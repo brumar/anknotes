@@ -205,4 +205,4 @@ Let's say we have nine **Sub Notes** titled `Diabetes: Symptoms`, `Diabetes: Tre
 #### Developer Functions
 - If you are testing a new feature, you can automatically have Anki run that function when Anki starts.
     - Simply add the method to `__main__.py` under the comment `Add a function here and it will automatically run on profile load`
-    - Also, create the folder `/anknotes/extra/dev` and add files `anknotes.developer` and `anknotes.developer.automate`    
+    - Also, create the folder `/anknotes/extra/dev` and add files `anknotes.developer` and `anknotes.developer.automate`

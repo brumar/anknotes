@@ -15,7 +15,7 @@ def TOCNamePriority(title):
     all_headings = [HEADINGS.TOP, [], HEADINGS.BOTTOM]
     for heading_index, headings in enumerate(all_headings):
         match = matches_list(title, headings)
-        if match > -1:
+        if match:
             return heading_index + float(match) / len(headings)
     return all_headings.index([])
 
@@ -24,7 +24,7 @@ def TOCNameSort(title1, title2):
     priority1 = TOCNamePriority(title1)
     priority2 = TOCNamePriority(title2)
     # Lower value for item 1 = item 1 placed BEFORE item 2
-    if priority1 != priority2: 
+    if priority1 != priority2:
         return int((priority1 - priority2)*1000)
     return cmp(title1, title2)
 

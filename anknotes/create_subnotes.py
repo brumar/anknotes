@@ -27,18 +27,18 @@ from aqt.utils import getText
 def create_subnotes(guids):
     def create_subnote(guid):
         def process_lists(note, lst, levels=None, names=None):
-            def add_log_entry(title, content, filename=None, prefix_content=True, **kw):                
+            def add_log_entry(title, content, filename=None, prefix_content=True, **kw):
                 if prefix_content:
                     content = u'{levels_pad}{levels}: ' + content
-                fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, new_levels)).ljust(6), 
+                fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, new_levels)).ljust(6),
                             num_levels=len(new_levels), names=u': '.join(names).ljust(20))
                 if lst_items.name in list_tag_names:
-                    fmts['list_name'] = list_tag_names[lst_items.name]                                
+                    fmts['list_name'] = list_tag_names[lst_items.name]
                 content = fmt(content, fmts)
                 if title:
                     title = (fmt(title, fmts) + u': ').ljust(16)
                 l.go(title + content, filename, **kw)
-            
+
             def check_subnote(li, sublist):
                 def check_heading_flags():
                     if not isinstance(sublist.heading_flags, list):
@@ -48,24 +48,24 @@ def create_subnotes(guids):
                             sublist.heading_flags.append(str_)
                             sublist.heading = sublist.heading[:-1*len(str_)]
                             check_heading_flags()
-                            return 
-                
+                            return
+
                 #Begin check_subnote()
                 if not (isinstance(li, Tag) and (li.name in list_tag_names) and li.contents and li.contents[0]):
                     sublist.list_items.append(unicode(li))
-                    return sublist 
+                    return sublist
                 sublist.heading = strip_tags(unicode(''.join(sublist.list_items)), True).strip()
-                sublist.is_reversible = matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) is -1                 
+                sublist.is_reversible = not matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) 
                 check_heading_flags()
                 if "`" in sublist.heading_flags:
                     sublist.is_reversible = not sublist.is_reversible
                 sublist.use_descriptor = "'" in sublist.heading_flags or "`" in sublist.heading_flags
-                sublist.is_subnote = ':' in sublist.heading_flags or matches_list(sublist.heading, HEADINGS.TOP + '|' + HEADINGS.BOTTOM) > -1
+                sublist.is_subnote = ':' in sublist.heading_flags or matches_list(sublist.heading, HEADINGS.TOP + '|' + HEADINGS.BOTTOM)
                 if not sublist.is_subnote:
                     return sublist
                 sublist.subnote = li
                 return sublist
-            
+
             def add_note(sublist, levels, names):
                 subnote_html = unicode(sublist.subnote)
                 log_fn = u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
@@ -79,7 +79,7 @@ def create_subnotes(guids):
                     if sublist.is_subnote:
                         break
                 return sublist
-            
+
             def log_tag():
                 if not lst_items.contents:
                     add_log_entry('NO TOP TEXT', unicode(lst_items.contents, 'utf-8'), crosspost='no_top_text')
@@ -90,8 +90,8 @@ def create_subnotes(guids):
                 elif not sublist.is_subnote:
                     add_log_entry('LIST ITEM', strip_tags(u''.join(sublist.list_items), True).strip())
                 else:
-                    subnote_fn = 'subnotes*\\' + '.'.join(map(str, levels))
-                    subnote_shared = '*\\..\\subnotes-all'
+                    subnote_fn = 'subnotes\\' + '.'.join(map(str, levels))
+                    subnote_shared = 'subnotes-all'
                     l.banner(u': '.join(names), subnote_fn)
                     if not create_subnote.logged_subnote:
                         l.blank(subnote_shared)
@@ -101,8 +101,8 @@ def create_subnotes(guids):
                     add_log_entry('SUBLIST', sublist.heading)
                     add_log_entry('', sublist.heading, 'subnotes', crosspost=[subnote_fn, subnote_shared])
                     l.go(unicode(sublist.subnote), subnote_fn)
-                    
-            def process_tag():              
+
+            def process_tag():
                 new_levels = levels[:]
                 new_names = names[:]
                 if lst_items.name in list_tag_names:
@@ -111,7 +111,7 @@ def create_subnotes(guids):
                 elif lst_items.name == 'li':
                     levels[-1] += 1
                     new_levels = levels[:]
-                    sublist = process_list_item(lst_items.contents)  
+                    sublist = process_list_item(lst_items.contents)
                     if sublist.is_subnote:
                         names[-1] = sublist.heading
                         new_names = names[:]
@@ -119,7 +119,7 @@ def create_subnotes(guids):
                 log_tag()
                 if lst_items.name in list_tag_names or lst_items.name == 'li':
                     process_lists(note, lst_items.contents, new_levels, new_names)
-            
+
             # Begin process_lists()
             if levels is None or names is None:
                 levels = []
@@ -144,10 +144,10 @@ def create_subnotes(guids):
         if first_div:
             descriptor_text = first_div.text
             if descriptor_text.startswith('`'):
-                note.descriptor = descriptor_text[1:]                
+                note.descriptor = descriptor_text[1:]
         lists = en_note.find(['ol', 'ul'])
         lists_all = soup.findAll(['ol', 'ul'])
-        l.banner(title, clear=True, crosspost='strings')
+        l.banner(title, crosspost='strings')
         create_subnote.logged_subnote = False
         process_lists(note, [lists])
         l.go(unicode(lists), 'lists', clear=True)
@@ -159,8 +159,8 @@ def create_subnotes(guids):
     myNotes = []
     if import_lxml() is False:
         return False
-    from anknotes.imports import lxml    
+    from anknotes.imports import lxml
     l = Logger('Create Subnotes\\', timestamp=False, rm_path=True)
-    for guid in guids: 
+    for guid in guids:
         create_subnote(guid)
 

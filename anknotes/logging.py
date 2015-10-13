@@ -234,22 +234,23 @@ class Logger(object):
         if self.path_suffix is not None:
             i_asterisk = filename.find('*')
             if i_asterisk > -1:
-                final_suffix += filename[i_asterisk + 1:]; filename = filename[:i_asterisk]
+                final_suffix += filename[i_asterisk + 1:]
+                filename = filename[:i_asterisk]
             filename += self.path_suffix + final_suffix
         if crosspost is not None:
             crosspost = [self.wrap_filename(cp)[0] for cp in item_to_list(crosspost, False)]
             kwargs['crosspost'] = crosspost
-            
+
         if wrap_fn_auto_header and self.auto_header and self.default_banner and not os.path.exists(get_log_full_path(filename)):
             log_banner(self.default_banner, filename)
         return filename, kwargs
 
-    def error(self, content, crosspost=None, *a, **kw):        
+    def error(self, content, crosspost=None, *a, **kw):
         if crosspost is None:
             crosspost = []
         crosspost.append(self.wrap_filename('error'), **DictCaseInsensitive(self.defaults, kw))
         log_error(content, crosspost=crosspost, *a, **kw)
-    
+
     def dump(self, obj, title='', filename=None, *args, **kwargs):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
         # noinspection PyArgumentList
@@ -259,7 +260,7 @@ class Logger(object):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs))
         log_blank(filename, *args, **kwargs)
 
-    def banner(self, title, filename=None, *args, **kwargs):        
+    def banner(self, title, filename=None, *args, **kwargs):
         filename, kwargs = self.wrap_filename(filename, **DictCaseInsensitive(self.defaults, kwargs, wrap_fn_auto_header=False))
         self.default_banner = title
         log_banner(title, filename, *args, **kwargs)
@@ -301,7 +302,7 @@ def log_plain(*args, **kwargs):
     log(*args, **DictCaseInsensitive(kwargs, timestamp=False))
 
 def rm_log_paths(*args, **kwargs):
-    for arg in args: 
+    for arg in args:
         rm_log_path(arg, **kwargs)
 
 def rm_log_path(filename='*', subfolders_only=False, retry_errors=0, *args, **kwargs):
@@ -395,8 +396,12 @@ def get_log_full_path(filename=None, extension='log', as_url_link=False, prefix=
     if filename and filename.endswith(os.path.sep):
         filename += 'main'
     filename = re.sub(r'[^\w\-_\.\\]', '_', filename)
-    if filter_disabled and filter(lambda x:
-        fnmatch(filename, x), item_to_list(FILES.LOGS.DISABLED)): return False
+    if filter_disabled:
+        def do_filter(x): return fnmatch(filename, x)
+        if not filter(do_filter, item_to_list(FILES.LOGS.ENABLED)):
+            return False
+        if filter(do_filter, item_to_list(FILES.LOGS.DISABLED)):
+            return False
     filename += ('.' if filename and filename[-1] is not '.' else '') + extension
     full_path = os.path.join(FOLDERS.LOGS, filename)
     if prefix:
@@ -466,10 +471,10 @@ def pad_lines_regex(content, timestamp=None, replace_newline=None, try_decode=Tr
 
 def write_file_contents(content, full_path, clear=False, try_encode=True, do_print=False, print_timestamp=True,
                         print_content=None, **kwargs):
-    if not os.path.exists(os.path.dirname(full_path)): 
+    if not os.path.exists(os.path.dirname(full_path)):
         full_path = get_log_full_path(full_path)
     if full_path is False:
-        return 
+        return
     with open(full_path, 'w+' if clear else 'a+') as fileLog:
         try:
             print>> fileLog, content

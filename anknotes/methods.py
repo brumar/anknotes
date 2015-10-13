@@ -19,4 +19,4 @@ def create_timer(delay, callback, *a, **kw):
         def cb(): return callback(*a, **kw)
     else:
         cb = callback
-    return mw.progress.timer(abs(delay) * 1000, cb, repeat)    
+    return mw.progress.timer(abs(delay) * 1000, cb, repeat)

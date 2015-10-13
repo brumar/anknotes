@@ -166,7 +166,7 @@ def find_deleted_notes(automated=False):
     if not automated:
         showInfo("""In order for this to work, you must create a 'Table of Contents' Note using the Evernote desktop application. Include all notes that you want to sync with Anki.
 
-Export this note to the following path: 
+Export this note to the following path:
 <b>%s</b>
 
 Press Okay to save and close your Anki collection, open the command-line deleted notes detection tool, and then re-open your Anki collection.
@@ -284,7 +284,7 @@ def modify_collection(collection_operation, action_str='modifying collection', c
                   do_show_tooltip=True, crosspost='automation', crosspost_to_default=False)
     if not passed:
         if callback_failure is False:
-            return False 
+            return False
         if attempt > max_attempts:
             return callback(None, **kwargs)
         return create_timer(delay, modify_collection, collection_operation, action_str, callback, callback_failure, callback_delay, delay, attempt + 1, **kwargs)
@@ -323,7 +323,7 @@ def reload_collection(callback=None, reopen_delay=0, callback_delay=30, *a, **kw
     log(" > Initiating Reload: %sInitiated: %s" % (
         '%ds Timer ' % reopen_delay if reopen_delay > 0 else '', str(mw.col)), 'automation')
     if reopen_delay > 0:
-        def callback_reopen(): 
+        def callback_reopen():
             def inner_callback(*xa, **xkw): return callback(*a, **kw)
             return modify_collection(do_load_collection, 'reload collection', inner_callback, callback_delay=callback_delay, *a, **kw)
         return create_timer(reopen_delay, callback_reopen)

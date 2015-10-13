@@ -3,7 +3,7 @@ import sys
 from pprint import pprint
 from addict import Dict
 from anknotes.constants import *
-from anknotes.base import item_to_list, item_to_set 
+from anknotes.base import item_to_list, item_to_set
 
 class DictCaseInsensitive(Dict):
     def print_banner(self, title):

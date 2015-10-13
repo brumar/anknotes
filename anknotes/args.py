@@ -15,7 +15,7 @@ if inAnki:
     from aqt import mw
 
 
-class Args(object):    
+class Args(object):
     require_all_args = False
     limit_max_args = True
     override_kwargs = False
@@ -123,7 +123,7 @@ class Args(object):
     def process_kwarg(self, key, default=None, func_kwargs=None, replace_none_type=True, delete_from_kwargs=None, return_value_only=True, update_cls_args=True):
         delete_from_kwargs = delete_from_kwargs is not False
         cls_kwargs = func_kwargs is None
-        func_kwargs = self.kwargs if cls_kwargs else DictCaseInsensitive(func_kwargs) 
+        func_kwargs = self.kwargs if cls_kwargs else DictCaseInsensitive(func_kwargs)
         key = self.key_transform(key, func_kwargs.keys())
         if key not in func_kwargs:
             return (func_kwargs, default) if delete_from_kwargs and not return_value_only else default

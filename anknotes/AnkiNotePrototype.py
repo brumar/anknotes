@@ -168,8 +168,8 @@ class AnkiNotePrototype:
                 self.Fields[FIELDS.SEE_ALSO] = remove_evernote_link(enLink, self.Fields[FIELDS.SEE_ALSO])
                 continue
             link_num += 1
-            values = DictCaseInsensitive(source_evernote_guid=self.Guid, target_evernote_guid=enLink.Guid, 
-                                         number=link_num, uid=enLink.Uid, shard=enLink.Shard, 
+            values = DictCaseInsensitive(source_evernote_guid=self.Guid, target_evernote_guid=enLink.Guid,
+                                         number=link_num, uid=enLink.Uid, shard=enLink.Shard,
                                          html=enLink.HTML, title=enLink.FullTitle)
             values.from_toc = 1 if ',%s,' % TAGS.TOC in self.Tags else 0
             values.is_toc = 1 if (values.title == "TOC" or values.title == "TABLE OF CONTENTS") else 0
@@ -195,7 +195,7 @@ class AnkiNotePrototype:
             self.Fields[FIELDS.CONTENT] = re.sub(r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([\w\d\-]+)',
                                                  r'evernote://view/\2/\1/\3/\3/', self.Fields[FIELDS.CONTENT])
 
-            # If we are converting back to Evernote format 
+            # If we are converting back to Evernote format
             if self.light_processing:
                 self.Fields[FIELDS.CONTENT] = self.Fields[FIELDS.CONTENT].replace("evernote://",
                                                                                                         "evernote:///")

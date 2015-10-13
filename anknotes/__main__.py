@@ -47,9 +47,9 @@ def import_timer_toggle():
         td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
         minimum = timedelta(seconds=max(EVERNOTE.IMPORT.INTERVAL, 20 * 60))
         if td < minimum:
-            importDelay = (minimum - td).total_seconds() 
+            importDelay = (minimum - td).total_seconds()
     if importDelay is 0:
-        return menu.import_from_evernote()    
+        return menu.import_from_evernote()
     m, s = divmod(importDelay, 60)
     log("> Starting Auto Import, Triggered by Profile Load, in %d:%02d min" % (m, s))
     return create_timer(importDelay, menu.import_from_evernote)
@@ -88,7 +88,7 @@ def _findAnknotes((val, args)):
             'orphan_alt': "n.sfld LIKE '%%:%%' AND UPPER(SUBSTR(n.sfld, 0, INSTR(n.sfld, ':'))) NOT IN (SELECT UPPER(title) FROM %s WHERE title NOT LIKE '%%:%%' AND tagNames LIKE '%%,%s,%%') " % (
                 TABLES.EVERNOTE.NOTES, TAGS.TOC)
         }
-        
+
     if val not in _findAnknotes.note_ids or (not ANKNOTES.CACHE_SEARCHES and 'hierarchical' not in val):
         tmr.reset()
         if val == 'root':
@@ -153,7 +153,7 @@ def anknotes_browser_add_tree(self, tree, items, root=None, name=None, icon=None
     for item in items:
         if isinstance(item[1], list):
             new_name = item[0]
-            # log('Tree: Name: %s: \n' % str(new_name) + repr(item))            
+            # log('Tree: Name: %s: \n' % str(new_name) + repr(item))
             new_tree = self.CallbackItem(tree, _(new_name), None)
             new_tree.setExpanded(True)
             new_tree.setIcon(0, anknotes_browser_get_icon(icon))
@@ -254,9 +254,9 @@ def anknotes_finder_query_wrap(self, preds=None, order=None, _old=None):
 def anknotes_search_hook(search):
     anknotes_search = {'edited': _findEdited, 'anknotes': _findAnknotes}
     for key, value in anknotes_search.items():
-        if key not in search: 
+        if key not in search:
             search[key] = anknotes_search[key]
-            
+
 def reset_everything(upload=True):
     show_tooltip_enabled = show_tooltip.enabled if hasattr(show_tooltip, 'enabled') else None
     show_tooltip.enabled = False
@@ -268,13 +268,13 @@ def reset_everything(upload=True):
 
 def anknotes_profile_loaded():
     last_profile_dir = os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)
-    if not os.path.exists(last_profile_dir): 
+    if not os.path.exists(last_profile_dir):
         os.makedirs(last_profile_dir)
     with open(FILES.USER.LAST_PROFILE_LOCATION, 'w+') as myFile:
         print>> myFile, mw.pm.name
     menu.anknotes_load_menu_settings()
-    if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED: 
-        menu.upload_validated_notes(True)    
+    if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED:
+        menu.upload_validated_notes(True)
     if ANKNOTES.UPDATE_DB_ON_START:
         update_anknotes_nids()
     import_timer_toggle()
@@ -302,12 +302,12 @@ def anknotes_profile_loaded():
 
 def anknotes_scalar(self, *a, **kw):
     log_text = 'Call to DB.scalar():'
-    if not isinstance(self, DB): 
+    if not isinstance(self, DB):
         log_text += '\n   - Self:       ' + pf(self)
     if a:
         log_text += '\n   - Args:       ' + pf(a)
     if kw:
-        log_text += '\n   - KWArgs:     ' + pf(kw)    
+        log_text += '\n   - KWArgs:     ' + pf(kw)
     last_query='<None>'
     if hasattr(self, 'ank_lastquery'):
         last_query = self.ank_lastquery
@@ -316,32 +316,32 @@ def anknotes_scalar(self, *a, **kw):
         else:
             last_query = pf(last_query)
         log_text += '\n   - Last Query: ' + last_query
-    log(log_text + '\n', 'sql\\scalar')    
+    log(log_text + '\n', 'sql\\scalar')
     try:
         res = self.execute(*a, **kw)
     except TypeError as e:
-        log(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
-        raise 
+        log(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
+        raise
     if not isinstance(res, sqlite.Cursor):
-        log(' > Cursor: %s' % pf(res), 'sql\\scalar')    
+        log(' > Cursor: %s' % pf(res), 'sql\\scalar')
     try:
         res = res.fetchone()
     except TypeError as e:
-        log(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error') 
-        raise     
+        log(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
+        raise
     log_blank('sql\\scalar')
     if res:
         return res[0]
-    return None        
-    
-def anknotes_execute(self, sql, *a, **kw):    
+    return None
+
+def anknotes_execute(self, sql, *a, **kw):
     log_text = 'Call to DB.execute():'
-    if not isinstance(self, DB): 
+    if not isinstance(self, DB):
         log_text += '\n   - Self:       ' + pf(self)
     if a:
         log_text += '\n   - Args:       ' + pf(a)
     if kw:
-        log_text += '\n   - KWArgs:     ' + pf(kw)    
+        log_text += '\n   - KWArgs:     ' + pf(kw)
     last_query=sql
     if is_str_type(last_query):
         last_query = last_query[:50]
@@ -349,14 +349,14 @@ def anknotes_execute(self, sql, *a, **kw):
         last_query = pf(last_query)
     log_text += '\n   - Query:     ' + last_query
     log(log_text + '\n\n', 'sql\\execute')
-    self.ank_lastquery = sql     
+    self.ank_lastquery = sql
 
 def anknotes_onload():
     global inAnki
     addHook("profileLoaded", anknotes_profile_loaded)
     addHook("search", anknotes_search_hook)
     rm_log_paths('sql\\', 'finder\\')
-    
+
     if inAnki:
         DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
         DB.execute = wrap(DB.execute, anknotes_execute, "before")

@@ -23,7 +23,7 @@ from anknotes.html import *
 from anknotes.structs import *
 
 if inAnki:
-    from aqt import mw 
+    from aqt import mw
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
         EDAMNotFoundException
@@ -33,7 +33,7 @@ class UpdateExistingNotes:
 
 class EvernoteQueryLocationType:
     RelativeDay, RelativeWeek, RelativeMonth, RelativeYear, AbsoluteDate, AbsoluteDateTime = range(6)
-    
+
 def get_tag_names_to_import(tagNames, evernoteQueryTags=None, evernoteTagsToDelete=None, keepEvernoteTags=None,
                             deleteEvernoteQueryTags=None):
     def check_tag_name(v, tags_to_delete):
@@ -107,15 +107,15 @@ def remove_evernote_link(link, html):
     no_start_tag_regex = r'[^<]*'
     regex_replace = r'<{0}[^>]*>[^<]*{1}[^<]*</{0}>'
     # html = re.sub(regex_replace.format('li', link.WholeRegexMatch), "", html)
-    # Remove link 
+    # Remove link
     html = html.replace(link.WholeRegexMatch, "")
     # Remove empty li
     html = re.sub(regex_replace.format('li', no_start_tag_regex), "", html)
-    # Remove dangling separator 
-    
+    # Remove dangling separator
+
     regex_span = regex_replace.format('span', no_start_tag_regex) + no_start_tag_regex + sep_regex
     html = re.sub(regex_span, "", html)
-    # Remove double separator 
+    # Remove double separator
     html = re.sub(sep_regex + no_start_tag_regex + sep_regex, sep_regex, html)
     return html
 

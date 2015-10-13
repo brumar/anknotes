@@ -159,7 +159,7 @@ class Controller:
         """
         info = stopwatch.ActionInfo('Creation of Table of Content Note(s)', row_source='Root Title(s)')
         log = Logger('See Also\\2-%s\\' % noteType, rm_path=True)
-        tmr = stopwatch.Timer(len(dbRows), 25, info, max_allowed=EVERNOTE.UPLOAD.MAX, 
+        tmr = stopwatch.Timer(len(dbRows), 25, info, max_allowed=EVERNOTE.UPLOAD.MAX,
                               label=log.base_path)
         if tmr.actionInitializationFailed:
             return tmr.status, 0, 0

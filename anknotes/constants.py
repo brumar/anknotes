@@ -29,6 +29,7 @@ class FILES:
         MAIN = DEFAULT_NAME
         ACTIVE = DEFAULT_NAME
         USE_CALLER_NAME = False
+        ENABLED = ['*']
         DISABLED = ['finder*', 'args*', 'counter*']
 
     class ANCILLARY:
@@ -62,7 +63,7 @@ class FILES:
 class ANKNOTES:
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     CACHE_SEARCHES = False
-    UPDATE_DB_ON_START = False 
+    UPDATE_DB_ON_START = False
 
     class LXML:
         ENABLE_IN_ANKI = False
@@ -203,7 +204,7 @@ class HEADINGS:
     TOP = "Summary|Definition|Classification|Type|Presentation|Organ Involvement|Age of Onset|Si/Sx|Sx|Sign|Trigger|MCC's|MCC|Inheritance|Incidence|Prognosis|Mechanism|MOA|Pathophysiology|Indication|Example|Cause|Causative Organism|Risk Factor|Complication|Side Effect|Drug S/E|Associated Condition|A/w|Diagnosis|Dx|Physical Exam|Lab|Hemodynamic Parameter|Lab Finding|Imaging|Screening Test|Confirmatory Test|Xray|CT|MRI"
     BOTTOM = "Management|Work Up|Tx"
     NOT_REVERSIBLE = BOTTOM + "|Dx|Diagnosis"
-    
+
 class SETTINGS:
     class EVERNOTE:
         class QUERY:
