@@ -12,10 +12,10 @@ from anknotes.shared import *
 from anknotes.constants import *
 from anknotes.counters import DictCaseInsensitive
 from anknotes.logging import show_tooltip
-from anknotes.create_subnotes import create_subnotes
 
 # Anknotes Main Imports
 import anknotes.Controller
+import anknotes.create_subnotes
 
 # Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
@@ -79,7 +79,11 @@ def auto_reload_modules(function):
         if not anknotes.Controller:
             from anknotes.imports import import_module
             import_module('anknotes.Controller', sublevels=1)
+        if not anknotes.create_subnotes:
+            from anknotes.imports import import_module
+            import_module('anknotes.create_subnotes', sublevels=1)
         reload(anknotes.Controller)
+        reload(anknotes.create_subnotes)
     else:
         log_banner('AUTO RELOAD MODULES - SKIPPING RELOAD', 'automation', clear=True)
     function()
@@ -153,8 +157,9 @@ def import_from_evernote(auto_page_callback=None):
 
 
 def lxml_test():
+    log("Creating Subnotes", 'automation')
     guids = ankDB().list("tagNames LIKE '{t_out}' ORDER BY title ASC ", columns='guid')
-    create_subnotes(guids)
+    anknotes.create_subnotes.create_subnotes(guids)
 
 
 def upload_validated_notes(automated=False, **kwargs):

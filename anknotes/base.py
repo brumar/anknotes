@@ -5,6 +5,7 @@ from fnmatch import fnmatch
 import inspect
 from addict import Dict
 from collections import defaultdict
+from bs4 import UnicodeDammit
 import string
 from datetime import datetime
 
@@ -53,6 +54,13 @@ def fmt(str_, recursion=None, *a, **kw):
         return str_
     return fmt(str_, recursion-1, *a, **kw)
 
+def conv_unicode(str_, is_html=False):
+    if isinstance(str_, unicode):
+        return str_ 
+    if isinstance(str_, str):
+        return UnicodeDammit(str_, ['utf-8'], is_html=is_html).unicode_markup
+    return unicode(str_)    
+    
 def str_safe(str_, prefix=''):
     try:
         str_ = str((prefix + str_.__repr__()))

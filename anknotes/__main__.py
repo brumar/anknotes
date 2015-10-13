@@ -285,8 +285,9 @@ def anknotes_profile_loaded():
          Add a function here and it will automatically run on profile load
          You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder
         '''
+        menu.lxml_test()
         # menu.see_also([8])
-        menu.see_also(upload=False)
+        # menu.see_also(upload=False)
         # reset_everything(False)
         return
         # menu.see_also(set(range(0,10)) - {3,4,8})

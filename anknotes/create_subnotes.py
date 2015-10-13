@@ -27,16 +27,21 @@ from aqt.utils import getText
 def create_subnotes(guids):
     def create_subnote(guid):
         def process_lists(note, lst, levels=None, names=None):
-            def add_log_entry(title, content, filename=None, prefix_content=True, **kw):
+            def get_log_fn():
+                return u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
+                
+            def add_log_entry(title, content, filename=None, prefix_content=True, **kw):                
+                fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, levels)),
+                            num_levels=len(levels), names=u': '.join(names).ljust(20))
+                fmts['levels_str'] = (fmts['levels'] + ':').ljust(6)
                 if prefix_content:
-                    content = u'{levels_pad}{levels}: ' + content
-                fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, new_levels)).ljust(6),
-                            num_levels=len(new_levels), names=u': '.join(names).ljust(20))
-                if lst_items.name in list_tag_names:
+                    fmts['content'] = content
+                    content = u'{levels_pad}{levels_str} {content}'
+                if isinstance(lst_items, Tag) and lst_items.name in list_tag_names:
                     fmts['list_name'] = list_tag_names[lst_items.name]
-                content = fmt(content, fmts)
+                content = fmt(content, 0, fmts)
                 if title:
-                    title = (fmt(title, fmts) + u': ').ljust(16)
+                    title = (fmt(title, 0, fmts) + u': ').ljust(16)
                 l.go(title + content, filename, **kw)
 
             def check_subnote(li, sublist):
@@ -66,11 +71,11 @@ def create_subnotes(guids):
                 sublist.subnote = li
                 return sublist
 
-            def add_note(sublist, levels, names):
+            def add_note(sublist, new_levels, new_names):
                 subnote_html = unicode(sublist.subnote)
-                log_fn = u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
-                add_log_entry('NOTE', '{levels}: {names}: ' + subnote_html, 'notes', crosspost=log_fn)
-                myNotes.append([levels, names, subnote_html])
+                log_fn = u'..\\subnotes\\add_note*\\' + get_log_fn()
+                add_log_entry('SUBNOTE', '{levels_str} {names}: \n%s\n' % subnote_html, '..\\subnotes\\add_note', crosspost=log_fn, prefix_content=False)
+                myNotes.append([new_levels, new_names, subnote_html])
 
             def process_list_item(contents):
                 sublist = DictCaseInsensitive(is_subnote=False, list_items=[])
@@ -80,42 +85,43 @@ def create_subnotes(guids):
                         break
                 return sublist
 
-            def log_tag():
-                if not lst_items.contents:
-                    add_log_entry('NO TOP TEXT', unicode(lst_items.contents, 'utf-8'), crosspost='no_top_text')
-                if lst_items.name in list_tag_names:
-                    add_log_entry('{list_name}', '[{num_levels}] {levels}')
-                elif lst_items.name != 'li':
-                    add_log_entry('OTHER TAG', unicode(lst_items.contents[0], 'utf-8') if lst_items.contents else 'N/A')
-                elif not sublist.is_subnote:
-                    add_log_entry('LIST ITEM', strip_tags(u''.join(sublist.list_items), True).strip())
-                else:
-                    subnote_fn = 'subnotes\\' + '.'.join(map(str, levels))
-                    subnote_shared = 'subnotes-all'
-                    l.banner(u': '.join(names), subnote_fn)
-                    if not create_subnote.logged_subnote:
-                        l.blank(subnote_shared)
-                        l.banner(title, subnote_shared, clear=False, append_newline=False)
-                        l.banner(title, 'subnotes')
-                        create_subnote.logged_subnote = True
-                    add_log_entry('SUBLIST', sublist.heading)
-                    add_log_entry('', sublist.heading, 'subnotes', crosspost=[subnote_fn, subnote_shared])
-                    l.go(unicode(sublist.subnote), subnote_fn)
-
             def process_tag():
+                def log_tag():
+                    if not lst_items.contents:
+                        add_log_entry('NO TOP TEXT', conv_unicode(lst_items.contents), crosspost='no_top_text')
+                    if lst_items.name in list_tag_names:
+                        add_log_entry('{list_name}', '{levels_pad}[{num_levels}] {levels}', prefix_content=False)
+                    elif lst_items.name != 'li':
+                        add_log_entry('OTHER TAG', conv_unicode(lst_items.contents[0]) if lst_items.contents else u'N/A')
+                    elif not sublist.is_subnote:
+                        add_log_entry('LIST ITEM', strip_tags(u''.join(sublist.list_items), True).strip())
+                    else:
+                        subnote_fn = u'..\\subnotes\\process_tag*\\' + get_log_fn()
+                        subnote_shared = '*\\..\\..\\subnotes\\process_tag-all'
+                        l.banner(u': '.join(names), subnote_fn)
+                        if not create_subnote.logged_subnote:
+                            l.blank(subnote_shared)
+                            l.banner(title, subnote_shared, clear=False, append_newline=False)
+                            l.banner(title, '..\\subnotes\\process_tag')
+                            create_subnote.logged_subnote = True
+                        add_log_entry('SUBNOTE', sublist.heading)
+                        add_log_entry('', sublist.heading, '..\\subnotes\\process_tag', crosspost=[subnote_fn, subnote_shared])
+                        l.go(unicode(sublist.subnote), subnote_fn)                
+                
+                # Begin process_tag()                
                 new_levels = levels[:]
                 new_names = names[:]
                 if lst_items.name in list_tag_names:
                     new_levels.append(0)
                     new_names.append('CHILD ' + lst_items.name.upper())
                 elif lst_items.name == 'li':
-                    levels[-1] += 1
-                    new_levels = levels[:]
-                    sublist = process_list_item(lst_items.contents)
-                    if sublist.is_subnote:
-                        names[-1] = sublist.heading
-                        new_names = names[:]
+                    levels[-1] = new_levels[-1] = levels[-1] + 1
+                    sublist = process_list_item(lst_items.contents)                    
+                    if sublist.is_subnote:                        
+                        names[-1] = new_names[-1] = sublist.heading
                         add_note(sublist, new_levels, new_names)
+                    else:
+                        names[-1] = new_names[-1] = sublist.heading if sublist.heading else 'Xx' + strip_tags(unicode(''.join(sublist.list_items)), True).strip()
                 log_tag()
                 if lst_items.name in list_tag_names or lst_items.name == 'li':
                     process_lists(note, lst_items.contents, new_levels, new_names)
@@ -129,9 +135,9 @@ def create_subnotes(guids):
                 if isinstance(lst_items, Tag):
                     process_tag()
                 elif isinstance(lst_items, NavigableString):
-                    add_log_entry('NAV STRING', unicode(lst_items).strip(), crosspost='nav_strings')
+                    add_log_entry('NAV STRING', unicode(lst_items).strip(), crosspost=['nav_strings', '*\\..\\..\\nav_strings'])
                 else:
-                    add_log_entry('LST ITEMS', lst_items.__class__.__name__, crosspost='unexpected-type')
+                    add_log_entry('LST ITEMS', lst_items.__class__.__name__, crosspost=['unexpected-type', '*\\..\\..\\unexpected-type'])
 
         #Begin create_subnote()
         content = db.scalar("guid = ?", guid, columns='content')
@@ -160,7 +166,8 @@ def create_subnotes(guids):
     if import_lxml() is False:
         return False
     from anknotes.imports import lxml
-    l = Logger('Create Subnotes\\', timestamp=False, rm_path=True)
+    l = Logger('Create Subnotes\\', default_filename='bs4', timestamp=False, rm_path=True)
+    l.base_path += 'notes\\'
     for guid in guids:
         create_subnote(guid)
 
