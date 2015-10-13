@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import re
+from fnmatch import fnmatch
 import inspect
 from addict import Dict
 from collections import defaultdict
@@ -81,7 +82,6 @@ def item_to_list(item, list_from_unknown=True, chrs=''):
         return [item]
     return item
 
-
 def item_to_set(item, **kwargs):
     if isinstance(item, set):
         return item
@@ -90,6 +90,14 @@ def item_to_set(item, **kwargs):
         return item
     return set(item)
 
+def matches_list(item, lst):
+    item = item.lower()
+    for index, value in enumerate(item_to_list(lst)):
+        value = value.lower()
+        if fnmatch(item, value) or fnmatch(item + 's', value):
+            return index 
+    return -1     
+    
 def get_friendly_interval_string(lastImport):
     if not lastImport:
         return ""

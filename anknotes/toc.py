@@ -3,11 +3,10 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
-from fnmatch import fnmatch
 from anknotes.constants import *
 from anknotes.html import generate_evernote_link, generate_evernote_span
 from anknotes.logging import log_dump
-from anknotes.shared import matches_list
+from anknotes.base import matches_list
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle, generateTOCTitle
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 

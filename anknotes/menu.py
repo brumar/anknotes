@@ -12,21 +12,15 @@ from anknotes.shared import *
 from anknotes.constants import *
 from anknotes.counters import DictCaseInsensitive
 from anknotes.logging import show_tooltip
+from anknotes.create_subnotes import create_subnotes
 
 # Anknotes Main Imports
 import anknotes.Controller
-# from anknotes.Controller import Controller
 
 # Anki Imports
 from aqt.qt import SIGNAL, QMenu, QAction
 from aqt import mw
 from aqt.utils import getText
-
-
-# from anki.storage import Collection
-
-# log('Checking for log at %s:\n%s' % (__name__, dir(log)), 'import')
-
 
 # noinspection PyTypeChecker
 def anknotes_setup_menu():
@@ -158,138 +152,6 @@ def import_from_evernote(auto_page_callback=None):
     controller.proceed()
 
 
-def create_subnotes(guids):
-    def create_subnote(guid):
-        def process_lists(lst, names=None, levels=None, under_ul=False):
-            def check_subnote(li, sublist):
-                if not (li.name == "ol" or li.name == "ul") or not li.contents or not li.contents[0]:
-                    return sublist #None, sublist_options  
-                # heading = strip_tags(unicode(li.contents[0]), True).strip()
-                sublist.heading = strip_tags(unicode(''.join(sublist.list_items)), True).strip()
-                sublist.is_reversible = matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) is -1                 
-                sublist.use_descriptor = sublist.heading[-1:] in ["'", '`']
-                if sublist.use_descriptor:
-                    sublist.is_reversible = not sublist.is_reversible
-                    sublist.heading = sublist.heading[:-1]
-                sublist.is_subnote = matches_list(sublist.heading, HEADINGS.TOP) > -1 or matches_list(sublist.heading, HEADINGS.BOTTOM) > -1
-                if sublist.heading.endswith(':'):
-                    sublist.is_subnote = True 
-                    sublist.heading = sublist.heading[:-1]
-                if not sublist.is_subnote:
-                    return sublist #None, sublist_options  
-                sublist.subnote = li
-                return sublist
-                # return li, [heading, is_reversible, use_descriptor]
-            
-            def add_note(sublist, names, levels):
-                subnote_html = unicode(sublist.subnote)
-                log_text = u'%-6s %-20s %s' % (u'.'.join(map(str, levels)) + u':', u': '.join(names), subnote_html)
-                log_fn = u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names)
-                l.go(u"NOTE:".ljust(16) + log_text, 'notes', crosspost=log_fn)
-                myNotes.append([levels, names, subnote_html])
-
-            def process_list_item(contents, under_ul=False):
-                list_items_full = []
-                sublist = DictCaseInsensitive(is_subnote=False)
-                sublist.list_items=[]
-                for li in contents:
-                    if not isinstance(li, Tag): 
-                        sublist.list_items.append(unicode(li))
-                        continue
-                    sublist = check_subnote(li, sublist)
-                    if sublist.is_subnote:
-                        break
-                    sublist.list_items.append(unicode(li))
-                return sublist
-
-            if levels is None or names is None:
-                levels = []; names = [title]
-            level = len(levels)
-            for lst_items in lst:
-                if isinstance(lst_items, Tag):
-                    full_text = unicode(str(lst_items.contents), 'utf-8')
-                    if len(lst_items.contents) is 0:
-                        l.go('NO TOP TEXT:'.ljust(16) + u'%s%s: %s' % (
-                            '\t' * level, '.'.join(map(str, levels)), full_text), crosspost=['notoptext'])
-                        top_text = "N/A"
-                    else: 
-                        top_text = unicode(lst_items.contents[0])
-                    if lst_items.name == 'ol' or lst_items.name == 'ul':
-                        # levels[-1] += 1            
-                        new_levels = levels[:]
-                        new_levels.append(0)
-                        new_names = names[:]
-                        new_names.append('CHILD ' + lst_items.name.upper())
-                        tag_names = {'ul': 'UNORDERED LIST', 'ol': 'ORDERED LIST'}
-                        l.go((tag_names[lst_items.name] + ':').ljust(16) + '[%d] %s: <%s>' % (
-                            len(levels), '.'.join(map(str, levels)), ''))
-                        process_lists(lst_items.contents, new_names, new_levels, under_ul or lst_items.name == 'ul')
-                    elif lst_items.name == 'li':
-                        levels[-1] += 1
-                        top_text = strip_tags(top_text, True).strip()
-                        sublist = process_list_item(lst_items.contents, under_ul)                        
-                        if sublist.is_subnote:
-                            names[-1] = sublist.heading
-                            add_note(sublist, names[:], levels[:])
-                            subnote_fn = 'subnotes*\\' + '.'.join(map(str, levels))
-                            subnote_shared = '*\\..\\subnotes-all'
-                            l.banner(': '.join(names), subnote_fn, clear=True)
-                            if not create_subnote.logged_subnote:
-                                l.blank(subnote_shared)
-                                l.banner(title, subnote_shared, clear=False, append_newline=False)
-                                l.banner(title, 'subnotes', clear=True)
-                                create_subnote.logged_subnote = True
-                            sub_txt = '%s%s: %s' % ('\t' * level, '.'.join(map(str, levels)), sublist.heading)
-                            l.go('SUBLIST:'.ljust(16) + sub_txt)
-                            l.go(sub_txt, 'subnotes', crosspost=[subnote_fn, subnote_shared])
-                            l.go(unicode(sublist.sublist), subnote_fn)
-                        else:
-                            l.go('LIST ITEM:      %s%s: %s' % (
-                                '\t' * level, '.'.join(map(str, levels)), strip_tags(u''.join(sublist.list_items), True).strip()))
-                        process_lists(lst_items.contents, names[:], levels[:], under_ul)
-                    else:
-                        l.go('OTHER TAG:      %s%s: %s' % ('\t' * level, '.'.join(map(str, levels)), top_text))
-                elif isinstance(lst_items, NavigableString):
-                    this_name = unicode(lst_items).strip()
-                    l.go('STRING:'.ljust(16) + '%s%s: %s' % ('\t' * level, '.'.join(map(str, levels)), this_name),
-                         crosspost='strings')
-                else:
-                    l.go('LST ITEMS:'.ljust(16) + lst_items.__class__.__name__, crosspost='*\\..\\unexpected-type')
-
-        content = db.scalar("guid = ?", guid, columns='content')
-        title = note_title = get_evernote_title_from_guid(guid)
-        l.path_suffix = '\\' + title
-        soup = BeautifulSoup(content)
-        en_note = soup.find('en-note')
-        descriptor = None
-        first_div = en_note.find('div')
-        if first_div:
-            descriptor_text = first_div.text
-            if descriptor_text[:
-                1] == '`':
-                descriptor = descriptor_text[1:]
-                
-        lists = en_note.find(['ol', 'ul'])
-        lists_all = soup.findAll(['ol', 'ul'])
-        l.banner(title, clear=True, crosspost='strings')
-        create_subnote.logged_subnote = False
-        process_lists([lists])
-        # process_lists(lists_all)
-        l.go(str(lists), filename='lists', clear=True)
-        l.go(soup.prettify(), filename='full', clear=True)
-
-    db = ankDB()
-    myNotes = []
-    if import_lxml() is False:
-        return False
-    from anknotes.imports import lxml
-    from bs4 import BeautifulSoup, NavigableString, Tag
-    from copy import copy
-    l = Logger(default_filename='bs4', timestamp=False, rm_path=True)
-    for guid in guids: 
-        create_subnote(guid)
-
-
 def lxml_test():
     guids = ankDB().list("tagNames LIKE '{t_out}' ORDER BY title ASC ", columns='guid')
     create_subnotes(guids)
@@ -310,23 +172,11 @@ Export this note to the following path:
 Press Okay to save and close your Anki collection, open the command-line deleted notes detection tool, and then re-open your Anki collection.
 
 Once the command line tool is done running, you will get a summary of the results, and will be prompted to delete Anki Orphan Notes or download Missing Evernote Notes""".replace(
-            '\n', '\n<br />') % FILES.USER.TABLE_OF_CONTENTS_ENEX,
-                 richText=True)
-
-    # mw.col.save()
-    # if not automated:
-    #     mw.unloadCollection()
-    # else:
-    #     mw.col.close() 
-    # handle = Popen(['python',FILES.SCRIPTS.FIND_DELETED_NOTES], stdin=PIPE, stderr=PIPE, stdout=PIPE, shell=True)
-    # stdoutdata, stderrdata = handle.communicate()
-    # err = ("ERROR: {%s}\n\n" % stderrdata) if stderrdata else ''
-    # stdoutdata = re.sub(' +', ' ', stdoutdata)
+            '\n', '\n<br />') % FILES.USER.TABLE_OF_CONTENTS_ENEX, richText=True)
     from anknotes import find_deleted_notes
     returnedData = find_deleted_notes.do_find_deleted_notes()
     if returnedData is False:
-        showInfo(
-            "An error occurred while executing the script. Please ensure you created the TOC note and saved it as instructed in the previous dialog.")
+        showInfo("An error occurred while executing the script. Please ensure you created the TOC note and saved it as instructed in the previous dialog.")
         return
     lines = returnedData['Summary']
     info = tableify_lines(lines, '#|Type|Info')
@@ -341,29 +191,27 @@ Once the command line tool is done running, you will get a summary of the result
     showInfo(info, richText=True, minWidth=600)
     db_changed = False
     if anknotes_dels_count > 0:
-        code = \
-            getText(
-                "Please enter code 'ANKNOTES_DEL_%d' to delete your orphan Anknotes DB note(s)" % anknotes_dels_count)[
-                0]
-        if code == 'ANKNOTES_DEL_%d' % anknotes_dels_count:
+        correct_code = 'ANKNOTES_DEL_%d' % anknotes_dels_count
+        code = getText("Please enter code '%s' to delete your orphan Anknotes DB note(s)" % correct_code)[0]
+        if code == correct_code:
             ankDB().executemany("DELETE FROM {n} WHERE guid = ?", [[x] for x in anknotes_dels])
             delete_anki_notes_and_cards_by_guid(anknotes_dels)
             db_changed = True
             show_tooltip("Deleted all %d Orphan Anknotes DB Notes" % anknotes_dels_count, 5, 3)
     if anki_dels_count > 0:
-        code = getText("Please enter code 'ANKI_DEL_%d' to delete your orphan Anki note(s)" % anki_dels_count)[0]
-        if code == 'ANKI_DEL_%d' % anki_dels_count:
+        correct_code = 'ANKI_DEL_%d' % anki_dels_count
+        code = getText("Please enter code '%s' to delete your orphan Anki note(s)" % correct_code)[0]
+        if code == correct_code:
             delete_anki_notes_and_cards_by_guid(anki_dels)
             db_changed = True
             show_tooltip("Deleted all %d Orphan Anki Notes" % anki_dels_count, 5, 6)
     if db_changed:
         ankDB().commit()
     if missing_evernote_notes_count > 0:
-        if showInfo(
-                        "Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (
+        text = "Would you like to import %d missing Evernote Notes?<BR><BR><a href='%s'>Click to view results</a>" % (
                         missing_evernote_notes_count,
-                        convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES, filter_disabled=False))),
-                cancelButton=True, richText=True):
+                        convert_filename_to_local_link(get_log_full_path(FILES.LOGS.FDN.UNIMPORTED_EVERNOTE_NOTES, filter_disabled=False)))
+        if showInfo(text, cancelButton=True, richText=True):
             import_from_evernote_manual_metadata(missing_evernote_notes)
 
 
@@ -403,10 +251,6 @@ Anki will be unresponsive until the validation tool completes. This will take at
                 'Press Okay to begin uploading %d successfully validated note(s) to the Evernote Servers' % successful if (
                     uploadAfterValidation and successful > 0) else '',
                 info), cancelButton=(successful > 0), richText=True)
-
-
-    # mw.col.reopen()
-    # mw.col.load()
     log("Validate Notes completed", 'automation')
     if callback is None and allowUpload:
         def callback(*xa, **xkw): return upload_validated_notes()

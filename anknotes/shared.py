@@ -23,7 +23,7 @@ from anknotes.html import *
 from anknotes.structs import *
 
 if inAnki:
-    from aqt import mw
+    from aqt import mw 
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
         EDAMNotFoundException
@@ -73,14 +73,6 @@ def replace_evernote_web_links(content):
     return re.sub(
         r'https://www.evernote.com/shard/(s\d+)/[\w\d]+/(\d+)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
         r'evernote:///view/\2/\1/\3/\3/', content)
-
-def matches_list(item, lst):
-    item = item.lower()
-    for index, value in enumerate(item_to_list(lst)):
-        value = value.lower()
-        if fnmatch(item, value) or fnmatch(item + 's', value):
-            return index 
-    return -1 
 
 def find_evernote_links(content):
     """
