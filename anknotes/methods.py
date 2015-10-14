@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-import sys
 import re
 from datetime import datetime
-
-### Check if in Anki
-inAnki = 'anki' in sys.modules
 
 ### Anknotes Imports
 from anknotes.constants import *
 from anknotes.args import Args
+from anknotes.imports import in_anki
 
-if inAnki:
+### Anki Imports
+if in_anki():
     from aqt import mw
 
 def create_timer(delay, callback, *a, **kw):

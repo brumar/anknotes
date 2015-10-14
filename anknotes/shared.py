@@ -6,12 +6,8 @@ except ImportError:
     from sqlite3 import dbapi2 as sqlite
 import os
 import re
-import sys
 from fnmatch import fnmatch
 from bs4 import UnicodeDammit
-
-### Check if in Anki
-inAnki = 'anki' in sys.modules
 
 ### Anknotes Imports
 from anknotes.constants import *
@@ -22,7 +18,9 @@ from anknotes.db import *
 from anknotes.html import *
 from anknotes.structs import *
 
-if inAnki:
+
+### Check if in Anki
+if in_anki():
     from aqt import mw
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
@@ -96,7 +94,8 @@ def check_evernote_guid_is_valid(guid):
     return ankDB().exists(where="guid = '%s'" % guid)
 
 
-def escape_regex(str_): return re.sub(r"(?sx)(\(|\||\))", r"\\\1", str_)
+def escape_regex(str_): 
+    return re.sub(r"(?sx)(\(|\||\))", r"\\\1", str_)
 
 
 def remove_evernote_link(link, html):
@@ -127,19 +126,12 @@ def get_dict_from_list(lst, keys_to_ignore=list()):
             dic[key] = value
     return dic
 
-
-_regex_see_also = None
-
-
 def update_regex():
-    global _regex_see_also
     regex_str = file(os.path.join(FOLDERS.ANCILLARY, 'regex-see_also.txt'), 'r').read()
     regex_str = regex_str.replace('(?<', '(?P<')
-    _regex_see_also = re.compile(regex_str, re.UNICODE | re.VERBOSE | re.DOTALL)
-
+    regex_see_also._regex_see_also = re.compile(regex_str, re.UNICODE | re.VERBOSE | re.DOTALL)
 
 def regex_see_also():
-    global _regex_see_also
-    if not _regex_see_also:
+    if not hasattr(regex_see_also, '_regex_see_also'):
         update_regex()
-    return _regex_see_also
+    return regex_see_also._regex_see_also

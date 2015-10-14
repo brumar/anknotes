@@ -2,7 +2,6 @@
 ### Python Imports
 import socket
 import stopwatch
-import sys
 from datetime import datetime, timedelta
 from StringIO import StringIO
 
@@ -12,7 +11,6 @@ from StringIO import StringIO
 # except ImportError:
 # eTreeImported = False
 
-inAnki = 'anki' in sys.modules
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
@@ -21,8 +19,10 @@ except ImportError:
 ### Anknotes Imports
 from anknotes.shared import *
 from anknotes.error import *
+from anknotes.imports import in_anki
 
-if inAnki:
+### Anki Imports
+if in_anki():
     ### Anknotes Class Imports
     from anknotes.EvernoteNoteFetcher import EvernoteNoteFetcher
     from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
@@ -32,6 +32,7 @@ if inAnki:
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMUserException, EDAMNotFoundException
     from anknotes.evernote.api.client import EvernoteClient
 
+    ### Anki Imports
     from aqt.utils import openLink, getText, showInfo
 
 
@@ -354,7 +355,6 @@ class Evernote(object):
         return EvernoteAPIStatus.Success, note
 
     def create_evernote_notes(self, evernote_guids=None, use_local_db_only=False):
-        global inAnki
         """
         Create EvernoteNote objects from Evernote GUIDs using EvernoteNoteFetcher.getNote().
         Will prematurely return if fetcher.getNote fails
@@ -376,7 +376,7 @@ class Evernote(object):
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         if not evernote_guids:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
-        if inAnki:
+        if in_anki():
             fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
                                                         SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',',
                                                                                                             ' ').split()

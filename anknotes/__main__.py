@@ -4,7 +4,6 @@ import os
 import re, sre_constants
 import sys
 
-inAnki = 'anki' in sys.modules
 try:
     from pysqlite2 import dbapi2 as sqlite
 
@@ -26,14 +25,9 @@ from anki.db import DB
 from anki.hooks import wrap, addHook
 from aqt.preferences import Preferences
 from aqt import mw, browser
-# from aqt.qt import QIcon, QTreeWidget, QTreeWidgetItem
 from aqt.qt import Qt, QIcon, QTreeWidget, QTreeWidgetItem, QDesktopServices, QUrl
 from aqt.webview import AnkiWebView
 from anki.utils import ids2str, splitFields
-
-
-# from aqt.qt.Qt import MatchFlag
-# from aqt.qt.qt import MatchFlag
 
 def import_timer_toggle():
     title = "&Enable Auto Import On Profile Load"
@@ -353,12 +347,11 @@ def anknotes_execute(self, sql, *a, **kw):
     self.ank_lastquery = sql
 
 def anknotes_onload():
-    global inAnki
     addHook("profileLoaded", anknotes_profile_loaded)
     addHook("search", anknotes_search_hook)
     rm_log_paths('sql\\', 'finder\\')
 
-    if inAnki:
+    if 'anki' in sys.modules:
         DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
         DB.execute = wrap(DB.execute, anknotes_execute, "before")
     Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")

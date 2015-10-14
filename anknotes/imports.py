@@ -2,14 +2,16 @@ import os
 import imp
 import sys
 
-inAnki = 'anki' in sys.modules
-
 ### Anknotes Imports
 from anknotes.constants import *
 
 lxml = None
 etree = None
 
+
+def in_anki():
+    return 'anki' in sys.modules
+    
 def import_module(name, path=None, sublevels=2, path_suffix=''):
     print "Import " + str(path) + " Level " + str(sublevels)
     if path is None:
@@ -44,8 +46,7 @@ def import_anki_module(name):
 
 def import_etree():
     global etree
-    global inAnki
-    if not ANKNOTES.LXML.ENABLE_IN_ANKI and inAnki:
+    if not ANKNOTES.LXML.ENABLE_IN_ANKI and in_anki():
         return False
     if not import_lxml():
         return False

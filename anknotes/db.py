@@ -1,18 +1,15 @@
-### For PyCharm code completion
-# import sqlite3
-
 ### Python Imports
-try:
-    from pysqlite2 import dbapi2 as sqlite
-except ImportError:
-    from sqlite3 import dbapi2 as sqlite
 import time
 from datetime import datetime
 from copy import copy
 import os
-import sys
+try:
+    from pysqlite2 import dbapi2 as sqlite
+except ImportError:
+    from sqlite3 import dbapi2 as sqlite
 
-inAnki = 'anki' in sys.modules
+### For PyCharm code completion
+# from anknotes import _sqlite3
 
 ### Anki Shared Imports
 from anknotes.constants import *
@@ -20,14 +17,13 @@ from anknotes.base import is_str_type, item_to_list, fmt
 from anknotes.args import Args
 from anknotes.logging import log_sql, log, log_error, log_blank, pf
 from anknotes.dicts import DictCaseInsensitive
+from anknotes.imports import in_anki
 
-### For PyCharm code completion
-# from anknotes import _sqlite3
-
-if inAnki:
+### Anki Imports
+if in_anki():
     from aqt import mw
     from anki.utils import ids2str, splitFields
-
+    
 ankNotesDBInstance = None
 dbLocal = False
 

@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import sys
-
-inAnki = 'anki' in sys.modules
-
 ### Anknotes Shared Imports
 from anknotes.shared import *
 from anknotes.graphics import *
-
-### Import Anki
-
-
-
+from anknotes.imports import in_anki
 
 ### Anki Imports
-try:
+if in_anki():
     import anki
     import aqt
     from aqt.preferences import Preferences
@@ -24,14 +16,6 @@ try:
         QRect, QStackedLayout, QDateEdit, QDateTimeEdit, QTimeEdit, QDate, QDateTime, QTime, QPushButton, QIcon, \
         QMessageBox, QPixmap
     from aqt import mw
-except Exception:
-    import pdb
-    import traceback
-
-    print traceback.format_exc()
-    pdb.set_trace()
-    pass
-
 
 class EvernoteQueryLocationValueQSpinBox(QSpinBox):
     __prefix = ""
@@ -552,7 +536,6 @@ def update_delete_evernote_query_tags():
 
 def update_evernote_pagination_auto_paging():
     mw.col.conf[SETTINGS.EVERNOTE.AUTO_PAGING] = evernote_pagination_auto_paging.isChecked()
-
 
 def update_evernote_pagination_current_page_spinner(value):
     if value < 1:

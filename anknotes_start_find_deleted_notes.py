@@ -1,8 +1,6 @@
 import sys
 
-inAnki = 'anki' in sys.modules
-
-if not inAnki:
+if not 'anki' in sys.modules:
     from anknotes import find_deleted_notes
     from anknotes.db import ankDBSetLocal
 

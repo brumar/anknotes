@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys
 import re
 from datetime import datetime
-
-### Check if in Anki
-inAnki = 'anki' in sys.modules
 
 ### Anknotes Imports
 from anknotes.constants import *
 from anknotes.base import item_to_list, caller_name, is_str_type
 from anknotes.dicts import DictCaseInsensitive
-
-if inAnki:
-    from aqt import mw
-
 
 class Args(object):
     require_all_args = False
@@ -170,78 +162,6 @@ class Args(object):
         if delete_from_kwargs:
             return [func_kwargs] + gets
         return gets
-
-    # def get_args(self, *args_list, **kwargs_):
-    #     kwargs = DictCaseInsensitive({
-    #         'suffix_type_to_name': True, 'max_args': -1, 'default_value': None,
-    #         'return_expanded':     True, 'return_values_only': False
-    #     })
-    #     kwargs.update(kwargs_)
-    #     max_args = kwargs.max_args
-    #     results = DictCaseInsensitive()
-    #     max_args = len(self.args) if max_args < 1 else min(len(self.args), max_args)
-    #     values = []
-    #     args_to_del = []
-    #     get_names = [
-    #         [names[i * 2:i * 2 + 2] for i in range(0, len(names) / 2)] if isinstance(names, list) else [[name, None] for
-    #                                                                                                     name in
-    #                                                                                                     item_to_list(names)]
-    #         for names in args_list]
-    #
-    #     for get_name in get_names:
-    #         for get_name_item in get_name:
-    #             if len(get_name_item) is 1 and isinstance(get_name_item[0], list):
-    #                 get_name_item = get_name_item[0]
-    #             name = get_name_item[0]
-    #             types = get_name_item[1]
-    #             name = name.replace('*', '')
-    #             types = item_to_list(types)
-    #             is_none_type = types[0] is None
-    #             key = name + ('_' + types[0].__name__) if kwargs.suffix_type_to_name and not is_none_type else ''
-    #             key = key_transform(key, func_kwargs.keys())
-    #             result = DictCaseInsensitive(Match=False, MatchedKWArg=False, MatchedArg=False, Name=key,
-    #                                          value=kwargs.default_value)
-    #             if key in func_kwargs:
-    #                 result.value = func_kwargs[key]
-    #                 del func_kwargs[key]
-    #                 result.Match = True
-    #                 result.MatchedKWArg = True
-    #                 continue
-    #             if is_none_type:
-    #                 continue
-    #             for i in range(0, max_args):
-    #                 if i in args_to_del:
-    #                     continue
-    #                 arg = args[i]
-    #                 for t in types:
-    #                     if not isinstance(arg, t):
-    #                         continue
-    #                     result.value = arg
-    #                     result.Match = True
-    #                     result.MatchedArg = True
-    #                     args_to_del.append(i)
-    #                     break
-    #                 if result.Match:
-    #                     break
-    #             values.append(result.value)
-    #             results[name] = result
-    #     args = [x for i, x in enumerate(args) if i not in args_to_del]
-    #     results.func_kwargs = func_kwargs
-    #     results.args = args
-    #     if kwargs.return_values_only:
-    #         return values
-    #     if kwargs.return_expanded:
-    #         return [args, func_kwargs] + values
-    #     return results
-    #
-    #
-    # def __get_default_listdict_args(args, kwargs, name):
-    #     results_expanded = __get_args(args, kwargs, [name + '*', [list, str, unicode], name, [dict, DictCaseInsensitive]])
-    #     if results_expanded[2] is None:
-    #         results_expanded[2] = []
-    #     if results_expanded[3] is None:
-    #         results_expanded[3] = {}
-    #     return results_expanded
 
     def get_kwarg_values(self, *args, **kwargs):
         kwargs['return_value_only'] = True

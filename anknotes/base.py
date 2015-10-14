@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 import re
 from fnmatch import fnmatch
 import inspect
@@ -9,17 +8,13 @@ from bs4 import UnicodeDammit
 import string
 from datetime import datetime
 
-### Check if in Anki
-inAnki = 'anki' in sys.modules
-
 ### Anknotes Imports
 from anknotes.constants import *
+from anknotes.imports import in_anki
 
-if inAnki:
+### Anki Imports
+if in_anki():
     from aqt import mw
-    # from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
-    # from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
-    #     EDAMNotFoundException
 
 class SafeDict(defaultdict):
     def __init__(self, *a, **kw):
