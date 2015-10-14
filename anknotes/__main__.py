@@ -271,7 +271,7 @@ def anknotes_profile_loaded():
     if not os.path.exists(last_profile_dir):
         os.makedirs(last_profile_dir)
     with open(FILES.USER.LAST_PROFILE_LOCATION, 'w+') as myFile:
-        print>> myFile, mw.pm.name
+        print>> myFile, mw.pm.name,
     menu.anknotes_load_menu_settings()
     if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED:
         menu.upload_validated_notes(True)
@@ -285,10 +285,10 @@ def anknotes_profile_loaded():
          Add a function here and it will automatically run on profile load
          You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder
         '''
-        menu.lxml_test()
+        # menu.lxml_test()
         # menu.see_also([8])
         # menu.see_also(upload=False)
-        # reset_everything(False)
+        reset_everything(False)
         return
         # menu.see_also(set(range(0,10)) - {3,4,8})
         # ankDB().InitSeeAlso(True)

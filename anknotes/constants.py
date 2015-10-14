@@ -201,7 +201,7 @@ class TABLES:
         NOTES_HISTORY = u'anknotes_evernote_notes_history'
 
 class HEADINGS:
-    TOP = "Summary|Definitions|Classifications|Types|Presentations|Organ Involvement|Age of Onset|Si/Sx|Sx|Signs|Triggers|MCC's|MCCs|Inheritance|Incidence|Prognosis|Mechanisms|MOA|Pathophysiology|Indications|Examples|Causes|Causative Organisms|Risk Factors|Complications|Side Effects|Drug S/Es|Associated Conditions|A/w|Diagnosis|Dx|Physical Exam|Labs|Hemodynamic Parameters|Lab Findings|Imaging|Screening Tests|Confirmatory Tests|Xray|CT|MRI"
+    TOP = "Summary|Definitions|Classifications|Types|Presentations|Organ Involvement|Age of Onset|Si/Sx|Sx|Signs|Triggers|MCC's|MCCs|Inheritance|Incidence|Prognosis|Derivations|Origins|Embryological Origins|Mechanisms|MOA|Pathophysiology|Indications|Examples|Causes|Causative Organisms|Risk Factors|Complications|Side Effects|Drug S/Es|Associated Conditions|A/w|Diagnosis|Dx|Physical Exam|Labs|Hemodynamic Parameters|Lab Findings|Imaging|Screening Tests|Confirmatory Tests|Xray|CT|MRI"
     BOTTOM = "Management|Work Up|Tx"
     NOT_REVERSIBLE = BOTTOM + "|Dx|Diagnosis"
 
