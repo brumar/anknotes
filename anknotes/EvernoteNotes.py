@@ -106,8 +106,13 @@ class EvernoteNotes:
             self.addDBNote(dbNote)
 
     def addDbQuery(self, sql_query, order=''):
-        if self.baseQuery != '1':
-            sql_query = "(%s) AND (%s) " % (self.baseQuery, sql_query)
+        if not sql_query: 
+            sql_query = '1'
+        if self.baseQuery and self.baseQuery != '1':
+            if sql_query == '1':
+                sql_query = self.baseQuery
+            else:
+                sql_query = "(%s) AND (%s) " % (self.baseQuery, sql_query)
         if order:
             sql_query += ' ORDER BY ' + order
         dbNotes = ankDB().execute(sql_query)

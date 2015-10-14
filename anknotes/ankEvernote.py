@@ -368,11 +368,11 @@ class Evernote(object):
             self.evernote_guids = evernote_guids
         if not use_local_db_only:
             self.check_ancillary_data_up_to_date()
-        action_str_base = 'CREATE'
-        action_str = 'CREATION OF'
-        tmr = stopwatch.Timer(len(evernote_guids), 100,
-                              infoStr=action_str + " EVERNOTE NOTES",
-                              label='Add\\Evernote-%sNotes' % (action_str_base.capitalize()))
+        action_str_base = 'Create'
+        action_str = 'Creation Of'
+        info = stopwatch.ActionInfo(action_str, 'Evernote Notes')
+        tmr = stopwatch.Timer(evernote_guids, info=info,
+                              label='Add\\Evernote-%sNotes' % (action_str_base))
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         if not evernote_guids:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results

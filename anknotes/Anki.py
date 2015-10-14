@@ -86,12 +86,12 @@ class Anki:
         :return: Count of notes successfully added or updated
         """
         new_nids=[]
-        action_str_base = ['ADD', 'UPDATE'][update]
-        action_str = ['ADDING', 'UPDATING'][update]
-        action_preposition = ['TO', 'IN'][update]
-        tmr = stopwatch.Timer(len(evernote_notes), 10,
-                              infoStr=action_str + " OF EVERNOTE NOTES %s ANKI" % action_preposition,
-                              label='Add\\Anki-%sEvernoteNotes' % (action_str_base.capitalize()))
+        action_str_base = ['Add', 'Update'][update]
+        action_str = ['Adding', 'Updating'][update]
+        action_preposition = ['To', 'In'][update]
+        info = stopwatch.ActionInfo(action_str + ' Of', 'Evernote Notes', action_preposition + ' Anki')
+        tmr = stopwatch.Timer(evernote_notes, 10, info=info,
+                              label='Add\\Anki-%sEvernoteNotes' % (action_str_base))
 
         for ankiNote in evernote_notes:
             try:
@@ -111,9 +111,9 @@ class Anki:
                 log_dump(ankiNote.Content, " NOTE CONTENTS ")
                 # log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
                 raise
-            if tmr.step():
-                log(['Adding', 'Updating'][update] + " Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, title),
-                    tmr.label)
+            tmr.step(title)
+            # if tmr.step():
+                # log(action_str + " Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, title), tmr.label)
             baseNote = None
             if update:
                 baseNote = self.get_anki_note_from_evernote_guid(ankiNote.Guid)
@@ -134,7 +134,7 @@ class Anki:
             if tmr.status.IsSuccess and not update:
                 new_nids.append([nid, ankiNote.Guid])
             elif tmr.status.IsError:
-                log("ANKI ERROR WHILE %s EVERNOTE NOTES: " % action_str + str(tmr.status), tmr.label + '-Error')
+                log("ANKI ERROR WHILE %s EVERNOTE NOTES: " % action_str.upper() + str(tmr.status), tmr.label + '-Error')
         tmr.Report()
         if new_nids:
             ankDB().executemany("UPDATE {n} SET nid = ? WHERE guid = ?", new_nids)
