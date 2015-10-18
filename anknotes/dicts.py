@@ -7,10 +7,8 @@ mw = None
 
 class DictCaseInsensitive(DictAnk):
     def __init__(self, *a, **kw):
-        a = list(a)
-        mro = self._get_arg_(a, int, 'mro', kw)
-        # self.log_init('DCI', mro, a, kw)
-        super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
+        a, cls, mro = list(a), self.__class__, self._get_arg_(a, int, 'mro', kw)
+        super(cls.mro()[mro], self).__init__(mro+1, *a, **kw)
 
     def _key_transform_(self, key, keys=None, all=False, attrs=False):
         mapping = keys or self
@@ -21,12 +19,8 @@ class DictCaseInsensitive(DictAnk):
 class DictNumeric(DictCaseInsensitive):
     _default_value_ = 0
     def __init__(self, *a, **kw):
-        a = list(a)
-        mro = self._get_arg_(a, int, 'mro', kw)
-        cls = self.__class__
-        cls_mro = cls.mro()[mro]
-        # self.log_init('DNum', mro, a, kw)
-        super(cls_mro, self).__init__(mro+1, *a, **kw)
+        a, cls, mro = list(a), self.__class__, self._get_arg_(a, int, 'mro', kw)
+        super(cls.mro()[mro], self).__init__(mro+1, *a, **kw)
 
     def _convert_(self, val=None):
         def _check_(val):
@@ -79,11 +73,8 @@ class DictString(DictCaseInsensitive):
     _value_ = ''
 
     def __init__(self, *a, **kw):
-        a = list(a)
-        mro = self._get_arg_(a, int, 'mro', kw)
-        cls = self.__class__
+        a, cls, mro = list(a), self.__class__, self._get_arg_(a, int, 'mro', kw)
         cls_mro = cls.mro()[mro]
-        # self.log_init('DS', mro, a, kw)
         self._my_attrs_ += '|_value_|_summarize_dont_print_default_'
         super(cls_mro, self).__init__(mro+1, *a, **kw)
         cls_mro.setSecondary = cls_mro.setValueAttr
@@ -96,10 +87,8 @@ class DictString(DictCaseInsensitive):
 class DictSettings(DictString):
     _cls_missing_attrs_ = True
     def __init__(self, *a, **kw):
-        a = list(a)
-        mro = self._get_arg_(a, int, 'mro', kw)
-        # self.log_init('DSET', mro, a, kw)
-        super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
+        a, cls, mro = list(a), self.__class__, self._get_arg_(a, int, 'mro', kw)
+        super(cls.mro()[mro], self).__init__(mro+1, *a, **kw)
 
     @property
     def mw(self):

@@ -55,7 +55,7 @@ def is_str_type(str_):
 
 def is_seq_type(*a):
     for item in a:
-        if not isinstance(item, (list, tuple)):
+        if not isinstance(item, Iterable) or not hasattr(item, '__iter__'):
             return False
     return True
 
@@ -64,6 +64,32 @@ def is_dict_type(*a):
         if not isinstance(item, dict) or hasattr(item, '__dict__'):
             return False
     return True
+
+def get_unique_strings(*a):
+    lst=[]
+    items=[]
+    if a and isinstance(a[0], dict):
+        lst = a[0].copy()
+        a = a[0].items()
+    else:
+        a = enumerate(a)
+    for key, str_ in sorted(a):
+        if isinstance(str_, list):
+            str_, attr = str_
+            str_ = getattr(str_, attr, None)
+        if not str_ or str_ in lst or str_ in items:
+            if isinstance(lst, list):
+                lst.append('')
+            else:
+                lst[key] = ''
+            continue
+        items.append(str_)
+        str_ = str(str_)
+        if isinstance(lst, list):
+            lst.append(str_)
+        else:
+            lst[key] = str_
+    return lst
 
 def call(func, *a, **kw):
     if not callable(func):
@@ -94,7 +120,12 @@ def fmt(str_, recursion=None, *a, **kw):
 def pad_digits(*a, **kw):
     conv = []
     for str_ in a:
-        conv.append(str_.rjust(3) if str_.isdigit() else str_)
+        if isinstance(str_, int):
+            str_ = str(str_)
+        if not is_str_type(str_):
+            conv.append('')
+        else:
+            conv.append(str_.rjust(3) if str_.isdigit() else str_)
     if len(conv) is 1:
         return conv[0]
     return conv
@@ -131,20 +162,15 @@ def in_delimited_str(key, str_, chr='|', case_insensitive=True):
 def print_safe(str_, prefix=''):
     print str_safe(str_, prefix)
 
-def item_to_list(item, list_from_unknown=True, chrs=''):
-    if isinstance(item, list):
-        return item
+def item_to_list(item, list_from_unknown=True, chrs='', split_chr='|'):
     if is_seq_type(item):
         return list(item)
     if isinstance(item, dict):
-        lst = []
-        for key, value in item.items():
-            lst += [key, value]
-        return lst
+        return [y for x in item.items() for y in x]
     if is_str(item):
         for c in chrs:
-            item = item.replace(c, '|')
-        return item.split('|')
+            item = item.replace(c, split_chr or ' ')
+        return item.split(split_chr)
     if item is None:
         return []
     if list_from_unknown:

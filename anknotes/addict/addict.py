@@ -2,7 +2,7 @@ from inspect import isgenerator
 import re
 import os
 import copy
-from anknotes.logging_base import write_file_contents, reset_logs
+from anknotes.base import is_dict_type, item_to_list
 
 class Dict(dict):
     """
@@ -41,24 +41,8 @@ class Dict(dict):
         """
         a = list(a)
         mro = self._get_arg_(a, int, 'mro', kw)
-        self.log_init('Dict', mro, a, kw)
-        for arg in a:
-            if not arg:
-                continue
-            elif isinstance(arg, dict):
-                for key, val in arg.items():
-                    self[key] = val
-            elif isinstance(arg, tuple) and (not isinstance(arg[0], tuple)):
-                self[arg[0]] = arg[1]
-            elif isinstance(arg, (list, tuple)) or isgenerator(arg):
-                for key, val in arg:
-                    self[key] = val
-            else:
-                raise TypeError("Dict does not understand "
-                                "{0} types".format(arg.__class__))
-
-        for key, val in kw.items():
-            self[key] = val
+        pass # self.log_init('Dict', mro, a, kw)
+        self.update(*a, **kw)
 
     def __setattr__(self, name, value):
         """
@@ -98,7 +82,7 @@ class Dict(dict):
         return self.__getitem__(item)
 
     def _new_instance_(self, *a, **kw):
-        return (self.__class__.mro()[self._mro_offset_] if '_mro_offset_' in dir(self.__class__) else self.__class__)(*a, **kw)
+        return (self.__class__.mro()[self._mro_offset_] if self._is_obj_attr_('_mro_offset_') else self.__class__)(*a, **kw)
 
     def __getitem__(self, name):
         """
@@ -118,43 +102,43 @@ class Dict(dict):
 
     _re_pattern = re.compile('[a-zA-Z_][a-zA-Z0-9_]*')
 
-    def log(self, str_, method, do_print=True, prefix=''):
-        cls = self.__class__
-        str_lbl = self.label.full if self.label else ''
-        if str_lbl:
-            str_lbl += ': '
-        str_ = prefix + '%17s %-20s %s' % ('<%s>' % cls.__name__, str_lbl, str_)
-        if do_print:
-            print str_
-        write_file_contents(str_, 'Dicts\\%s\\%s' % (cls.__name__, method))
+    # def log(self, str_, method, do_print=True, prefix=''):
+        # cls = self.__class__
+        # str_lbl = self.label.full if self.label else ''
+        # if str_lbl:
+            # str_lbl += ': '
+        # str_ = prefix + '%17s %-20s %s' % ('<%s>' % cls.__name__, str_lbl, str_)
+        # if do_print:
+            # print str_
+        # write_file_contents(str_, 'Dicts\\%s\\%s' % (cls.__name__, method))
 
-    def log_action(self, method, action, name, value, key=None, via=None, extra='', log_self=False):
-        if key in ['_my_attrs_','_override_default_']:
-            return
-        if extra:
-            extra += ' '
-        type = ('<%s>' % value.__class__.__name__).center(10)
-        log_str = action.ljust(12) + ' '
-        log_str += name.ljust(12) + ' '
-        log_str += ('via '+via if via else '').ljust(10) + ' '
-        log_str += ('for `%s`' % key if key else '').ljust(25) + ' '
-        log_str += 'to %10s%s %s' % (extra, type, str(value))
-        if log_self:
-            log_str += ' \n\n Self:  ' + repr(self)
-        self.log(log_str, method);
+    # def log_action(self, method, action, name, value, key=None, via=None, extra='', log_self=False):
+        # if key in ['_my_attrs_','_override_default_']:
+            # return
+        # if extra:
+            # extra += ' '
+        # type = ('<%s>' % value.__class__.__name__).center(10)
+        # log_str = action.ljust(12) + ' '
+        # log_str += name.ljust(12) + ' '
+        # log_str += ('via '+via if via else '').ljust(10) + ' '
+        # log_str += ('for `%s`' % key if key else '').ljust(25) + ' '
+        # log_str += 'to %10s%s %s' % (extra, type, str(value))
+        # if log_self:
+            # log_str += ' \n\n Self:  ' + repr(self)
+        # pass # self.log(log_str, method);
 
-    def log_init(self, type, mro, a, kw):
-        cls = self.__class__
-        mro_name = cls.mro()[mro].__name__
-        mro_name = (':' + mro_name) if mro_name != cls.__name__ and mro_name != type else ''
-        log_str =  "Init: %s%s #%d" % (type, mro_name, mro)
-        log_str += "\n   Args: %s" % a if a else ""
-        log_str += "\n KWArgs: %s" % kw if kw else ""
-        self.log(log_str + '\n', '__init__', prefix='-'*40+'\n', do_print=False)
+    # def log_init(self, type, mro, a, kw):
+        # cls = self.__class__
+        # mro_name = cls.mro()[mro].__name__
+        # mro_name = (':' + mro_name) if mro_name != cls.__name__ and mro_name != type else ''
+        # log_str =  "Init: %s%s #%d" % (type, mro_name, mro)
+        # log_str += "\n   Args: %s" % a if a else ""
+        # log_str += "\n KWArgs: %s" % kw if kw else ""
+        # pass # self.log(log_str + '\n', '__init__', prefix='-'*40+'\n', do_print=False)
 
-    def clear_logs(self):
-        name=self.__class__.__name__
-        reset_logs('Dicts' + os.path.sep + name, self.make_banner(name))
+    # def clear_logs(self):
+        # name=self.__class__.__name__
+        # reset_logs('Dicts' + os.path.sep + name, self.make_banner(name))
 
     @staticmethod
     def get_default_value(cls, default=None):
@@ -196,8 +180,7 @@ class Dict(dict):
 
     def _is_obj_attr_(self, key):
         keys = self._obj_attrs_()
-        key = self._key_transform_(key, keys)
-        return key in keys
+        return self._key_transform_(key, keys) in keys
 
     def _dict_keys_(self):
         dict_keys = []
@@ -328,13 +311,57 @@ class Dict(dict):
             y[copy.deepcopy(key, memo)] = copy.deepcopy(value, memo)
         return y
 
-    def update(self, d):
-        """ Recursively merge d into self. """
-
-        for k, v in d.items():
-            if ((k not in self) or
-                    (not isinstance(self[k], dict)) or
-                    (not isinstance(v, dict))):
-                self[k] = v
+    def initialize_keys(self, arg, split_chr='|'):
+        """
+        Initializes keys from string or sequence.
+        From string:
+             1) String is converted to list, split by 'split_chr' argument
+        From list:
+             2) If list item has two subitems, it will be treated as a key-value pair
+                E.g: [['key', 'value'], ['key2', 'value2']] will set keys with corresponding values
+             3) Otherwise, it will be treated as a list of keys
+                E.g.: [['key1', 'key2', 'key3']] will instantiate keys as new Dicts
+             4) If list item is not a sequence, it will be converted to a list as per Example 1
+                E.g.: ['key1', 'key2', 'key3'] will act similarly to Example 3
+             5) Exception: If list item is a dict, it will be handled via update.update_dict
+        """
+        if not is_seq_type(arg):
+            arg = item_to_list(arg, split_chr=split_chr)
+        for items in arg:
+            if is_dict_type(items):
+                self.update(items)
+                continue
+            if not is_seq_type(items):
+                items = item_to_list(items, split_chr=split_chr)
+            if len(items) is 1:
+                self[items[0]]
+            elif len(items) is 2:
+                self[items[0]] = items[1]
             else:
-                self[k].update(v)
+                self.update_seq(items)
+
+    def update(self, *a, **kw):
+        """ Update self with dict, sequence, or kwargs """
+        def update_dict(d):
+            """ Recursively merge d into self. """
+            for k, v in d.items():
+                if k in self and is_dict_type(self[k], v):
+                    self[k].update(v)
+                else:
+                    self[k] = v
+
+        # Begin update()
+        for arg in a:
+            if not arg:
+                continue
+            elif isinstance(arg, dict):
+                update_dict(arg)
+            elif isinstance(arg, tuple) and len(arg) is 2 and not isinstance(arg[0], tuple):
+                self[arg[0]] = arg[1]
+            elif is_seq_type(arg):
+                self.initialize_keys(arg)
+            else:
+                raise TypeError("Dict does not understand "
+                                "{0} types".format(arg.__class__))
+        update_dict(kw)
+
