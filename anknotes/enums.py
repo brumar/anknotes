@@ -1,7 +1,6 @@
 from anknotes.enum import Enum, EnumMeta, IntEnum
 from anknotes import enum
 
-
 class AutoNumber(Enum):
     def __new__(cls, *args):
         """
@@ -20,7 +19,6 @@ class AutoNumber(Enum):
         # if obj.name in obj._member_names_:
         #     raise KeyError
         return obj
-
 
 class OrderedEnum(Enum):
     def __ge__(self, other):

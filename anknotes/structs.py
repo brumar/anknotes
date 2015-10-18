@@ -2,6 +2,8 @@ import re
 # from BeautifulSoup import UnicodeDammit
 import anknotes
 from bs4 import UnicodeDammit
+
+
 from anknotes.constants import *
 from anknotes.base import item_to_set, item_to_list
 from anknotes.db import *
@@ -532,26 +534,41 @@ class EvernoteNoteFetcherResults(object):
 
 
 class EvernoteImportProgress:
-    Anki = None
-    """:type : anknotes.Anki.Anki"""
-
     class _GUIDs:
+        Anki = None
+        """:type : anknotes.Anki.Anki"""
         Local = None
+        _anki_note_ids_ = None
 
         class Server:
             All = None
             New = None
-
+            
             class Existing:
                 All = None
                 UpToDate = None
                 OutOfDate = None
 
+        def __init__(self, anki=None, anki_note_ids=None):
+            if anki is None:
+                return
+            self.Anki = anki
+            self._anki_note_ids_ = anki_note_ids
+            self.Server.All, self.Server.New = set(), set()
+            self.Server.Existing.All, self.Server.Existing.UpToDate, self.Server.Existing.OutOfDate = set(), set(), set()
+
+        def setup(self, anki_note_ids=None):
+            if not anki_note_ids:
+                anki_note_ids = self._anki_note_ids_ or self.Anki.get_anknotes_note_ids()
+            self.Local = self.Anki.get_evernote_guids_from_anki_note_ids(anki_note_ids)
+        
         def loadNew(self, server_evernote_guids=None):
             if server_evernote_guids:
                 self.Server.All = server_evernote_guids
             if not self.Server.All:
                 return
+            if not self.Local:
+                self.setup()
             setServer = set(self.Server.All)
             self.Server.New = setServer - set(self.Local)
             self.Server.Existing.All = setServer - set(self.Server.New)
@@ -562,7 +579,7 @@ class EvernoteImportProgress:
         Updating = None
         """:type : EvernoteNoteFetcherResults"""
 
-    GUIDs = _GUIDs()
+    GUIDs = None
 
     @property
     def Adding(self):
@@ -665,11 +682,6 @@ class EvernoteImportProgress:
             results.AlreadyUpToDate = self.AlreadyUpToDate
             self.Results.Updating = results
 
-    def setup(self, anki_note_ids=None):
-        if not anki_note_ids:
-            anki_note_ids = self.Anki.get_anknotes_note_ids()
-        self.GUIDs.Local = self.Anki.get_evernote_guids_from_anki_note_ids(anki_note_ids)
-
     def __init__(self, anki=None, metadataProgress=None, server_evernote_guids=None, anki_note_ids=None):
         """
         :param anki: Anknotes Main Anki Instance
@@ -679,8 +691,7 @@ class EvernoteImportProgress:
         """
         if not anki:
             return
-        self.Anki = anki
-        self.setup(anki_note_ids)
+        self.GUIDs = self._GUIDs(anki, anki_note_ids)        
         if metadataProgress:
             server_evernote_guids = metadataProgress.Guids
         if server_evernote_guids:
@@ -730,7 +741,7 @@ class EvernoteMetadataProgress:
         return int(p) + (1 if p > int(p) else 0)
 
     @property
-    def RemainingPages(self): return self.TotalPages - self.Page
+    def RemainingPages(self): return max(0, self.TotalPages - self.Page)
 
     @property
     def Completed(self): return self.Current + self.Offset

@@ -10,7 +10,7 @@ except ImportError:
 # Anknotes Shared Imports
 from anknotes.shared import *
 from anknotes.constants import *
-from anknotes.counters import DictCaseInsensitive
+from anknotes.dicts import DictCaseInsensitive
 from anknotes.logging import show_tooltip
 
 # Anknotes Main Imports
@@ -120,7 +120,7 @@ def anknotes_menu_auto_import_changed():
     title = "&Enable Auto Import On Profile Load"
     doAutoImport = anknotes_checkable_menu_items[title].isChecked()
     mw.col.conf[
-        SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX + '_' + title.replace(' ', '_').replace('&', '')] = doAutoImport
+        SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX.getDefault() + '_' + title.replace(' ', '_').replace('&', '')] = doAutoImport
     mw.col.setMod()
     mw.col.save()
     # import_timer_toggle()
@@ -152,7 +152,7 @@ def import_from_evernote(auto_page_callback=None):
         controller.currentPage = 1
     else:
         controller.forceAutoPage = False
-        controller.currentPage = mw.col.conf.get(SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE, 1)
+        controller.currentPage = SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE.fetch(1)
     controller.proceed()
 
 

@@ -2,9 +2,6 @@ import os
 import imp
 import sys
 
-### Anknotes Imports
-from anknotes.constants import *
-
 lxml = None
 etree = None
 
@@ -46,6 +43,7 @@ def import_anki_module(name):
 
 def import_etree():
     global etree
+    from anknotes.constants import ANKNOTES
     if not ANKNOTES.LXML.ENABLE_IN_ANKI and in_anki():
         return False
     if not import_lxml():

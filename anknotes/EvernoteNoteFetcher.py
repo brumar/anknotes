@@ -2,6 +2,7 @@
 import socket
 
 ### Anknotes Shared Imports
+from anknotes.base import decode
 from anknotes.shared import *
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
 from anknotes.error import *
@@ -110,9 +111,9 @@ class EvernoteNoteFetcher(object):
         columns.update({key: getattr(self, key) for key in ['tagNames', 'tagGuids']})
         for key, value in columns.items():
             if isinstance(value, list):
-                columns[key] = u',' + u','.join(map(lambda x: unicode(x, 'utf-8'), value)) + u','
+                columns[key] = u',' + u','.join(map(decode, value)) + u','
             elif isinstance(value, str):
-                columns[key] = unicode(value, 'utf-8')
+                columns[key] = decode(value)
         db = ankDB()
         db.insert_or_replace(columns)
         db.insert(columns, table=TABLES.EVERNOTE.NOTES_HISTORY)

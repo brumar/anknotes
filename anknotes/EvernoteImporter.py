@@ -13,6 +13,7 @@ from anknotes.error import *
 
 ### Anknotes Class Imports
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
+from anknotes.structs_base import UpdateExistingNotes
 
 ### Anknotes Main Imports
 from anknotes.Anki import Anki
@@ -53,8 +54,7 @@ class EvernoteImporter:
         return (self.ManualGUIDs is not None and len(self.ManualGUIDs) > 0)
 
     def __init(self):
-        self.updateExistingNotes = mw.col.conf.get(SETTINGS.ANKI.UPDATE_EXISTING_NOTES,
-                                                   UpdateExistingNotes.UpdateNotesInPlace)
+        self.updateExistingNotes = SETTINGS.ANKI.UPDATE_EXISTING_NOTES.fetch(UpdateExistingNotes.UpdateNotesInPlace)                                                   
         self.ManualGUIDs = None
 
     def override_evernote_metadata(self):
@@ -146,7 +146,7 @@ class EvernoteImporter:
         notes_already_up_to_date = []
         db = ankDB()
         for evernote_guid in evernote_guids:
-            db_usn = db.scalar({'guid': evernote_guid}, columns='updateSequenceNumber')
+            db_usn = db.scalar({'guid': evernote_guid}, columns='updateSequenceNum')
             if not self.evernote.metadata[evernote_guid].updateSequenceNum:
                 server_usn = 'N/A'
             else:
@@ -178,19 +178,15 @@ class EvernoteImporter:
 
     def proceed_start(self, auto_paging=False):
         col = self.anki.collection()
-        lastImport = col.conf.get(SETTINGS.EVERNOTE.LAST_IMPORT, None)
-        col.conf[SETTINGS.EVERNOTE.LAST_IMPORT] = datetime.now().strftime(ANKNOTES.DATE_FORMAT)
-        col.setMod()
-        col.save()
+        lastImport = SETTINGS.EVERNOTE.LAST_IMPORT.fetch()
+        SETTINGS.EVERNOTE.LAST_IMPORT.save(datetime.now().strftime(ANKNOTES.DATE_FORMAT))
         lastImportStr = get_friendly_interval_string(lastImport)
         if lastImportStr:
-            lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
-        log_banner("  > Starting Evernote Import:           Page %3s                     Query: %s".ljust(122) % (
-            '#' + str(self.currentPage), settings.generate_evernote_query()) + lastImportStr, append_newline=False,
+            lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr        
+        log_str = "  > Starting Evernote Import:           Page %3s                     Query: %s" % (
+                  '#' + str(self.currentPage), settings.generate_evernote_query())
+        log_banner(log_str.ljust(ANKNOTES.FORMATTING.TEXT_LENGTH-len(lastImportStr)) + lastImportStr, append_newline=False,
                    chr='=', length=0, center=False, clear=False, timestamp=True)
-        # log("!  > Starting Evernote Import:           Page %3s                     Query: %s".ljust(123) % (
-        # '#' + str(self.currentPage), settings.generate_evernote_query()) + ' ' + lastImportStr)
-        # log("-"*(ANKNOTES.FORMATTING.LINE_LENGTH+1), timestamp=False)
         if auto_paging:
             return True
         notestore_status = self.evernote.initialize_note_store()
@@ -247,10 +243,7 @@ class EvernoteImporter:
     def save_current_page(self):
         if self.forceAutoPage:
             return
-        col = self.anki.collection()
-        col.conf[SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE] = self.currentPage
-        col.setMod()
-        col.save()
+        SETTINGS.EVERNOTE.PAGINATION_CURRENT_PAGE.save(self.currentPage)
 
     def proceed_autopage(self):
         if not self.autoPagingEnabled:
@@ -281,7 +274,7 @@ class EvernoteImporter:
                 if self.auto_page_callback:
                     self.auto_page_callback()
                 return True
-            elif mw.col.conf.get(EVERNOTE.IMPORT.PAGING.RESTART.ENABLED, True):
+            elif EVERNOTE.IMPORT.PAGING.RESTART.ENABLED:
                 restart = max(EVERNOTE.IMPORT.PAGING.RESTART.INTERVAL, 60 * 15)
                 restart_title = "   > Restarting Auto Paging"
                 restart_msg = "All %d notes have been processed and EVERNOTE.IMPORT.PAGING.RESTART.ENABLED is True<BR>" % \
@@ -322,4 +315,4 @@ class EvernoteImporter:
 
     @property
     def autoPagingEnabled(self):
-        return self.anki.collection().conf.get(SETTINGS.EVERNOTE.AUTO_PAGING, True) or self.forceAutoPage
+        return SETTINGS.EVERNOTE.AUTO_PAGING.fetch() or self.forceAutoPage

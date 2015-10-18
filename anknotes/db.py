@@ -7,13 +7,13 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
-
+    
 ### For PyCharm code completion
 # from anknotes import _sqlite3
 
 ### Anki Shared Imports
 from anknotes.constants import *
-from anknotes.base import is_str_type, item_to_list, fmt
+from anknotes.base import is_str, item_to_list, fmt, is_dict_type, is_seq_type, encode
 from anknotes.args import Args
 from anknotes.logging import log_sql, log, log_error, log_blank, pf
 from anknotes.dicts import DictCaseInsensitive
@@ -172,7 +172,7 @@ def get_anknotes_potential_root_titles(upper_case=False, encode=False, **kwargs)
     if upper_case:
         mapper = lambda x, f=mapper: f(x).upper()
     if encode:
-        mapper = lambda x, f=mapper: f(x).encode('utf-8')
+        mapper = lambda x, f=mapper: encode(f(x))
     data = get_cached_data(get_anknotes_potential_root_titles, lambda: ankDB().list(
         "SELECT DISTINCT SUBSTR(title, 0, INSTR(title, ':')) FROM {n} WHERE title LIKE '%:%'"))
     return map(mapper, data)
@@ -256,7 +256,7 @@ def get_evernote_guid_from_anki_fields(fields):
         if not FIELDS.EVERNOTE_GUID in fields:
             return None
         return fields[FIELDS.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
-    if is_str_type(fields):
+    if is_str(fields):
         fields = splitFields(fields)
         return fields[FIELDS.ORD.EVERNOTE_GUID].replace(FIELDS.EVERNOTE_GUID_PREFIX, '')
 
@@ -303,7 +303,7 @@ class ank_DB(object):
             return
         encpath = path
         if isinstance(encpath, unicode):
-            encpath = path.encode("utf-8")
+            encpath = encode(path)
         if path:
             log('Creating local ankDB instance from path: ' + path, 'sql\\ankDB')
             self._db = sqlite.connect(encpath, timeout=timeout)
@@ -366,17 +366,17 @@ class ank_DB(object):
         self.insert(*a, **kw)
 
     def execute(self, sql, a=None, kw=None, auto=None, **kwargs):
-        if isinstance(a, dict) or isinstance(a, DictCaseInsensitive):
+        if is_dict_type(a):
             kw, a = a, kw
-        if not isinstance(a, list) and not isinstance(a, tuple):
+        if not is_seq_type(a):
             a = item_to_list(a)
-        if isinstance(sql, dict) or isinstance(sql, DictCaseInsensitive):
+        if is_dict_type(sql):
             auto = sql
             sql = ' AND '.join(["`{0}` = :{0}".format(key) for key in auto.keys()])
         if kw is None:
             kw = {}
         kwargs.update(kw)
-        sql = self._fmt_query_(sql, **kwargs)
+        sql = self._create_query_(sql, **kwargs)
         if auto:
             kw = auto
         log_sql(sql, a, kw, self=self)
@@ -407,8 +407,6 @@ class ank_DB(object):
         return res
 
     def _fmt_query_(self, sql, **kw):
-        if not self._is_stmt_(sql, 'select'):
-            sql = 'SELECT {columns} FROM {t} WHERE ' + sql
         formats = dict(table=self.table, where='1', columns='*')
         override = dict(n=TABLES.EVERNOTE.NOTES, s=TABLES.SEE_ALSO, a=TABLES.TOC_AUTO,
                         nv=TABLES.NOTE_VALIDATION_QUEUE, nb=TABLES.EVERNOTE.NOTEBOOKS, tt=TABLES.EVERNOTE.TAGS,
@@ -420,16 +418,22 @@ class ank_DB(object):
         formats['t'] = formats['table']
         formats.update(override)
         sql = fmt(sql, formats)
-        if 'order' in kw and 'order by' not in sql.lower():
-            sql += ' ORDER BY ' + kw['order']
-            del kw['order']
         for key in keys:
             if key in kw:
                 del kw[key]
         return sql
+        
+    def _create_query_(self, sql, **kw):
+        if not self._is_stmt_(sql, 'select'):
+            sql = 'SELECT {columns} FROM {t} WHERE ' + sql
+        sql = self._fmt_query_(sql, **kw)
+        if 'order' in kw and 'order by' not in sql.lower():
+            sql += ' ORDER BY ' + kw['order']
+            del kw['order']        
+        return sql
 
     def executemany(self, sql, data, **kw):
-        sql = self._fmt_query_(sql, **kw)
+        sql = self._create_query_(sql, **kw)
         log_sql(sql, data, self=self)
         self.mod = True
         t = time.time()
@@ -478,7 +482,7 @@ class ank_DB(object):
         last_query='<None>'
         if hasattr(self, 'ankdb_lastquery'):
             last_query = self.ankdb_lastquery
-            if is_str_type(last_query):
+            if is_str(last_query):
                 last_query = last_query[:50]
             else:
                 last_query = pf(last_query)
@@ -537,42 +541,46 @@ class ank_DB(object):
 
     def InitTags(self, force=False):
         if_exists = " IF NOT EXISTS" if not force else ""
+        log("Rebuilding %stags table" % ('*' if force else ''), 'sql\\ankDB')
         self.execute(
-            """CREATE TABLE %s `%s` ( `guid` TEXT NOT NULL UNIQUE, `name` TEXT NOT NULL, `parentGuid` TEXT, `updateSequenceNum` INTEGER NOT NULL, PRIMARY KEY(guid) );""" % (
+            """CREATE TABLE%s `%s` ( `guid` TEXT NOT NULL UNIQUE, `name` TEXT NOT NULL, `parentGuid` TEXT, `updateSequenceNum` INTEGER NOT NULL, PRIMARY KEY(guid) );""" % (
                 if_exists, TABLES.EVERNOTE.TAGS))
 
     def InitNotebooks(self, force=False):
         if_exists = " IF NOT EXISTS" if not force else ""
         self.execute(
-            """CREATE TABLE %s `%s` ( `guid` TEXT NOT NULL UNIQUE, `name` TEXT NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `serviceUpdated` INTEGER NOT NULL, `stack` TEXT, PRIMARY KEY(guid) );""" % (
+            """CREATE TABLE%s `%s` ( `guid` TEXT NOT NULL UNIQUE, `name` TEXT NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `serviceUpdated` INTEGER NOT NULL, `stack` TEXT, PRIMARY KEY(guid) );""" % (
                 if_exists, TABLES.EVERNOTE.NOTEBOOKS))
 
     def InitSeeAlso(self, forceRebuild=False):
-        if_exists = "IF NOT EXISTS"
+        if_exists = " IF NOT EXISTS"
         if forceRebuild:
             self.drop(TABLES.SEE_ALSO)
             self.commit()
             if_exists = ""
         self.execute(
-            """CREATE TABLE %s `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id), unique(source_evernote_guid, target_evernote_guid) );""" % (
+            """CREATE TABLE%s `%s` ( `id` INTEGER, `source_evernote_guid` TEXT NOT NULL, `number` INTEGER NOT NULL DEFAULT 100, `uid` INTEGER NOT NULL DEFAULT -1, `shard` TEXT NOT NULL DEFAULT -1, `target_evernote_guid` TEXT NOT NULL, `html` TEXT NOT NULL, `title` TEXT NOT NULL, `from_toc` INTEGER DEFAULT 0, `is_toc` INTEGER DEFAULT 0, `is_outline` INTEGER DEFAULT 0, PRIMARY KEY(id), unique(source_evernote_guid, target_evernote_guid) );""" % (
                 if_exists, TABLES.SEE_ALSO))
 
     def Init(self, table='*', force=False):
-        if table is '*' or table is TABLES.EVERNOTE.NOTES:
+        table = self._fmt_query_(table)
+        log("Rebuilding tables: %s" % table, 'sql\\ankDB')
+        if table == '*' or table == TABLES.EVERNOTE.NOTES:
             self.execute(
                 """CREATE TABLE IF NOT EXISTS `{n}` ( `guid` TEXT NOT NULL UNIQUE, `nid`    INTEGER NOT NULL DEFAULT -1, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL, PRIMARY KEY(guid) );""")
-        if table is '*' or table is TABLES.EVERNOTE.NOTES_HISTORY:
+        if table == '*' or table == TABLES.EVERNOTE.NOTES_HISTORY:
             self.execute(
                 """CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `updated` INTEGER NOT NULL, `created` INTEGER NOT NULL, `updateSequenceNum` INTEGER NOT NULL, `notebookGuid` TEXT NOT NULL, `tagGuids` TEXT NOT NULL, `tagNames` TEXT NOT NULL)""" % TABLES.EVERNOTE.NOTES_HISTORY)
-        if table is '*' or table is TABLES.TOC_AUTO:
+        if table == '*' or table == TABLES.TOC_AUTO:
             self.execute(
                 """CREATE TABLE IF NOT EXISTS `%s` (     `root_title`    TEXT NOT NULL UNIQUE,     `contents`    TEXT NOT NULL,     `tagNames`    TEXT NOT NULL,     `notebookGuid`    TEXT NOT NULL,     PRIMARY KEY(root_title) );""" % TABLES.TOC_AUTO)
-        if table is '*' or table is TABLES.NOTE_VALIDATION_QUEUE:
+        if table == '*' or table == TABLES.NOTE_VALIDATION_QUEUE:
             self.execute(
                 """CREATE TABLE IF NOT EXISTS `%s` ( `guid` TEXT, `title` TEXT NOT NULL, `contents` TEXT NOT NULL, `tagNames` TEXT NOT NULL DEFAULT ',,', `notebookGuid` TEXT, `validation_status` INTEGER NOT NULL DEFAULT 0, `validation_result` TEXT, `noteType` TEXT);""" % TABLES.NOTE_VALIDATION_QUEUE)
-        if table is '*' or table is TABLES.SEE_ALSO:
+        if table == '*' or table == TABLES.SEE_ALSO:
             self.InitSeeAlso(force)
-        if table is '*' or table is TABLES.EVERNOTE.TAGS:
+        if table == '*' or table == TABLES.EVERNOTE.TAGS:
             self.InitTags(force)
-        if table is '*' or table is TABLES.EVERNOTE.NOTEBOOKS:
+        if table == '*' or table == TABLES.EVERNOTE.NOTEBOOKS:
             self.InitNotebooks(force)
+            

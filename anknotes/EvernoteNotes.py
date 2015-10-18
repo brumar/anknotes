@@ -2,14 +2,13 @@
 ### Python Imports
 from operator import itemgetter
 
-from anknotes.EvernoteNoteTitle import generateTOCTitle
-
 try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
 
-### Anknotes Imports
+### Anknotes Main Imports
+from anknotes.base import encode
 from anknotes.shared import *
 from anknotes.EvernoteNoteTitle import *
 from anknotes.EvernoteNotePrototype import EvernoteNotePrototype
@@ -17,6 +16,8 @@ from anknotes.toc import TOCHierarchyClass
 from anknotes.db import ankDB
 from anknotes import stopwatch
 
+### Anknotes Class Imports
+from anknotes.EvernoteNoteTitle import generateTOCTitle
 
 class EvernoteNoteProcessingFlags:
     delayProcessing = False
@@ -388,15 +389,15 @@ class EvernoteNotes:
             if not DEBUG_HTML:
                 continue
 
-            ols.append(ol)
-            olutf8 = ol.encode('utf8')
-            fn = 'toc-ols\\toc-' + str(tmr.count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
-            full_path = os.path.join(FOLDERS.LOGS, fn)
-            if not os.path.exists(os.path.dirname(full_path)):
-                os.mkdir(os.path.dirname(full_path))
-            file_object = open(full_path, 'w')
-            file_object.write(olutf8)
-            file_object.close()
+            # ols.append(ol)
+            # olutf8 = encode(ol)
+            # fn = 'toc-ols\\toc-' + str(tmr.count) + '-' + rootTitleStr.replace('\\', '_') + '.htm'
+            # full_path = os.path.join(FOLDERS.LOGS, fn)
+            # if not os.path.exists(os.path.dirname(full_path)):
+                # os.mkdir(os.path.dirname(full_path))
+            # file_object = open(full_path, 'w')
+            # file_object.write(olutf8)
+            # file_object.close()
 
             # if DEBUG_HTML: log(ol, 'toc-ols\\toc-' + str(count) + '-' + rootTitleStr.replace('\\', '_'), timestamp=False, clear=True, extension='htm')
             # log("Created TOC #%d:\n%s\n\n" % (count, str_), 'tocList', timestamp=False)
@@ -408,7 +409,7 @@ class EvernoteNotes:
                 file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html)
             except Exception:
                 try:
-                    file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + ols_html.encode('utf-8'))
+                    file_object.write(u'<h1>CREATING TOCs</h1>\n\n' + encode(ols_html))
                 except Exception:
                     pass
 

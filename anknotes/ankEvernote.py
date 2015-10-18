@@ -20,6 +20,7 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.error import *
 from anknotes.imports import in_anki
+from anknotes.base import is_str, encode
 
 ### Anki Imports
 if in_anki():
@@ -34,6 +35,7 @@ if in_anki():
 
     ### Anki Imports
     from aqt.utils import openLink, getText, showInfo
+    from aqt import mw
 
 
 ### Anki Imports
@@ -82,7 +84,7 @@ class Evernote(object):
         self.setup_client()
 
     def setup_client(self):
-        auth_token = mw.col.conf.get(SETTINGS.EVERNOTE.AUTH_TOKEN, False)
+        auth_token = SETTINGS.EVERNOTE.AUTH_TOKEN.fetch()
         if not auth_token:
             # First run of the Plugin we did not save the access key yet
             secrets = {'holycrepe': '36f46ea5dec83d4a', 'scriptkiddi-2682': '965f1873e4df583c'}
@@ -100,7 +102,7 @@ class Evernote(object):
                 request_token.get('oauth_token'),
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
-            mw.col.conf[SETTINGS.EVERNOTE.AUTH_TOKEN] = auth_token
+            SETTINGS.EVERNOTE.AUTH_TOKEN.save(auth_token)
         else:
             client = EvernoteClient(token=auth_token, sandbox=EVERNOTE.API.IS_SANDBOXED)
         self.token = auth_token
@@ -208,8 +210,8 @@ class Evernote(object):
             nBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
             nBody += "<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">"
             nBody += "<en-note>%s" % content + "</en-note>"
-        if encode and isinstance(nBody, unicode):
-            nBody = nBody.encode('utf-8')
+        if encode:
+            nBody = encode(nBody)
         return nBody
 
     @staticmethod
@@ -270,7 +272,7 @@ class Evernote(object):
         log('%s%s: %s: ' % ('+VALIDATOR ' if self.hasValidator else '' + noteType, str(validation_status), noteTitle),
             'validation')
         ourNote = EvernoteNote()
-        ourNote.title = noteTitle.encode('utf-8')
+        ourNote.title = encode(noteTitle)
         if guid:
             callType = "update"; ourNote.guid = guid
 
@@ -299,8 +301,8 @@ class Evernote(object):
                 ourNote.notebookGuid = parentNotebook.guid
             elif hasattr(parentNotebook, 'Guid'):
                 ourNote.notebookGuid = parentNotebook.Guid
-            elif isinstance(parentNotebook, str) or isinstance(parentNotebook,
-                                                               unicode): ourNote.notebookGuid = parentNotebook
+            elif is_str(parentNotebook): 
+                ourNote.notebookGuid = parentNotebook
 
         ## Attempt to create note in Evernote account
 
@@ -370,20 +372,17 @@ class Evernote(object):
             self.check_ancillary_data_up_to_date()
         action_str_base = 'Create'
         action_str = 'Creation Of'
-        info = stopwatch.ActionInfo(action_str, 'Evernote Notes')
+        info = stopwatch.ActionInfo(action_str, 'Evernote Notes', report_if_empty=False)
         tmr = stopwatch.Timer(evernote_guids, info=info,
                               label='Add\\Evernote-%sNotes' % (action_str_base))
         fetcher = EvernoteNoteFetcher(self, use_local_db_only=use_local_db_only)
         if not evernote_guids:
             fetcher.results.Status = EvernoteAPIStatus.EmptyRequest; return fetcher.results
         if in_anki():
-            fetcher.evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
-                                                        SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(',',
-                                                                                                            ' ').split()
-            fetcher.keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS,
-                                                       SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
-            fetcher.deleteQueryTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
-            fetcher.tagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(',', ' ').split()
+            fetcher.evernoteQueryTags = SETTINGS.EVERNOTE.QUERY.TAGS.fetch().replace(',', ' ').split()
+            fetcher.keepEvernoteTags = SETTINGS.ANKI.TAGS.KEEP_TAGS.fetch()
+            fetcher.deleteQueryTags = SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS.fetch()
+            fetcher.tagsToDelete = SETTINGS.ANKI.TAGS.TO_DELETE.fetch().replace(',', ' ').split()
         for evernote_guid in self.evernote_guids:
             if not fetcher.getNote(evernote_guid):
                 return fetcher.results

@@ -9,15 +9,18 @@ import re
 from fnmatch import fnmatch
 from bs4 import UnicodeDammit
 
+
 ### Anknotes Imports
 from anknotes.constants import *
-from anknotes.base import *
 from anknotes.imports import *
+# write_file_contents('Loading %s: Importing base' % __name__, 'load')
+from anknotes.base import *
+# write_file_contents('Loading %s: Imported base' % __name__, 'load')
+# write_file_contents('Loading %s: Importing logging' % __name__, 'load')
 from anknotes.logging import *
 from anknotes.db import *
 from anknotes.html import *
 from anknotes.structs import *
-
 
 ### Check if in Anki
 if in_anki():
@@ -25,9 +28,6 @@ if in_anki():
     from aqt.qt import QIcon, QPixmap, QPushButton, QMessageBox
     from anknotes.evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode, EDAMUserException, \
         EDAMNotFoundException
-
-class UpdateExistingNotes:
-    IgnoreExistingNotes, UpdateNotesInPlace, DeleteAndReAddNotes = range(3)
 
 class EvernoteQueryLocationType:
     RelativeDay, RelativeWeek, RelativeMonth, RelativeYear, AbsoluteDate, AbsoluteDateTime = range(6)
@@ -38,20 +38,15 @@ def get_tag_names_to_import(tagNames, evernoteQueryTags=None, evernoteTagsToDele
         return v not in tags_to_delete and (not hasattr(v, 'Name') or getattr(v, 'Name') not in tags_to_delete) and (
             not hasattr(v, 'name') or getattr(v, 'name') not in tags_to_delete)
     if keepEvernoteTags is None:
-        keepEvernoteTags = mw.col.conf.get(SETTINGS.ANKI.TAGS.KEEP_TAGS,
-                                                                    SETTINGS.ANKI.TAGS.KEEP_TAGS_DEFAULT_VALUE)
+        keepEvernoteTags = SETTINGS.ANKI.TAGS.KEEP_TAGS.fetch()
     if not keepEvernoteTags:
         return {} if isinstance(tagNames, dict) else []
     if evernoteQueryTags is None:
-        evernoteQueryTags = mw.col.conf.get(SETTINGS.EVERNOTE.QUERY.TAGS,
-                                                                      SETTINGS.EVERNOTE.QUERY.TAGS_DEFAULT_VALUE).replace(
-        ',', ' ').split()
+        evernoteQueryTags = SETTINGS.EVERNOTE.QUERY.TAGS.fetch().replace(',', ' ').split()
     if deleteEvernoteQueryTags is None:
-        deleteEvernoteQueryTags = mw.col.conf.get(
-        SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS, False)
+        deleteEvernoteQueryTags = SETTINGS.ANKI.TAGS.DELETE_EVERNOTE_QUERY_TAGS.fetch()
     if evernoteTagsToDelete is None:
-        evernoteTagsToDelete = mw.col.conf.get(SETTINGS.ANKI.TAGS.TO_DELETE, "").replace(
-        ',', ' ').split()
+        evernoteTagsToDelete = SETTINGS.ANKI.TAGS.TO_DELETE.fetch()
     tags_to_delete = evernoteQueryTags if deleteEvernoteQueryTags else [] + evernoteTagsToDelete
     if isinstance(tagNames, dict):
         return {k: v for k, v in tagNames.items() if check_tag_name(v, tags_to_delete)}

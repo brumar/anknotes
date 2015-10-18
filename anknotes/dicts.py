@@ -1,121 +1,127 @@
-import os
-import sys
-from pprint import pprint
-from addict import Dict
-from anknotes.constants import *
-from anknotes.base import item_to_list, item_to_set
+import collections
+from anknotes.imports import in_anki
+from anknotes.base import item_to_list, is_str, is_str_type, in_delimited_str, delete_keys, key_transform, str_capitalize, ank_prop, pad_digits
+from anknotes.dicts_base import DictAnk
 
-class DictCaseInsensitive(Dict):
-    def print_banner(self, title):
-        print self.make_banner(title)
+mw = None
 
-    @staticmethod
-    def make_banner(title):
-        return '\n'.join(["-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5), title,
-                          "-" * max(ANKNOTES.FORMATTING.COUNTER_BANNER_MINIMUM, len(title) + 5)])
-
-    def _process_kwarg_(self, kwargs, key, default=None, replace_none_type=True):
-        key = self._key_transform_(key, kwargs.keys())
-        if key not in kwargs:
-            return default
-        val = kwargs[key]
-        if val is None and replace_none_type:
-            val = default
-        del kwargs[key]
-        return val
-
-    def _key_transform_(self, key, keys=None):
-        if keys is None:
-            keys = self.keys()
-        for k in keys:
-            if k.lower() == key.lower():
-                return k
-        return key
-
-    def __init__(self, *args, **kwargs):
-        # if not is_str_type(label): raise TypeError("Cannot create counter label from non-string type: " + str(label))
-        # print "kwargs: %s" % (str(kwargs))
-        lbl = self._process_kwarg_(kwargs, 'label', 'root')
-        parent_lbl = self._process_kwarg_(kwargs, 'parent_label', '')
-        delete = self._process_kwarg_(kwargs, 'delete', None)
-        # print "lbl: %s\nkwargs: %s" % (lbl, str(kwargs))
-        self._label_ = lbl
-        self._parent_label_ = parent_lbl
-        super(self.__class__, self).__init__(*args, **kwargs)
-        if delete:
-            self.delete_keys(delete)
-
-    def reset(self, keys_to_keep=None):
-        if keys_to_keep is None:
-            keys_to_keep = self._my_aggregates_.lower().split("|")
-        for key in self.keys():
-            if key.lower() not in keys_to_keep:
-                del self[key]
-
-    _label_ = ''
-    _parent_label_ = ''
-    _my_aggregates_ = ''
-    _my_attrs_ = '_label_|_parent_label_|_my_aggregates_'
-
+class DictCaseInsensitive(DictAnk):
+    def __init__(self, *a, **kw):
+        a = list(a)
+        mro = self._get_arg_(a, int, 'mro', kw)
+        # self.log_init('DCI', mro, a, kw)
+        super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
+            
+    def _key_transform_(self, key, keys=None, all=False, attrs=False):
+        mapping = keys or self
+        if attrs:
+            mapping, all = dir(mapping.__class__), False            
+        return key_transform(mapping, key, all=all)
+        
+class DictNumeric(DictCaseInsensitive):
+    _default_value_ = 0
+    def __init__(self, *a, **kw):
+        a = list(a)
+        mro = self._get_arg_(a, int, 'mro', kw)
+        cls = self.__class__
+        cls_mro = cls.mro()[mro]
+        # self.log_init('DNum', mro, a, kw)
+        super(cls_mro, self).__init__(mro+1, *a, **kw)
+        
+    def _convert_(self, val=None):
+        def _check_(val):
+            return val if isinstance(val, (int, long, float)) else None
+        value = val is not None
+        if not value: 
+            val = self
+        if _check_(val):
+            return val        
+        if isinstance(val, (DictNumeric)):            
+            return _check_(value and val.getDefault() or val.getDefaultAttr()) or _check_(val.getValueAttr()) or self._default_value_
+        return self._default_value_
+        
     @property
-    def label(self): return self._label_
+    def sum(self):
+        def_val = self._convert_()
+        sum = not self._override_default_ and def_val or 0
+        for key in self:
+            if not self._is_my_aggregate_(key):
+                sum += self._convert_(self[key])
+        if sum == int(sum):
+            return int(sum)
+        return sum
+        
+    def increment(self, val=1, negate=False, **kwargs):
+        new_count = self.__add__(val, negate, True)
+        self.setDefault(new_count)
+        return self
 
+    step = increment        
+    def __bool__(self): return self.__simplify__() > 0
+    def __div__(self, y): return self.__simplify__() / y
+    def __rdiv__(self, y): return 1 / self.__div__(y)
+    __truediv__ = __div__
+    
+    def __mul__(self, y): return y * self.__simplify__()       
+    __rmul__ = __mul__
+    
+    def __add__(self, y, negate=False, increment=False): return self.__simplify__(increment) + y * (-1 if negate else 1) 
+    def __sub__ (self, y): return self.__add__(y, True)        
+    def __rsub__ (self, y): return self.__sub__(y) * -1
+    def __isub__ (self, y): return self.increment(y, True)        
+        
+    default_override = sum        
+
+        
+class DictString(DictCaseInsensitive):
+    _default_ = '_label_name_'    
+    _default_value_ = ''
+    _value_ = ''        
+    
+    def __init__(self, *a, **kw):        
+        a = list(a)
+        mro = self._get_arg_(a, int, 'mro', kw)
+        cls = self.__class__
+        cls_mro = cls.mro()[mro]
+        # self.log_init('DS', mro, a, kw)
+        self._my_attrs_ += '|_value_|_summarize_dont_print_default_'
+        super(cls_mro, self).__init__(mro+1, *a, **kw)
+        cls_mro.setSecondary = cls_mro.setValueAttr
+        cls_mro.getSecondary = cls_mro.getValueAttr
+    
+    def getDefault(self):
+        lbl = str_capitalize(self.label.full)
+        return lbl[:1].lower() + lbl[1:]
+        
+class DictSettings(DictString):
+    _cls_missing_attrs_ = True
+    def __init__(self, *a, **kw):        
+        a = list(a)
+        mro = self._get_arg_(a, int, 'mro', kw)
+        # self.log_init('DSET', mro, a, kw)
+        super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
+    
     @property
-    def parent_label(self): return self._parent_label_
-
-    @property
-    def full_label(self): return self.parent_label + ('.' if self.parent_label else '') + self.label
-
-    def delete_keys(self, keys_to_delete):
-        keys = self.keys()
-        if not isinstance(keys_to_delete, list):
-            keys_to_delete = item_to_list(keys_to_delete, chrs=' *,')
-        for key in keys_to_delete:
-            key = self._key_transform_(key)
-            if key in keys:
-                del self[key]
-
-    @staticmethod
-    def _is_protected_(key):
-        return (key.startswith('_') and key.endswith('_')) or key.startswith('__')
-
-    def __setattr__(self, key, value):
-        key_adj = self._key_transform_(key)
-        if self._is_protected_(key):
-            if key.lower() not in self._my_attrs_.lower().split('|'):
-                raise AttributeError("Attempted to set protected item %s on %s" % (key, self.__class__.__name__))
-            else:
-                super(Dict, self).__setattr__(key, value)
-            # elif key == 'Count':
-            # self.setCount(value)
-            # # super(CaseInsensitiveDict, self).__setattr__(key, value)
-            # setattr(self, 'Count', value)
-        elif hasattr(self, key):
-            # print "Setting key " + key + ' value... to ' + str(value)
-            self[key_adj] = value
-        else:
-            print "Setting attr %s to type %s value %s" % (key_adj, type(value), value)
-            super(Dict, self).__setitem__(key_adj, value)
-
-    def __setitem__(self, name, value):
-        # print "Setting item %s to type %s value %s" % (name, type(value), value)
-        super(Dict, self).__setitem__(name, value)
-
-    def __getitem__(self, key):
-        adjkey = self._key_transform_(key)
-        if adjkey not in self:
-            if self._is_protected_(key):
-                if key.lower() not in self._my_attrs_.lower().split('|'):
-                    try:
-                        return super(Dict, self).__getattr__(key.lower())
-                    except Exception:
-                        raise (KeyError("Could not find protected item " + key))
-                return super(DictCaseInsensitive, self).__getattr__(key.lower())
-            # print "Creating missing item: " + self.parent_label + ('.' if self.parent_label else '') + self.label  + ' -> ' + repr(adjkey)
-            self[adjkey] = DictCaseInsensitive()
-            self[adjkey]._label_ = adjkey
-            self[adjkey]._parent_label_ = self.full_label
-        try:
-            return super(DictCaseInsensitive, self).__getitem__(adjkey)
-        except TypeError:
-            return "<null>"
+    def mw(self):
+        global mw
+        if mw is None and in_anki():
+            from aqt import mw
+        return mw
+    
+    def fetch(self, default=''):
+        mw = self.mw
+        if not mw:
+            raise Exception("Attempted to fetch from DictSettings without mw instance")
+        default_value = self.val
+        if default_value is None:
+            default_value = default
+        return mw.col.conf.get(self.getDefault(), default_value)
+    
+    def save(self, value):
+        mw = self.mw
+        if not mw:            
+            raise Exception("Attempted to save from DictSettings without mw instance")
+        mw.col.conf[self.getDefault()] = value
+        mw.col.setMod()
+        mw.col.save()
+        return True

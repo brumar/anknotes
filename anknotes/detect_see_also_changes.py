@@ -195,16 +195,17 @@ def main(evernote=None, anki=None):
             oldResults = n.old.see_also.updated
             newResults = n.new.see_also.updated
         diff = generate_diff(oldResults, newResults)
-        log.plain(diff, log_folder + '\\Diff\\%s\\' % n.match_type + enNote.FullTitle, extension='htm', clear=True)
-        log.plain(diffify(oldResults, split=False), log_folder + '\\Original\\%s\\' % n.match_type + enNote.FullTitle,
-                  extension='htm', clear=True)
-        log.plain(diffify(newResults, split=False), log_folder + '\\New\\%s\\' % n.match_type + enNote.FullTitle,
-                  extension='htm', clear=True)
-        if final:
-            log.plain(oldResults, log_folder + '\\Final\\Old\\%s\\' % n.match_type + enNote.FullTitle, extension='htm',
-                      clear=True)
-            log.plain(newResults, log_folder + '\\Final\\New\\%s\\' % n.match_type + enNote.FullTitle, extension='htm',
-                      clear=True)
+        if not 6 in FILES.LOGS.SEE_ALSO_DISABLED:
+            log.plain(diff, log_folder + '\\Diff\\%s\\' % n.match_type + enNote.FullTitle, extension='htm', clear=True)
+            log.plain(diffify(oldResults, split=False), log_folder + '\\Original\\%s\\' % n.match_type + enNote.FullTitle,
+                      extension='htm', clear=True)
+            log.plain(diffify(newResults, split=False), log_folder + '\\New\\%s\\' % n.match_type + enNote.FullTitle,
+                      extension='htm', clear=True)
+            if final:
+                log.plain(oldResults, log_folder + '\\Final\\Old\\%s\\' % n.match_type + enNote.FullTitle, extension='htm',
+                          clear=True)
+                log.plain(newResults, log_folder + '\\Final\\New\\%s\\' % n.match_type + enNote.FullTitle, extension='htm',
+                          clear=True)
         log.plain(diff + '\n', log_folder + '\\__All')
 
     # @clockit

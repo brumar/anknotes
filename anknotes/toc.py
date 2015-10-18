@@ -276,30 +276,19 @@ class TOCHierarchyClass:
         if childHTML:
             tag = 'ol' if self.ChildrenCount > 1 else 'ul'
             base = '<%s>\r\n%s\r\n</%s>\r\n'
-            # base = base.encode('utf8')
-            # tag = tag.encode('utf8')
-            # childHTML = childHTML.encode('utf8')
             childHTML = base % (tag, childHTML, tag)
 
         if self.Level is 1:
             base = '<div> %s </div>\r\n %s \r\n'
-            # base = base.encode('utf8')
-            # childHTML = childHTML.encode('utf8')
-            # header = header.encode('utf8')
             base = base % (header, childHTML)
             return base
         base = '<li> %s \r\n %s \r\n</li> \r\n'
-        # base = base.encode('utf8')
-        # header = header.encode('utf8')
-        # childHTML = childHTML.encode('utf8')
         base = base % (header, childHTML)
         return base
 
     def __reprsingle(self, fullTitle=True):
         selfTitleStr = self.FullTitle
         selfNameStr = self.Title.Name
-        # selfLevel = self.title.Level
-        # selfDepth = self.title.Depth
         selfListPrefix = self.ListPrefix
         str_ = "<%s:%s[%d] %s%s>" % (
             self.__class__.__name__, selfListPrefix, len(self.Children), selfTitleStr if fullTitle else selfNameStr,

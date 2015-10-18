@@ -23,6 +23,7 @@ DECKS = ANKI.DECKS
 TAGS = ANKI.TAGS
 EVERNOTE = SETTINGS.EVERNOTE
 QUERY = EVERNOTE.QUERY
+QUERY_TEXTBOXES = ['TAGS', 'EXCLUDED_TAGS', 'SEARCH_TERMS', 'NOTE_TITLE', 'NOTEBOOK']
 
 class EvernoteQueryLocationValueQSpinBox(QSpinBox):
     __prefix = ""
@@ -34,16 +35,17 @@ class EvernoteQueryLocationValueQSpinBox(QSpinBox):
         return self.__prefix
 
     def valueFromText(self, text):
-        if text == self.prefix():
+        if text is self.prefix():
             return 0
         return text[len(self.prefix()) + 1:]
 
     def textFromValue(self, value):
-        if value == 0:
-            return self.prefix()
-        return self.prefix() + "-" + str(value)
+        return self.prefix() + ("-%d" % value if value else "") 
 
-
+def get_conf(setting, default_value):
+    
+    return mw.col.conf.get(setting, default_value)
+        
 def setup_evernote(self):
     global icoEvernoteWeb
     global imgEvernoteWeb
@@ -51,21 +53,29 @@ def setup_evernote(self):
     global evernote_query_last_updated
     global evernote_pagination_current_page_spinner
 
-    def update_checkbox(setting, checkbox):
-        if setting == DECKS.EVERNOTE_NOTEBOOK_INTEGRATION and not elements[DECKS.BASE].text():
-            return
-        if setting.startswith(QUERY.KEY_BASE):
+    def update_checkbox(setting):
+        if setting is DECKS.EVERNOTE_NOTEBOOK_INTEGRATION and not elements[DECKS.BASE].text():
+            return        
+        if setting.get.startswith(QUERY.get):
             update_evernote_query_visibilities()
-        mw.col.conf[setting] = checkbox.isChecked()
+        setting.save(elements[setting].isChecked())
+        # mw.col.conf[setting] = 
+        if setting is QUERY.USE_TAGS:
+            update_evernote_query_visibilities()
+        if setting is QUERY.LAST_UPDATED.USE:
+            evernote_query_last_updated_value_set_visibilities()
 
     def create_checkbox(setting, label=" ", default_value=False, is_fixed_size=False, fixed_width=None):
         if isinstance(label, bool):
             default_value = label
             label = " "
         checkbox = QCheckBox(label, self)
-        checkbox.setChecked(mw.col.conf.get(setting, default_value))
+        sval = setting.fetch()
+        if not isinstance(sval, bool):
+            sval = default_value
+        checkbox.setChecked(sval)
         # noinspection PyUnresolvedReferences
-        checkbox.stateChanged.connect(lambda: update_checkbox(setting, checkbox))
+        checkbox.stateChanged.connect(lambda: update_checkbox(setting))
         if is_fixed_size or fixed_width:
             checkbox.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             if fixed_width:
@@ -78,20 +88,21 @@ def setup_evernote(self):
         return create_checkbox(*a, **kw)
 
     def update_text(setting, text):
-        mw.col.conf[setting] = text
-        if setting == DECKS.BASE:
+        text = text.strip()
+        setting.save(text)
+        if setting is DECKS.BASE:
             update_anki_deck_visibilities()
-        if setting.startswith(QUERY.KEY_BASE):
+        if setting.get.startswith(QUERY.get):
             if text:
-                use_key = setting.replace(QUERY.KEY_BASE, QUERY.KEY_BASE + 'Use')
+                use_key = getattr(QUERY, 'USE_' + setting.label.name)
                 elements[use_key].setChecked(True)
             evernote_query_text_changed()
-            if setting == QUERY.SEARCH_TERMS:
+            if setting is QUERY.SEARCH_TERMS:
                 update_evernote_query_visibilities()
 
     def create_textbox(setting, default_value=""):
         textbox = QLineEdit()
-        textbox.setText(mw.col.conf.get(setting, default_value))
+        textbox.setText(setting.fetch(default_value))
         textbox.connect(textbox,
                         SIGNAL("textEdited(QString)"),
                         lambda text: update_text(setting, text))
@@ -100,14 +111,14 @@ def setup_evernote(self):
 
     def add_query_row(setting, is_checked=False, **kw):
         try:
-            default_value = getattr(EVERNOTE.QUERY, setting + '_DEFAULT_VALUE')
+            default_value = setting.val
         except:
             default_value = ''
-        row_label = setting.replace('_', ' ').capitalize()
+        row_label = ' '.join(x.capitalize() for x in setting.replace('_', ' ').split())
         hbox = QHBoxLayout()
-        hbox.addWidget(create_checkbox(getattr(EVERNOTE.QUERY, 'USE_' + setting),
+        hbox.addWidget(create_checkbox(getattr(QUERY, 'USE_' + setting),
                        default_value=is_checked, **kw))
-        hbox.addWidget(create_textbox(getattr(EVERNOTE.QUERY, setting), default_value))
+        hbox.addWidget(create_textbox(getattr(QUERY, setting), default_value))
         form.addRow(row_label, hbox)
 
     def gen_qt_hr():
@@ -125,12 +136,13 @@ def setup_evernote(self):
     widget = QWidget()
     layout = QVBoxLayout()
     elements = {}
+    rm_log_path('Dicts\\')
     evernote_query_last_updated = DictCaseInsensitive()
 
 
     ########################## QUERY ##########################
     ##################### QUERY: TEXTBOXES ####################
-    group = QGroupBox("EVERNOTE SEARCH PARAMETERS:")
+    group = QGroupBox("EVERNOTE SEARCH OPTIONS:")
     group.setStyleSheet('QGroupBox{    font-size: 10px;    font-weight: bold;  color: rgb(105, 170, 53);}')
     form = QFormLayout()
 
@@ -148,26 +160,22 @@ def setup_evernote(self):
     hbox = QHBoxLayout()
     hbox.addWidget(create_checked_checkbox(QUERY.ANY, "     Match Any Terms", is_fixed_size=True))
     hbox.addWidget(button_show_generated_evernote_query)
-    form.addRow("<b>Search Query:</b>", hbox)
+    form.addRow("<b>Search Parameters:</b>", hbox)
 
     # Add Form Rows for Evernote Query Textboxes
-    add_query_row('TAGS', True)
-    add_query_row('EXCLUDED_TAGS', True)
-    add_query_row('SEARCH_TERMS')
-    add_query_row('NOTEBOOK')
-    add_query_row('NOTE_TITLE')
-
+    for el in QUERY_TEXTBOXES:
+        add_query_row(el, 'TAGS' in el)
+    
     ################### QUERY: LAST UPDATED ###################
     # Evernote Query: Last Updated Type
     evernote_query_last_updated.type = QComboBox()
     evernote_query_last_updated.type.setStyleSheet(' QComboBox { color: rgb(45, 79, 201); font-weight: bold; } ')
     evernote_query_last_updated.type.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     evernote_query_last_updated.type.addItems([u"Δ Day", u"Δ Week", u"Δ Month", u"Δ Year", "Date", "+ Time"])
-    evernote_query_last_updated.type.setCurrentIndex(mw.col.conf.get(QUERY.LAST_UPDATED_TYPE,
-                                                                     EvernoteQueryLocationType.RelativeDay))
+    evernote_query_last_updated.type.setCurrentIndex(QUERY.LAST_UPDATED.TYPE.fetch(EvernoteQueryLocationType.RelativeDay))
     evernote_query_last_updated.type.activated.connect(update_evernote_query_last_updated_type)
 
-
+    
     # Evernote Query: Last Updated Type: Relative Date
     evernote_query_last_updated.value.relative.spinner = EvernoteQueryLocationValueQSpinBox()
     evernote_query_last_updated.value.relative.spinner.setVisible(False)
@@ -228,8 +236,8 @@ def setup_evernote(self):
     # Add Form Row for Evernote Query: Last Updated
     hbox = QHBoxLayout()
     label = QLabel("Last Updated: ")
-    label.setMinimumWidth(100)
-    hbox.addWidget(create_checkbox(QUERY.USE_LAST_UPDATED, is_fixed_size=True))
+    label.setMinimumWidth(SETTINGS.FORM.LABEL_MINIMUM_WIDTH.val)
+    hbox.addWidget(create_checkbox(QUERY.LAST_UPDATED.USE, is_fixed_size=True))
     hbox.addWidget(evernote_query_last_updated.type)
     hbox.addWidget(evernote_query_last_updated.value.relative.spinner)
     hbox.addWidget(evernote_query_last_updated.value.absolute.date)
@@ -245,7 +253,7 @@ def setup_evernote(self):
     evernote_pagination_current_page_spinner.setStyleSheet("QSpinBox { font-weight: bold;  color: rgb(173, 0, 0);  } ")
     evernote_pagination_current_page_spinner.setPrefix("PAGE: ")
     evernote_pagination_current_page_spinner.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-    evernote_pagination_current_page_spinner.setValue(mw.col.conf.get(EVERNOTE.PAGINATION_CURRENT_PAGE, 1))
+    evernote_pagination_current_page_spinner.setValue(EVERNOTE.PAGINATION_CURRENT_PAGE.fetch(1))
     evernote_pagination_current_page_spinner.connect(evernote_pagination_current_page_spinner,
                                                      SIGNAL("valueChanged(int)"),
                                                      update_evernote_pagination_current_page_spinner)
@@ -278,15 +286,12 @@ def setup_evernote(self):
     hbox.insertSpacing(0, 33)
     hbox.addWidget(create_textbox(DECKS.BASE, DECKS.BASE_DEFAULT_VALUE))
     label_deck = QLabel("<b>Anki Deck:</b>")
-    label_deck.setMinimumWidth(100)
+    label_deck.setMinimumWidth(SETTINGS.FORM.LABEL_MINIMUM_WIDTH.val)
     form.addRow(label_deck, hbox)
-
-    # Change Visibility of Deck Options
-    update_anki_deck_visibilities()
 
     # Add Form Row for Evernote Notebook Integration
     label_deck = QLabel("Evernote Notebook:")
-    label_deck.setMinimumWidth(100)
+    label_deck.setMinimumWidth(SETTINGS.FORM.LABEL_MINIMUM_WIDTH.val)
     form.addRow("", create_checked_checkbox(DECKS.EVERNOTE_NOTEBOOK_INTEGRATION, "      Append Evernote Notebook"))
 
     # Add Horizontal Row Separator
@@ -295,7 +300,7 @@ def setup_evernote(self):
     ############################ TAGS ##########################
     # Add Form Row for Evernote Tag Options
     label = QLabel("<b>Evernote Tags:</b>")
-    label.setMinimumWidth(100)
+    label.setMinimumWidth(SETTINGS.FORM.LABEL_MINIMUM_WIDTH.val)
 
     # Tags: Save To Anki Note
     form.addRow(label, create_checkbox(TAGS.KEEP_TAGS, "     Save To Anki Note", TAGS.KEEP_TAGS_DEFAULT_VALUE))
@@ -317,8 +322,10 @@ def setup_evernote(self):
         ' QComboBox { color: #3b679e; font-weight: bold; } QComboBoxItem { color: #A40F2D; font-weight: bold; } ')
     update_existing_notes.addItems(["Ignore Existing Notes", "Update In-Place",
                                     "Delete and Re-Add"])
-    update_existing_notes.setCurrentIndex(mw.col.conf.get(ANKI.UPDATE_EXISTING_NOTES,
-                                                          UpdateExistingNotes.UpdateNotesInPlace))
+    sval = ANKI.UPDATE_EXISTING_NOTES.fetch()
+    if not isinstance(sval, int):
+        sval = ANKI.UPDATE_EXISTING_NOTES.val
+    update_existing_notes.setCurrentIndex(sval)
     update_existing_notes.activated.connect(update_update_existing_notes)
 
     # Add Form Row for Note Update Method
@@ -333,7 +340,10 @@ def setup_evernote(self):
     # Add Note Update Method Group Box to Main Layout
     layout.addWidget(group)
 
-    ###################### UPDATE QUERY VISIBILITIES ####################
+    ######################### UPDATE VISIBILITIES #######################
+    # Update Visibilities of Anki Deck Options
+    update_anki_deck_visibilities()
+    
     # Update Visibilities of Query Options
     evernote_query_text_changed()
     update_evernote_query_visibilities()
@@ -356,217 +366,148 @@ def update_anki_deck_visibilities():
     else:
         elements[DECKS.EVERNOTE_NOTEBOOK_INTEGRATION].setEnabled(True)
         elements[DECKS.EVERNOTE_NOTEBOOK_INTEGRATION].setChecked(
-            mw.col.conf.get(DECKS.EVERNOTE_NOTEBOOK_INTEGRATION, True))
+            DECKS.EVERNOTE_NOTEBOOK_INTEGRATION.fetch(True))
 
 def update_evernote_pagination_current_page_spinner(value):
     if value < 1:
         value = 1
         evernote_pagination_current_page_spinner.setValue(1)
-    mw.col.conf[EVERNOTE.PAGINATION_CURRENT_PAGE] = value
+    EVERNOTE.PAGINATION_CURRENT_PAGE.save(value)
 
 
 def update_update_existing_notes(index):
-    mw.col.conf[ANKI.UPDATE_EXISTING_NOTES] = index
+    ANKI.UPDATE_EXISTING_NOTES.save(index)
 
 
 def evernote_query_text_changed():
-    tags = elements[QUERY.TAGS].text()
-    excluded_tags = elements[QUERY.EXCLUDED_TAGS].text()
-    search_terms = elements[QUERY.SEARCH_TERMS].text()
-    note_title = elements[QUERY.NOTE_TITLE].text()
-    notebook = elements[QUERY.NOTEBOOK].text()
-    # tags_active = tags and elements[QUERY.USE_TAGS].isChecked()
-    search_terms_active = search_terms and elements[QUERY.USE_SEARCH_TERMS].isChecked()
-    note_title_active = note_title and elements[QUERY.USE_NOTE_TITLE].isChecked()
-    notebook_active = notebook and elements[QUERY.USE_NOTEBOOK].isChecked()
-    excluded_tags_active = excluded_tags and elements[QUERY.USE_EXCLUDED_TAGS].isChecked()
-    all_inactive = not (
-        search_terms_active or note_title_active or notebook_active or excluded_tags_active or elements[QUERY.USE_LAST_UPDATED].isChecked())
-
-    if not search_terms:
-        elements[QUERY.USE_SEARCH_TERMS].setEnabled(False)
-        elements[QUERY.USE_SEARCH_TERMS].setChecked(False)
-    else:
-        elements[QUERY.USE_SEARCH_TERMS].setEnabled(True)
-        elements[QUERY.USE_SEARCH_TERMS].setChecked(mw.col.conf.get(QUERY.USE_SEARCH_TERMS, True))
-
-    if not note_title:
-        elements[QUERY.USE_NOTE_TITLE].setEnabled(False)
-        elements[QUERY.USE_NOTE_TITLE].setChecked(False)
-    else:
-        elements[QUERY.USE_NOTE_TITLE].setEnabled(True)
-        elements[QUERY.USE_NOTE_TITLE].setChecked(mw.col.conf.get(QUERY.USE_NOTE_TITLE, True))
-
-    if not notebook:
-        elements[QUERY.USE_NOTEBOOK].setEnabled(False)
-        elements[QUERY.USE_NOTEBOOK].setChecked(False)
-    else:
-        elements[QUERY.USE_NOTEBOOK].setEnabled(True)
-        elements[QUERY.USE_NOTEBOOK].setChecked(mw.col.conf.get(QUERY.USE_NOTEBOOK, True))
-
-    if not excluded_tags:
-        elements[QUERY.USE_EXCLUDED_TAGS].setEnabled(False)
-        elements[QUERY.USE_EXCLUDED_TAGS].setChecked(False)
-    else:
-        elements[QUERY.USE_EXCLUDED_TAGS].setEnabled(True)
-        elements[QUERY.USE_EXCLUDED_TAGS].setChecked(mw.col.conf.get(QUERY.USE_EXCLUDED_TAGS, True))
-    if not tags and not all_inactive:
-        elements[QUERY.USE_TAGS].setEnabled(False)
-        elements[QUERY.USE_TAGS].setChecked(False)
-    else:
-        elements[QUERY.USE_TAGS].setEnabled(True)
-        elements[QUERY.USE_TAGS].setChecked(mw.col.conf.get(QUERY.USE_TAGS, True))
-        if all_inactive and not tags:
-            elements[QUERY.TAGS].setText(QUERY.TAGS_DEFAULT_VALUE)
-
+    for key in QUERY_TEXTBOXES:        
+        setting_use = getattr(QUERY, 'USE_' + key)
+        el_use = elements[setting_use]        
+        is_enabled = is_checked = bool(elements[getattr(QUERY, key)].text())
+        if is_checked:
+            is_checked = setting_use.fetch(True)
+        el_use.setEnabled(is_enabled)
+        el_use.setChecked(is_checked)
 
 def update_evernote_query_visibilities():
-    # is_any =  elements[QUERY.ANY].isChecked()
-    is_tags = elements[QUERY.USE_TAGS].isChecked()
-    is_excluded_tags = elements[QUERY.USE_EXCLUDED_TAGS].isChecked()
-    is_terms = elements[QUERY.USE_SEARCH_TERMS].isChecked()
-    is_title = elements[QUERY.USE_NOTE_TITLE].isChecked()
-    is_notebook = elements[QUERY.USE_NOTEBOOK].isChecked()
-    is_updated = elements[QUERY.USE_LAST_UPDATED].isChecked()
-
-    # is_disabled_any = not elements[QUERY.ANY].isEnabled()
-    is_disabled_tags = not elements[QUERY.USE_TAGS].isEnabled()
-    is_disabled_excluded_tags = not elements[QUERY.USE_EXCLUDED_TAGS].isEnabled()
-    is_disabled_terms = not elements[QUERY.USE_SEARCH_TERMS].isEnabled()
-    is_disabled_title = not elements[QUERY.USE_NOTE_TITLE].isEnabled()
-    is_disabled_notebook = not elements[QUERY.USE_NOTEBOOK].isEnabled()
-    # is_disabled_updated = not elements[QUERY.USE_LAST_UPDATED].isEnabled()
-
-    override = (
-        not is_tags and not is_excluded_tags and not is_terms and not is_title and not is_notebook and not is_updated)
-    if override:
-        is_tags = True
-        elements[QUERY.USE_TAGS].setChecked(True)
-    elements[QUERY.TAGS].setEnabled(is_tags or is_disabled_tags)
-    elements[QUERY.EXCLUDED_TAGS].setEnabled(is_excluded_tags or is_disabled_excluded_tags)
-    elements[QUERY.SEARCH_TERMS].setEnabled(is_terms or is_disabled_terms)
-    elements[QUERY.NOTE_TITLE].setEnabled(is_title or is_disabled_title)
-    elements[QUERY.NOTEBOOK].setEnabled(is_notebook or is_disabled_notebook)
+    for key in QUERY_TEXTBOXES:
+        el_use = elements[getattr(QUERY, 'USE_' + key)]
+        elements[getattr(QUERY, key)].setEnabled(el_use.isChecked() or not el_use.isEnabled())
     evernote_query_last_updated_value_set_visibilities()
 
 
 def update_evernote_query_last_updated_type(index):
-    mw.col.conf[QUERY.LAST_UPDATED_TYPE] = index
+    QUERY.LAST_UPDATED.TYPE.save(index)
     evernote_query_last_updated_value_set_visibilities()
 
 
 def evernote_query_last_updated_get_current_value():
-    index = mw.col.conf.get(QUERY.LAST_UPDATED_TYPE, 0)
+    index = QUERY.LAST_UPDATED.TYPE.fetch(0)
     if index < EvernoteQueryLocationType.AbsoluteDate:
         spinner_text = ['day', 'week', 'month', 'year'][index]
-        spinner_val = mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_RELATIVE, 0)
+        spinner_val = QUERY.LAST_UPDATED.VALUE.RELATIVE.fetch(0)
         if spinner_val > 0:
             spinner_text += "-" + str(spinner_val)
         return spinner_text
 
-    absolute_date_str = mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_ABSOLUTE_DATE,
-                                        "{:%Y %m %d}".format(datetime.now() - timedelta(days=7))).replace(' ', '')
-    if index == EvernoteQueryLocationType.AbsoluteDate:
+    absolute_date_str = QUERY.LAST_UPDATED.VALUE.ABSOLUTE.DATE.fetch().replace(' ', '')
+    if index is EvernoteQueryLocationType.AbsoluteDate:
         return absolute_date_str
-    absolute_time_str = mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_ABSOLUTE_TIME,
-                                        "{:HH mm ss}".format(datetime.now())).replace(' ', '')
+    absolute_time_str = QUERY.LAST_UPDATED.VALUE.ABSOLUTE.TIME.fetch("{:HH mm ss}".format(datetime.now())).replace(' ', '')
     return absolute_date_str + "'T'" + absolute_time_str
 
 
 def evernote_query_last_updated_value_set_visibilities():
-    index = mw.col.conf.get(QUERY.LAST_UPDATED_TYPE, 0)
-    if not elements[QUERY.USE_LAST_UPDATED].isChecked():
-        evernote_query_last_updated.type.setEnabled(False)
-        evernote_query_last_updated.value.absolute.date.setEnabled(False)
-        evernote_query_last_updated.value.absolute.time.setEnabled(False)
-        evernote_query_last_updated.value.relative.spinner.setEnabled(False)
-        return
-
-    evernote_query_last_updated.type.setEnabled(True)
-    evernote_query_last_updated.value.absolute.date.setEnabled(True)
-    evernote_query_last_updated.value.absolute.time.setEnabled(True)
-    evernote_query_last_updated.value.relative.spinner.setEnabled(True)
-
-    absolute_date = QDate().fromString(mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_ABSOLUTE_DATE,
-                                                       "{:%Y %m %d}".format(datetime.now() - timedelta(days=7))),
-                                       'yyyy MM dd')
-    if index < EvernoteQueryLocationType.AbsoluteDate:
-        evernote_query_last_updated.value.absolute.date.setVisible(False)
-        evernote_query_last_updated.value.absolute.time.setVisible(False)
-        evernote_query_last_updated.value.relative.spinner.setVisible(True)
-        spinner_prefix = ['day', 'week', 'month', 'year'][index]
-        evernote_query_last_updated.value.relative.spinner.setPrefix(spinner_prefix)
-        evernote_query_last_updated.value.relative.spinner.setValue(
-            int(mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_RELATIVE, 0)))
-        evernote_query_last_updated.value.stacked_layout.setCurrentIndex(0)
-    else:
-        evernote_query_last_updated.value.relative.spinner.setVisible(False)
-        evernote_query_last_updated.value.absolute.date.setVisible(True)
-        evernote_query_last_updated.value.absolute.date.setDate(absolute_date)
-        evernote_query_last_updated.value.stacked_layout.setCurrentIndex(1)
-        if index == EvernoteQueryLocationType.AbsoluteDate:
-            evernote_query_last_updated.value.absolute.time.setVisible(False)
-            evernote_query_last_updated.value.absolute.datetime.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    index = QUERY.LAST_UPDATED.TYPE.fetch(0)
+    use_last_updated = elements[QUERY.LAST_UPDATED.USE].isChecked()
+    with evernote_query_last_updated as lu, lu.value as v, QUERY.LAST_UPDATED.VALUE as LUV:
+        lu.type.setEnabled(use_last_updated)
+        v.absolute.date.setEnabled(use_last_updated)
+        v.absolute.time.setEnabled(use_last_updated)
+        v.relative.spinner.setEnabled(use_last_updated)
+        if not use_last_updated:
+            return
+        
+        absolute_date = LUV.ABSOLUTE.DATE.fetch()
+        absolute_date = QDate().fromString(absolute_date, 'yyyy MM dd')
+        if index < EvernoteQueryLocationType.AbsoluteDate:
+            v.absolute.date.setVisible(False)
+            v.absolute.time.setVisible(False)
+            spinner_prefix = ['day', 'week', 'month', 'year'][index]
+            v.relative.spinner.setPrefix(spinner_prefix)
+            v.relative.spinner.setValue(int(LUV.RELATIVE.fetch(0)))
+            v.stacked_layout.setCurrentIndex(0)
         else:
-            absolute_time = QTime().fromString(mw.col.conf.get(QUERY.LAST_UPDATED_VALUE_ABSOLUTE_TIME,
-                                                               "{:HH mm ss}".format(datetime.now())), 'HH mm ss')
-            evernote_query_last_updated.value.absolute.time.setTime(absolute_time)
-            evernote_query_last_updated.value.absolute.time.setVisible(True)
-            evernote_query_last_updated.value.absolute.datetime.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            v.relative.spinner.setVisible(False)
+            v.absolute.date.setDate(absolute_date)
+            v.stacked_layout.setCurrentIndex(1)
+            if index is EvernoteQueryLocationType.AbsoluteDate:
+                v.absolute.time.setVisible(False)
+                v.absolute.datetime.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            else:
+                # absolute_time = "{:HH mm ss}".format(datetime.now())
+                # absolute_time = QUERY.LAST_UPDATED_VALUE_ABSOLUTE_TIME.fetch(absolute_time)
+                absolute_time = LUV.ABSOLUTE.TIME.fetch("{:HH mm ss}".format(datetime.now()))
+                # absolute_time = QTime().fromString(absolute_time, 'HH mm ss')
+                v.absolute.time.setTime(QTime().fromString(absolute_time, 'HH mm ss'))
+                v.absolute.datetime.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
 
 def update_evernote_query_last_updated_value_relative_spinner(value):
     if value < 0:
         value = 0
         evernote_query_last_updated.value.relative.spinner.setValue(0)
-    mw.col.conf[QUERY.LAST_UPDATED_VALUE_RELATIVE] = value
+    QUERY.LAST_UPDATED.VALUE.RELATIVE.save(value)
 
 
 def update_evernote_query_last_updated_value_absolute_date(date):
-    mw.col.conf[QUERY.LAST_UPDATED_VALUE_ABSOLUTE_DATE] = date.toString('yyyy MM dd')
+    QUERY.LAST_UPDATED.VALUE.ABSOLUTE.DATE.save(date.toString('yyyy MM dd'))
 
 
 def update_evernote_query_last_updated_value_absolute_datetime(dt):
-    mw.col.conf[QUERY.LAST_UPDATED_VALUE_ABSOLUTE_DATE] = dt.toString('yyyy MM dd')
-    mw.col.conf[QUERY.LAST_UPDATED_VALUE_ABSOLUTE_TIME] = dt.toString('HH mm ss')
+    QUERY.LAST_UPDATED.VALUE.ABSOLUTE.DATE.save(dt.toString('yyyy MM dd'))
+    QUERY.LAST_UPDATED.VALUE.ABSOLUTE.TIME.save(dt.toString('HH mm ss'))
 
 
 def update_evernote_query_last_updated_value_absolute_time(time_value):
-    mw.col.conf[QUERY.LAST_UPDATED_VALUE_ABSOLUTE_TIME] = time_value.toString('HH mm ss')
+    QUERY.LAST_UPDATED.VALUE.ABSOLUTE.TIME.save(time_value.toString('HH mm ss'))
 
 
 def generate_evernote_query():
+    def generate_tag_pred(tags, negate=False):
+        pred = ''
+        prefix = '-' if negate else ''
+        if not isinstance(tags, list):
+            tags = tags.replace(',', ' ').split()
+        for tag in tags:
+            tag = tag.strip()
+            if ' ' in tag:
+                tag = '"%s"' % tag
+            pred += prefix + 'tag:%s ' % tag
+        return pred
+            
+    # Begin generate_evernote_query()
     query = ""
-    if mw.col.conf.get(QUERY.USE_NOTEBOOK, False):
-        query += 'notebook:"%s" ' % mw.col.conf.get(QUERY.NOTEBOOK,
-                                                    QUERY.NOTEBOOK_DEFAULT_VALUE).strip()
-    if mw.col.conf.get(QUERY.ANY, True):
+    if QUERY.USE_NOTEBOOK.fetch(False):
+        query_notebook = QUERY.NOTEBOOK.fetch(QUERY.NOTEBOOK_DEFAULT_VALUE).strip()
+        query += 'notebook:"%s" ' % query_notebook
+    if QUERY.ANY.fetch(True):
         query += "any: "
-    if mw.col.conf.get(QUERY.USE_NOTE_TITLE, False):
-        query_note_title = mw.col.conf.get(QUERY.NOTE_TITLE, "")
-        if not query_note_title[:
-            1] + query_note_title[-1:] == '""':
+    if QUERY.USE_NOTE_TITLE.fetch(False):
+        query_note_title = QUERY.NOTE_TITLE.fetch("")
+        if not query_note_title.startswith('"') and query_note_title.endswith('"'):
             query_note_title = '"%s"' % query_note_title
         query += 'intitle:%s ' % query_note_title
-    if mw.col.conf.get(QUERY.USE_TAGS, True):
-        tags = mw.col.conf.get(QUERY.TAGS, QUERY.TAGS_DEFAULT_VALUE).replace(',',
-                                                                                                                 ' ').split()
-        for tag in tags:
-            tag = tag.strip()
-            if ' ' in tag:
-                tag = '"%s"' % tag
-            query += 'tag:%s ' % tag
-    if mw.col.conf.get(QUERY.USE_EXCLUDED_TAGS, True):
-        tags = mw.col.conf.get(QUERY.EXCLUDED_TAGS, '').replace(',', ' ').split()
-        for tag in tags:
-            tag = tag.strip()
-            if ' ' in tag:
-                tag = '"%s"' % tag
-            query += '-tag:%s ' % tag
-    if mw.col.conf.get(QUERY.USE_LAST_UPDATED, False):
+    if QUERY.USE_TAGS.fetch(True):
+        query += generate_tag_pred(QUERY.TAGS.fetch(QUERY.TAGS_DEFAULT_VALUE))
+    if QUERY.USE_EXCLUDED_TAGS.fetch(True):
+        query += generate_tag_pred(QUERY.EXCLUDED_TAGS.fetch(''), True)
+    if QUERY.LAST_UPDATED.USE.fetch(False):
         query += " updated:%s " % evernote_query_last_updated_get_current_value()
-    if mw.col.conf.get(QUERY.USE_SEARCH_TERMS, False):
-        query += mw.col.conf.get(QUERY.SEARCH_TERMS, "")
+    if QUERY.USE_SEARCH_TERMS.fetch(False):
+        query += QUERY.SEARCH_TERMS.fetch("")
+    if not query.replace('any:','').strip():
+        query = '*'
     return query
 
 

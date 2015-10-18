@@ -1,7 +1,11 @@
-from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
+### Anknotes Shared Imports
+from anknotes.base import is_str_type, decode
 from anknotes.html import generate_evernote_url, generate_evernote_link, generate_evernote_link_by_level
 from anknotes.structs import upperFirst, EvernoteAPIStatus
 from anknotes.logging import log, log_blank, log_error
+
+### Anknotes Class Imports
+from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
 
 
 class EvernoteNotePrototype:
@@ -24,9 +28,9 @@ class EvernoteNotePrototype:
         return self.TagNames
 
     def process_tags(self):
-        if isinstance(self.TagNames, str) or isinstance(self.TagNames, unicode):
+        if is_str_type(self.TagNames):
             self.TagNames = self.TagNames[1:-1].split(',')
-        if isinstance(self.TagGuids, str) or isinstance(self.TagGuids, unicode):
+        if is_str_type(self.TagGuids):
             self.TagGuids = self.TagGuids[1:-1].split(',')
 
     def __repr__(self):
@@ -62,10 +66,8 @@ class EvernoteNotePrototype:
                     log("Values: \n\n" + str({k: db_note[k] for k in db_note_keys}), 'EvernoteNotePrototypeInit')
                 else:
                     setattr(self, upperFirst(key), db_note[key])
-            if isinstance(self.TagNames, str):
-                self.TagNames = unicode(self.TagNames, 'utf-8')
-            if isinstance(self.Content, str):
-                self.Content = unicode(self.Content, 'utf-8')
+            self.TagNames = decode(self.TagNames)
+            self.Content = decode(self.Content)
             self.process_tags()
             self.Status = EvernoteAPIStatus.Success
             return

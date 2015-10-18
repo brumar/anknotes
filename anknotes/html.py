@@ -1,7 +1,9 @@
 import re
 from HTMLParser import HTMLParser
+
+
 from anknotes.constants import SETTINGS
-from anknotes.base import is_str_type
+from anknotes.base import is_str, decode
 from anknotes.db import get_evernote_title_from_guid
 from anknotes.logging import log
 
@@ -61,7 +63,7 @@ def unescape_text(title, try_decoding=False):
     title_orig = title
     global __text_escape_phrases
     if try_decoding:
-        title = title.decode('utf-8')
+        title = decode(title)
     try:
         for i in range(0, len(__text_escape_phrases), 2):
             title = title.replace(__text_escape_phrases[i + 1], __text_escape_phrases[i])
@@ -76,12 +78,8 @@ def unescape_text(title, try_decoding=False):
 
 
 def clean_title(title):
-    if isinstance(title, str):
-        title = unicode(title, 'utf-8')
-    title = unescape_text(title)
-    if isinstance(title, str):
-        title = unicode(title, 'utf-8')
-    title = re.sub(r'( |\xa0)+', ' ', title)
+    title = unescape_text(decode(title))
+    title = re.sub(r'( |\xa0)+', ' ', decode(title))
     return title
 
 
@@ -269,9 +267,9 @@ class EvernoteAccountIDs:
             shard = self.shard
         if not uid or not shard:
             return False
-        if uid == '0' or uid == SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE or not unicode(
+        if uid == '0' or uid == SETTINGS.EVERNOTE.ACCOUNT.UID.val or not unicode(
                 uid).isnumeric(): return False
-        if shard == 's999' or uid == SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE or shard[0] != 's' or not unicode(
+        if shard == 's999' or uid == SETTINGS.EVERNOTE.ACCOUNT.SHARD.val or shard[0] != 's' or not unicode(
                 shard[1:]).isnumeric(): return False
         return True
 
@@ -280,21 +278,21 @@ class EvernoteAccountIDs:
             if self.update(uid, shard):
                 return
         try:
-            self.uid = mw.col.conf.get(SETTINGS.EVERNOTE.ACCOUNT.UID, SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE)
-            self.shard = mw.col.conf.get(SETTINGS.EVERNOTE.ACCOUNT.SHARD, SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE)
+            self.uid = SETTINGS.EVERNOTE.ACCOUNT.UID.fetch()
+            self.shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD.fetch()
             if self.Valid:
                 return
         except Exception:
             pass
-        self.uid = SETTINGS.EVERNOTE.ACCOUNT.UID_DEFAULT_VALUE
-        self.shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD_DEFAULT_VALUE
+        self.uid = SETTINGS.EVERNOTE.ACCOUNT.UID.val
+        self.shard = SETTINGS.EVERNOTE.ACCOUNT.SHARD.val
 
     def update(self, uid, shard):
         if not self.is_valid(uid, shard):
             return False
         try:
-            mw.col.conf[SETTINGS.EVERNOTE.ACCOUNT.UID] = uid
-            mw.col.conf[SETTINGS.EVERNOTE.ACCOUNT.SHARD] = shard
+            SETTINGS.EVERNOTE.ACCOUNT.UID.save(uid)
+            SETTINGS.EVERNOTE.ACCOUNT.SHARD.save(shard)
         except Exception:
             return False
         self.uid = uid

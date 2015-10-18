@@ -10,7 +10,7 @@ import time
 import re
 import os
 from anknotes.constants import ANKNOTES
-from anknotes.base import is_str_type, item_to_list
+from anknotes.base import is_str, item_to_list
 from anknotes.structs import EvernoteAPIStatus
 from anknotes.logging import caller_name, log, log_banner, log_blank, show_report, counts_as_str, get_log_full_path
 from anknotes.counters import Counter, EvernoteCounter
@@ -54,9 +54,6 @@ class ActionInfo(object):
     __created_str = " Added to Anki"
     __updated_str = " Updated in Anki"
     __queued_str = " for Upload to Evernote"
-
-    @property
-    def automated(self): return self.__automated
 
     @property
     def ActionShort(self):
@@ -202,9 +199,6 @@ class ActionInfo(object):
         self.Status = status
         return status
 
-    @property
-    def enabled(self): return self.__enabled
-
     def displayInitialInfo(self, max=None, interval=None, automated=None, enabled=None, **kw):
         if max:
             self.__max = max
@@ -215,13 +209,13 @@ class ActionInfo(object):
         if enabled is not None:
             self.__enabled = enabled
         if self.emptyResults:
-            if not self.automated:
+            if not self.Automated and self.__report_if_empty:
                 log('report: ' + self.Aborted, self.Label)
                 show_report(self.Aborted, blank_line_before=False)
             else:
                 log('report: [automated] ' + self.Aborted, self.Label)
             return self.setStatus(EvernoteAPIStatus.EmptyRequest)
-        if self.enabled is False:
+        if self.__enabled is False:
             log("Not starting - stopwatch.ActionInfo: enabled = false ", self.Label, do_print=self.__do_print)
             if not automated:
                 show_report(self.ActionLine("Aborted", "Action has been disabled"),
@@ -236,7 +230,7 @@ class ActionInfo(object):
 
     def __init__(self, action_base='Upload of Validated Evernote Notes', row_item_base=None, row_item_full=None,
                  action_full=None, action_template=None, label=None, auto_label=True, max=None, automated=False, enabled=True,
-                 interval=None, row_source=None, do_print=False, **kw):
+                 interval=None, row_source=None, do_print=False, report_if_empty=True, **kw):
         self.__action_short = None
         if label is None and auto_label:
             label = caller_name(return_filename=True)
@@ -267,6 +261,7 @@ class ActionInfo(object):
         self.__max = max
         self.__interval = interval
         self.__do_print = do_print
+        self.__report_if_empty = report_if_empty
 
 
 class Timer(object):
@@ -299,11 +294,14 @@ class Timer(object):
         return len(self.__times)
 
     @property
-    def max(self): return self.counts.max.val
+    def max(self): 
+        return self.counts.max
 
     @max.setter
-    def max(self,
-            value): self.counts.max = value; self.counts.max_allowed = value if self.counts.max_allowed < 1 else self.counts.max_allowed
+    def max(self, value): 
+        self.counts.max = value
+        if self.counts.max_allowed < 1:
+            self.counts.max_allowed = value
 
     @property
     def is_success(self):
@@ -377,7 +375,7 @@ class Timer(object):
 
     @property
     def count(self):
-        return max(self.counts.getCount(), 1)
+        return max(self.counts.val, 1)
 
     @property
     def projectedTime(self):
@@ -544,7 +542,7 @@ class Timer(object):
             str_tips.append("%d Error(s) occurred " % self.counts.error.val)
         if self.status == EvernoteAPIStatus.ExceededLocalLimit:
             str_tips.append("Action was prematurely terminated because locally-defined limit of %d was exceeded." %
-                            self.counts.max_allowed.val)
+                            self.counts.max_allowed)
         report_title = "   > %s Complete" % self.info.Action
         if self.counts.total is 0:
             report_title += self.info.FormatLine(": No {r} were processed")
@@ -611,7 +609,7 @@ class Timer(object):
         if max is not None:
             self.counts.max = max
             args.max = self.counts.max
-        if is_str_type(info):
+        if is_str(info):
             # noinspection PyTypeChecker
             info = ActionInfo(info, **args)
         elif infoStr and not info:

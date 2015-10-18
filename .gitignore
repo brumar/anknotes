@@ -6,6 +6,7 @@ anknotes/extra/dev/auth_tokens.txt
 anknotes/extra/user/*.enex
 anknotes/extra/user/anki.profile
 anknotes/constants_user.py
+test.py
 *.bk
 *.lnk
 *.py-bkup

@@ -11,9 +11,10 @@ except ImportError:
 
 ### Anknotes Imports
 from anknotes.AnkiNotePrototype import AnkiNotePrototype
-from anknotes.base import fmt
+from anknotes.base import fmt, encode, decode
 from anknotes.shared import *
 from anknotes import stopwatch
+
 ### Evernote Imports
 # from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 # from evernote.edam.type.ttypes import NoteSortOrder, Note
@@ -89,16 +90,14 @@ class Anki:
         action_str_base = ['Add', 'Update'][update]
         action_str = ['Adding', 'Updating'][update]
         action_preposition = ['To', 'In'][update]
-        info = stopwatch.ActionInfo(action_str + ' Of', 'Evernote Notes', action_preposition + ' Anki')
-        tmr = stopwatch.Timer(evernote_notes, 10, info=info,
-                              label='Add\\Anki-%sEvernoteNotes' % (action_str_base))
+        info = stopwatch.ActionInfo(action_str + ' Of', 'Evernote Notes', action_preposition + ' Anki', report_if_empty=False)
+        tmr = stopwatch.Timer(evernote_notes, 10, info=info, 
+                              label='Add\\Anki-%sEvernoteNotes' % action_str_base)
 
         for ankiNote in evernote_notes:
             try:
                 title = ankiNote.FullTitle
-                content = ankiNote.Content
-                if isinstance(content, str):
-                    content = unicode(content, 'utf-8')
+                content = decode(ankiNote.Content)
                 anki_field_info = {
                     FIELDS.TITLE:               title,
                     FIELDS.CONTENT:             content,
@@ -109,11 +108,9 @@ class Anki:
             except Exception:
                 log_error("Unable to set field info for: Note '%s': '%s'" % (ankiNote.FullTitle, ankiNote.Guid))
                 log_dump(ankiNote.Content, " NOTE CONTENTS ")
-                # log_dump(ankiNote.Content.encode('utf-8'), " NOTE CONTENTS ")
+                # log_dump(encode(ankiNote.Content), " NOTE CONTENTS ")
                 raise
             tmr.step(title)
-            # if tmr.step():
-                # log(action_str + " Note %5s: %s: %s" % ('#' + str(tmr.count), tmr.progress, title), tmr.label)
             baseNote = None
             if update:
                 baseNote = self.get_anki_note_from_evernote_guid(ankiNote.Guid)
@@ -308,7 +305,7 @@ class Anki:
             if not evernote_guid:
                 continue
             evernote_guids.append(evernote_guid)
-            log('Anki USN for Note %s is %s' % (evernote_guid, fields[FIELDS.UPDATE_SEQUENCE_NUM]), 'anki-usn')
+            # log('Anki USN for Note %s is %s' % (evernote_guid, fields[FIELDS.UPDATE_SEQUENCE_NUM]), 'anki-usn')
             if FIELDS.UPDATE_SEQUENCE_NUM in fields:
                 self.usns[evernote_guid] = fields[FIELDS.UPDATE_SEQUENCE_NUM]
             else:
@@ -578,7 +575,7 @@ class Anki:
                          u"'{toc_guid}', '{html}', '{title}', {from_toc}, {is_toc})")
                 query_toc = fmt(query, base, toc)
                 db.execute(query_toc)
-            log.go("\t\t - Added %2d child link(s) from TOC %s" % (len(enLinks), toc_link_title.encode('utf-8')))
+            log.go("\t\t - Added %2d child link(s) from TOC %s" % (len(enLinks), encode(toc_link_title)))
         db.update("is_toc = 1", where="target_evernote_guid IN (%s)" % ', '.join(toc_guids))
         db.commit()
 
@@ -638,8 +635,7 @@ class Anki:
                             FIELDS.CONTENT: linked_note_contents
                         }
                 if linked_note_contents:
-                    if isinstance(linked_note_contents, str):
-                        linked_note_contents = unicode(linked_note_contents, 'utf-8')
+                    linked_note_contents = decode(linked_note_contents)
                     if is_toc:
                         toc_count += 1
                         if toc_count is 1:

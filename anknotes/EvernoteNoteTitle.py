@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ### Anknotes Shared Imports
 from anknotes.shared import *
+from anknotes.base import is_str_type
 from sys import stderr
 
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 ### Anknotes Shared Imports
+from anknotes.base import encode, decode
 from anknotes.shared import *
 from anknotes.error import HandleUnicodeError
 from anknotes.EvernoteNoteTitle import EvernoteNoteTitle
@@ -131,12 +132,11 @@ class AnkiNotePrototype:
             deck += DECKS.TOC_SUFFIX
         elif TAGS.OUTLINE in self.Tags and TAGS.OUTLINE_TESTABLE not in self.Tags:
             deck += DECKS.OUTLINE_SUFFIX
-        elif not self._deck_parent_ or mw.col.conf.get(SETTINGS.ANKI.DECKS.EVERNOTE_NOTEBOOK_INTEGRATION, True):
+        elif not self._deck_parent_ or SETTINGS.ANKI.DECKS.EVERNOTE_NOTEBOOK_INTEGRATION.fetch():
             deck = self.Anki.get_deck_name_from_evernote_notebook(self.NotebookGuid, self._deck_parent_)
             if not deck:
                 return None
-        if deck[:
-            2] == '::':
+        if deck[:2] == '::':
             deck = deck[2:]
         return deck
 
@@ -435,12 +435,8 @@ class AnkiNotePrototype:
                     if field_to_update is FIELDS.CONTENT:
                         fld_content_ord = fld.get('ord')
                     try:
-                        value = self.Fields[field_to_update]
-                        value_original = self.note.fields[fld.get('ord')]
-                        if isinstance(value, str):
-                            value = unicode(value, 'utf-8')
-                        if isinstance(value_original, str):
-                            value_original = unicode(value_original, 'utf-8')
+                        value = decode(self.Fields[field_to_update])
+                        value_original = decode(self.note.fields[fld.get('ord')])
                         if not value == value_original:
                             flag_changed = True
                             self.note.fields[fld.get('ord')] = value
@@ -500,9 +496,7 @@ class AnkiNotePrototype:
             flds = get_dict_from_list(self.BaseNote.items())
             self.OriginalGuid = get_evernote_guid_from_anki_fields(flds)
         db_title = get_evernote_title_from_guid(self.OriginalGuid)
-        new_guid = self.Guid
-        new_title = self.FullTitle
-        self.check_titles_equal(db_title, new_title, new_guid)
+        self.check_titles_equal(db_title, self.FullTitle, self.Guid)
         self.note.flush(intTime())
         self.log_update("  > Flushing Note")
         self.update_note_model()
@@ -511,16 +505,14 @@ class AnkiNotePrototype:
 
     def check_titles_equal(self, old_title, new_title, new_guid, log_title='DB INFO UNEQUAL'):
         do_log_title = False
-        if not isinstance(new_title, unicode):
-            try:
-                new_title = unicode(new_title, 'utf-8')
-            except Exception:
-                do_log_title = True
-        if not isinstance(old_title, unicode):
-            try:
-                old_title = unicode(old_title, 'utf-8')
-            except Exception:
-                do_log_title = True
+        try:
+            new_title = decode(new_title)
+        except Exception:
+            do_log_title = True
+        try:
+            old_title = decode(old_title)
+        except Exception:
+            do_log_title = True
         guid_text = '' if self.OriginalGuid is None else '     ' + self.OriginalGuid + (
             '' if new_guid == self.OriginalGuid else ' vs %s' % new_guid) + ':'
         if do_log_title or new_title != old_title or (self.OriginalGuid and new_guid != self.OriginalGuid):
@@ -537,7 +529,7 @@ class AnkiNotePrototype:
         title = ""
         if FIELDS.TITLE in self.Fields:
             title = self.Fields[FIELDS.TITLE]
-        if self.BaseNote:
+        elif self.BaseNote:
             title = self.originalFields[FIELDS.TITLE]
         return EvernoteNoteTitle(title)
 
@@ -565,7 +557,7 @@ class AnkiNotePrototype:
             log('\t - %s for %s field %s' % (action, value.__class__.__name__, name), 'unicode', timestamp=False)
             if action is not 'DOING NOTHING':
                 try:
-                    new_value = value.encode('utf-8') if action == 'ENCODED' else value.decode('utf-8')
+                    new_value = encode(value) if action == 'ENCODED' else decode(value)
                     if from_anp_fields:
                         self.note[key] = new_value
                     else:

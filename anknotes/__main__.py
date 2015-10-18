@@ -6,13 +6,14 @@ import sys
 
 try:
     from pysqlite2 import dbapi2 as sqlite
-
     is_pysqlite = True
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
-
     is_pysqlite = False
+
+    
 ### Anknotes Shared Imports
+from anknotes.imports import in_anki
 from anknotes.shared import *
 from anknotes import stopwatch
 
@@ -20,13 +21,15 @@ from anknotes import stopwatch
 from anknotes import menu, settings
 
 ### Anki Imports
-from anki.find import Finder
-from anki.db import DB
+if ANKNOTES.HOOKS.SEARCH:
+    from anki.find import Finder
+    from aqt import browser
+if ANKNOTES.HOOKS.DB:
+    from anki.db import DB
 from anki.hooks import wrap, addHook
 from aqt.preferences import Preferences
-from aqt import mw, browser
+from aqt import mw
 from aqt.qt import Qt, QIcon, QTreeWidget, QTreeWidgetItem, QDesktopServices, QUrl
-from aqt.webview import AnkiWebView
 from anki.utils import ids2str, splitFields
 
 def import_timer_toggle():
@@ -35,7 +38,7 @@ def import_timer_toggle():
         SETTINGS.ANKNOTES_CHECKABLE_MENU_ITEMS_PREFIX + '_' + title.replace(' ', '_').replace('&', ''), False)
     if not doAutoImport:
         return
-    lastImport = mw.col.conf.get(SETTINGS.EVERNOTE.LAST_IMPORT, None)
+    lastImport = SETTINGS.EVERNOTE.LAST_IMPORT.fetch()
     importDelay = 0
     if lastImport:
         td = (datetime.now() - datetime.strptime(lastImport, ANKNOTES.DATE_FORMAT))
@@ -69,7 +72,7 @@ def _findAnknotes((val, args)):
         _findAnknotes((val_root, None), )
         _findAnknotes((val_child, None), )
         _findAnknotes.note_ids[val] = _findAnknotes.note_ids[val_root] + _findAnknotes.note_ids[val_child]
-        log("  > %s Search Complete: ".ljust(25) % val.upper().replace('_', ' ') + "%-5s --> %3d results" % (
+        write_file_contents("  > %s Search Complete: ".ljust(25) % val.upper().replace('_', ' ') + "%-5s --> %3d results" % (
             tmr.str_long, len(_findAnknotes.note_ids[val])), tmr.label)
 
     if not hasattr(_findAnknotes, 'queries'):
@@ -102,10 +105,10 @@ def _findAnknotes((val, args)):
             _findAnknotes.note_ids[val] = ankDB().list(sql)
         else:
             return None
-        log("  > Cached %s Note IDs: ".ljust(25) % val + "%-5s --> %3d results" % (
+        write_file_contents("  > Cached %s Note IDs: ".ljust(25) % val + "%-5s --> %3d results" % (
             tmr.str_long, len(_findAnknotes.note_ids[val])), tmr.label)
     else:
-        log("  > Retrieving %3d %s Note IDs from Cache" % (len(_findAnknotes.note_ids[val]), val), tmr.label)
+        write_file_contents("  > Retrieving %3d %s Note IDs from Cache" % (len(_findAnknotes.note_ids[val]), val), tmr.label)
     log_blank(tmr.label)
     return "c.nid IN %s" % ids2str(_findAnknotes.note_ids[val])
 
@@ -147,13 +150,13 @@ def anknotes_browser_add_tree(self, tree, items, root=None, name=None, icon=None
     for item in items:
         if isinstance(item[1], list):
             new_name = item[0]
-            # log('Tree: Name: %s: \n' % str(new_name) + repr(item))
+            # write_file_contents('Tree: Name: %s: \n' % str(new_name) + repr(item))
             new_tree = self.CallbackItem(tree, _(new_name), None)
             new_tree.setExpanded(True)
             new_tree.setIcon(0, anknotes_browser_get_icon(icon))
             root = anknotes_browser_add_tree(self, new_tree, item[1], root, new_name, icon)
         else:
-            # log('Tree Item: Name: %s: \n' % str(name) + repr(item))
+            # write_file_contents('Tree Item: Name: %s: \n' % str(name) + repr(item))
             root, tree = anknotes_browser_add_treeitem(self, tree, *item, root=root)
     return root
 
@@ -205,11 +208,11 @@ def anknotes_finder_findCards_wrap(self, query, order=False, _old=None):
     log_banner("FINDCARDS SEARCH: " + query, tmr.label, append_newline=False, clear=False)
     tokens = self._tokenize(query)
     preds, args = self._where(tokens)
-    log('Tokens: '.ljust(25) + ', '.join(tokens), tmr.label)
+    write_file_contents('Tokens: '.ljust(25) + ', '.join(tokens), tmr.label)
     if args:
-        log('Args: '.ljust(25) + ', '.join(tokens), tmr.label)
+        write_file_contents('Args: '.ljust(25) + ', '.join(tokens), tmr.label)
     if preds is None:
-        log('Preds: '.ljust(25) + '<NONE>', tmr.label)
+        write_file_contents('Preds: '.ljust(25) + '<NONE>', tmr.label)
         log_blank(tmr.label)
         return []
 
@@ -223,7 +226,7 @@ def anknotes_finder_findCards_wrap(self, query, order=False, _old=None):
         return []
     if rev:
         res.reverse()
-    log("FINDCARDS DONE: ".ljust(25) + "%-5s --> %3d results" % (tmr.str_long, len(res)), tmr.label)
+    write_file_contents("FINDCARDS DONE: ".ljust(25) + "%-5s --> %3d results" % (tmr.str_long, len(res)), tmr.label)
     log_blank(tmr.label)
     return res
     return _old(self, query, order)
@@ -237,11 +240,11 @@ def anknotes_finder_query_wrap(self, preds=None, order=None, _old=None):
     if "ank." in preds:
         sql = sql.replace("select c.id", "select distinct c.id").replace("from cards c",
                                                                          "from cards c, %s ank" % TABLES.EVERNOTE.NOTES)
-        log('Custom anknotes finder SELECT query: \n%s' % sql, 'finder\\ank-query')
+        write_file_contents('Custom anknotes finder SELECT query: \n%s' % sql, 'finder\\ank-query')
     elif TABLES.EVERNOTE.NOTES in preds:
-        log('Custom anknotes finder alternate query: \n%s' % sql, 'finder\\ank-query')
+        write_file_contents('Custom anknotes finder alternate query: \n%s' % sql, 'finder\\ank-query')
     else:
-        log("Anki finder query: %s" % sql[:100], 'finder\\query')
+        write_file_contents("Anki finder query: %s" % sql[:100], 'finder\\query')
     return sql
 
 
@@ -261,29 +264,33 @@ def reset_everything(upload=True):
 
 
 def anknotes_profile_loaded():
+    # write_file_contents('%s: anknotes_profile_loaded' % __name__, 'load')
     last_profile_dir = os.path.dirname(FILES.USER.LAST_PROFILE_LOCATION)
     if not os.path.exists(last_profile_dir):
         os.makedirs(last_profile_dir)
     with open(FILES.USER.LAST_PROFILE_LOCATION, 'w+') as myFile:
         print>> myFile, mw.pm.name,
+    # write_file_contents('%s: anknotes_profile_loaded: menu.anknotes_load_menu_settings' % __name__, 'load')
     menu.anknotes_load_menu_settings()
     if EVERNOTE.UPLOAD.VALIDATION.ENABLED and EVERNOTE.UPLOAD.VALIDATION.AUTOMATED:
+        # write_file_contents('%s: anknotes_profile_loaded: menu.upload_validated_notes' % __name__, 'load')
         menu.upload_validated_notes(True)
     if ANKNOTES.UPDATE_DB_ON_START:
+        # write_file_contents('%s: anknotes_profile_loaded: update_anknotes_nids' % __name__, 'load')
         update_anknotes_nids()
-    import_timer_toggle()
-
+    # write_file_contents('%s: anknotes_profile_loaded: import_timer_toggle' % __name__, 'load')
+    import_timer_toggle()    
     if ANKNOTES.DEVELOPER_MODE.AUTOMATED:
         '''
          For testing purposes only!
          Add a function here and it will automatically run on profile load
          You must create the files 'anknotes.developer' and 'anknotes.developer.automate' in the /extra/dev/ folder
         '''
+        # write_file_contents('%s: anknotes_profile_loaded: ANKNOTES.DEVELOPER_MODE.AUTOMATED' % __name__, 'load')
         # menu.lxml_test()
         # menu.see_also([8])
         # menu.see_also(upload=False)
-        reset_everything(False)
-        return
+        reset_everything(False)        
         # menu.see_also(set(range(0,10)) - {3,4,8})
         # ankDB().InitSeeAlso(True)
         # menu.resync_with_local_db()
@@ -311,20 +318,20 @@ def anknotes_scalar(self, *a, **kw):
         else:
             last_query = pf(last_query)
         log_text += '\n   - Last Query: ' + last_query
-    log(log_text + '\n', 'sql\\scalar')
+    write_file_contents(log_text + '\n', 'sql\\scalar')
     try:
         res = self.execute(*a, **kw)
     except TypeError as e:
-        log(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
+        write_file_contents(" > ERROR with scalar while executing query: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
         raise
     if not isinstance(res, sqlite.Cursor):
-        log(' > Cursor: %s' % pf(res), 'sql\\scalar')
+        write_file_contents(' > Cursor: %s' % pf(res), 'sql\\scalar')
     try:
         res = res.fetchone()
     except TypeError as e:
-        log(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
+        write_file_contents(" > ERROR with scalar while fetching result: %s\n >  LAST QUERY: %s" % (str(e), last_query), 'sql\\scalar', crosspost='sql\\scalar-error')
         raise
-    log_blank('sql\\scalar')
+    write_file_contents('', 'sql\\scalar')
     if res:
         return res[0]
     return None
@@ -343,23 +350,24 @@ def anknotes_execute(self, sql, *a, **kw):
     else:
         last_query = pf(last_query)
     log_text += '\n   - Query:     ' + last_query
-    log(log_text + '\n\n', 'sql\\execute')
+    write_file_contents(log_text + '\n\n', 'sql\\execute')
     self.ank_lastquery = sql
 
-def anknotes_onload():
-    addHook("profileLoaded", anknotes_profile_loaded)
-    addHook("search", anknotes_search_hook)
-    rm_log_paths('sql\\', 'finder\\')
-
-    if 'anki' in sys.modules:
-        DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
-        DB.execute = wrap(DB.execute, anknotes_execute, "before")
-    Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")
-    Finder.findCards = wrap(Finder.findCards, anknotes_finder_findCards_wrap, "around")
-    browser.Browser._systemTagTree = wrap(browser.Browser._systemTagTree, anknotes_browser_tagtree_wrap, "around")
-    menu.anknotes_setup_menu()
-    Preferences.setupOptions = wrap(Preferences.setupOptions, settings.setup_evernote)
-
+def anknotes_onload():            
+    # write_file_contents('%s: anknotes_onload' % __name__, 'load')
+    if in_anki():
+        addHook("profileLoaded", anknotes_profile_loaded)        
+        if ANKNOTES.HOOKS.DB:
+            DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
+            DB.execute = wrap(DB.execute, anknotes_execute, "before")
+        if ANKNOTES.HOOKS.SEARCH:
+            addHook("search", anknotes_search_hook)    
+            Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")
+            Finder.findCards = wrap(Finder.findCards, anknotes_finder_findCards_wrap, "around")
+            browser.Browser._systemTagTree = wrap(browser.Browser._systemTagTree, anknotes_browser_tagtree_wrap, "around")
+        # write_file_contents('%s: anknotes_onload: anknotes_setup_menu' % __name__, 'load')
+        menu.anknotes_setup_menu()
+        Preferences.setupOptions = wrap(Preferences.setupOptions, settings.setup_evernote)
+    # write_file_contents('%s: anknotes_onload: complete' % __name__, 'load')
 
 anknotes_onload()
-# log("Anki Loaded", "load")

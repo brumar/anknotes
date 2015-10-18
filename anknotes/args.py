@@ -4,7 +4,7 @@ from datetime import datetime
 
 ### Anknotes Imports
 from anknotes.constants import *
-from anknotes.base import item_to_list, caller_name, is_str_type
+from anknotes.base import item_to_list, caller_name, is_str, is_seq_type, is_dict_type
 from anknotes.dicts import DictCaseInsensitive
 
 class Args(object):
@@ -16,7 +16,7 @@ class Args(object):
     def log(self, obj, title='Args', method=None):
         if method is None:
             method = obj['method_name']
-            if title != '*':
+            if not title.startswith('*'):
                 obj = obj[title]
         if self.last_log_method != method:
             self.write_file_contents('-'*80 + '\n%s\n' % method.center(80) + '-' * 80, 'args\\main', clear=self.last_log_method is None)
@@ -68,12 +68,11 @@ class Args(object):
             func_args = self.args if self.args and allow_cls_override else []
         if not func_kwargs:
             func_kwargs = self.kwargs if self.kwargs and allow_cls_override else {}
-        if ((isinstance(func_kwargs, list) or isinstance(func_kwargs, tuple)) and
-                (isinstance(func_args, dict) or isinstance(func_args, DictCaseInsensitive))):
+        if is_seq_type(func_kwargs) and is_dict_type(func_args):
             func_args, func_kwargs = func_kwargs, func_args
         if isinstance(func_args, tuple):
             func_args = list(func_args)
-        if is_str_type(func_args):
+        if is_str(func_args):
             lst = []
             for arg in item_to_list(func_args, chrs=','):
                 lst += [arg] + [None]
@@ -139,8 +138,14 @@ class Args(object):
         keys = func_kwargs.keys()
         for key, value in set_dict.items() if set_dict else []:
             key = self.key_transform(key, keys)
+            self.log(locals(), 'key')
+            self.log(locals(), 'value')
             if key not in func_kwargs:
                 func_kwargs[key] = value
+        if set_dict:
+            self.log(set_dict.items(), 'set_dict_items', method_name)
+        if func_kwargs:
+            self.log(func_kwargs.items(), 'func_kwargs_items', method_name)
         if not get_args:
             if cls_kwargs and update_cls_args:
                 self.__func_kwargs = func_kwargs
@@ -236,7 +241,10 @@ class Args(object):
         self.log(locals(), 'lst')
         dct.update({key: None for key in item_to_list(lst, chrs=',') + new_args})
         dct.update(kwargs)
+        dct_items = dct.items()
         self.log(locals(), 'lst')
-        self.log(locals(), 'dct')
+        self.log(locals(), 'dct_items')
         self.log(locals(), 'func_kwargs')
+        processed_kwargs = self.process_kwargs(func_kwargs=func_kwargs, set_dict=dct, name=name, delete_from_kwargs=delete_from_kwargs).items()
+        self.log(locals(), 'processed_kwargs')
         return self.process_kwargs(func_kwargs=func_kwargs, set_dict=dct, name=name, delete_from_kwargs=delete_from_kwargs)

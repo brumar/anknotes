@@ -11,9 +11,9 @@ except ImportError:
 from anknotes.shared import *
 from anknotes.imports import import_lxml
 from anknotes.constants import *
-from anknotes.counters import DictCaseInsensitive
+from anknotes.base import matches_list, fmt, decode_html
+from anknotes.dicts import DictCaseInsensitive
 from anknotes.logging import show_tooltip
-from anknotes.base import matches_list, fmt
 
 # Anknotes Main Imports
 import anknotes.Controller
@@ -48,11 +48,11 @@ def create_subnotes(guids):
                     return u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names[1:])
                 def log_tag():                    
                     if not lst_items.contents:
-                        add_log_entry('NO TOP TEXT', conv_unicode(lst_items.contents), crosspost='no_top_text')
+                        add_log_entry('NO TOP TEXT', decode_html(lst_items.contents), crosspost='no_top_text')
                     if lst_items.name in list_tag_names:
                         add_log_entry('{list_name}', '{levels_pad}[{num_levels}] {levels}', prefix_content=False)
                     elif lst_items.name != 'li':
-                        add_log_entry('OTHER TAG', conv_unicode(lst_items.contents[0]) if lst_items.contents else u'N/A')
+                        add_log_entry('OTHER TAG', decode(lst_items.contents[0]) if lst_items.contents else u'N/A')
                     elif not sublist.is_subnote:
                         add_log_entry('LIST ITEM', strip_tags(u''.join(sublist.list_items), True).strip())
                     else:
@@ -67,10 +67,10 @@ def create_subnotes(guids):
                         add_log_entry('SUBNOTE', sublist.heading)
                         add_log_entry('', sublist.heading, '..\\subnotes\\process_tag', crosspost=subnote_fn)
                         add_log_entry('{levels}', '{names_padded}', subnote_shared, prefix_content=False, title_pad=13)
-                        l.go(unicode(sublist.subnote), subnote_fn) 
+                        l.go(decode_html(sublist.subnote), subnote_fn) 
 
                 def add_note(sublist, new_levels, new_names):
-                    subnote_html = unicode(sublist.subnote)
+                    subnote_html = decode_html(sublist.subnote)
                     log_fn = u'..\\subnotes\\add_note*\\' + get_log_fn()
                     add_log_entry('SUBNOTE', '{levels_str} {names}: \n%s\n' % subnote_html, '..\\subnotes\\add_note', crosspost=log_fn, prefix_content=False)
                     myNotes.append([new_levels, new_names, subnote_html])                
@@ -89,9 +89,9 @@ def create_subnotes(guids):
 
                         #Begin check_subnote()
                         if not (isinstance(li, Tag) and (li.name in list_tag_names) and li.contents and li.contents[0]):
-                            sublist.list_items.append(unicode(li))
+                            sublist.list_items.append(decode_html(li))
                             return sublist
-                        sublist.heading = strip_tags(unicode(''.join(sublist.list_items)), True).strip()
+                        sublist.heading = strip_tags(decode_html(''.join(sublist.list_items)), True).strip()
                         sublist.base_title = u': '.join(names).replace(title + ': ', '')
                         sublist.is_reversible = not matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) 
                         check_heading_flags()
@@ -139,7 +139,7 @@ def create_subnotes(guids):
                 if isinstance(lst_items, Tag):
                     process_tag()
                 elif isinstance(lst_items, NavigableString):
-                    add_log_entry('NAV STRING', unicode(lst_items).strip(), crosspost=['nav_strings', '*\\..\\..\\nav_strings'])
+                    add_log_entry('NAV STRING', decode_html(lst_items).strip(), crosspost=['nav_strings', '*\\..\\..\\nav_strings'])
                 else:
                     add_log_entry('LST ITEMS', lst_items.__class__.__name__, crosspost=['unexpected-type', '*\\..\\..\\unexpected-type'])
 
@@ -160,7 +160,7 @@ def create_subnotes(guids):
         l.banner(title, crosspost='strings')
         create_subnote.logged_subnote = False
         process_lists(note, [lists])
-        l.go(unicode(lists), 'lists', clear=True)
+        l.go(decode_html(lists), 'lists', clear=True)
         l.go(soup.prettify(), 'full', clear=True)
 
     #Begin create_subnotes()

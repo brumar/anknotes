@@ -44,7 +44,7 @@ class Controller:
         self.forceAutoPage = False
         self.auto_page_callback = None
         self.anki = Anki()
-        self.anki.deck = mw.col.conf.get(SETTINGS.ANKI.DECKS.BASE, SETTINGS.ANKI.DECKS.BASE_DEFAULT_VALUE)
+        self.anki.deck = SETTINGS.ANKI.DECKS.BASE.fetch()
         self.anki.setup_ancillary_files()
         ankDB().Init()
         self.anki.add_evernote_models()
