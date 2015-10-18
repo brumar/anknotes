@@ -91,7 +91,7 @@ class Anki:
         action_str = ['Adding', 'Updating'][update]
         action_preposition = ['To', 'In'][update]
         info = stopwatch.ActionInfo(action_str + ' Of', 'Evernote Notes', action_preposition + ' Anki', report_if_empty=False)
-        tmr = stopwatch.Timer(evernote_notes, 10, info=info, 
+        tmr = stopwatch.Timer(evernote_notes, 10, info=info,
                               label='Add\\Anki-%sEvernoteNotes' % action_str_base)
 
         for ankiNote in evernote_notes:

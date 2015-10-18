@@ -294,11 +294,11 @@ class Timer(object):
         return len(self.__times)
 
     @property
-    def max(self): 
+    def max(self):
         return self.counts.max
 
     @max.setter
-    def max(self, value): 
+    def max(self, value):
         self.counts.max = value
         if self.counts.max_allowed < 1:
             self.counts.max_allowed = value

@@ -64,7 +64,7 @@ class ANKNOTES():
     DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     CACHE_SEARCHES = False
     UPDATE_DB_ON_START = False
-    
+
     class HOOKS():
         DB = True
         SEARCH = True

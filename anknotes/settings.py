@@ -40,12 +40,12 @@ class EvernoteQueryLocationValueQSpinBox(QSpinBox):
         return text[len(self.prefix()) + 1:]
 
     def textFromValue(self, value):
-        return self.prefix() + ("-%d" % value if value else "") 
+        return self.prefix() + ("-%d" % value if value else "")
 
 def get_conf(setting, default_value):
-    
+
     return mw.col.conf.get(setting, default_value)
-        
+
 def setup_evernote(self):
     global icoEvernoteWeb
     global imgEvernoteWeb
@@ -55,11 +55,11 @@ def setup_evernote(self):
 
     def update_checkbox(setting):
         if setting is DECKS.EVERNOTE_NOTEBOOK_INTEGRATION and not elements[DECKS.BASE].text():
-            return        
+            return
         if setting.get.startswith(QUERY.get):
             update_evernote_query_visibilities()
         setting.save(elements[setting].isChecked())
-        # mw.col.conf[setting] = 
+        # mw.col.conf[setting] =
         if setting is QUERY.USE_TAGS:
             update_evernote_query_visibilities()
         if setting is QUERY.LAST_UPDATED.USE:
@@ -165,7 +165,7 @@ def setup_evernote(self):
     # Add Form Rows for Evernote Query Textboxes
     for el in QUERY_TEXTBOXES:
         add_query_row(el, 'TAGS' in el)
-    
+
     ################### QUERY: LAST UPDATED ###################
     # Evernote Query: Last Updated Type
     evernote_query_last_updated.type = QComboBox()
@@ -175,7 +175,7 @@ def setup_evernote(self):
     evernote_query_last_updated.type.setCurrentIndex(QUERY.LAST_UPDATED.TYPE.fetch(EvernoteQueryLocationType.RelativeDay))
     evernote_query_last_updated.type.activated.connect(update_evernote_query_last_updated_type)
 
-    
+
     # Evernote Query: Last Updated Type: Relative Date
     evernote_query_last_updated.value.relative.spinner = EvernoteQueryLocationValueQSpinBox()
     evernote_query_last_updated.value.relative.spinner.setVisible(False)
@@ -343,7 +343,7 @@ def setup_evernote(self):
     ######################### UPDATE VISIBILITIES #######################
     # Update Visibilities of Anki Deck Options
     update_anki_deck_visibilities()
-    
+
     # Update Visibilities of Query Options
     evernote_query_text_changed()
     update_evernote_query_visibilities()
@@ -380,9 +380,9 @@ def update_update_existing_notes(index):
 
 
 def evernote_query_text_changed():
-    for key in QUERY_TEXTBOXES:        
+    for key in QUERY_TEXTBOXES:
         setting_use = getattr(QUERY, 'USE_' + key)
-        el_use = elements[setting_use]        
+        el_use = elements[setting_use]
         is_enabled = is_checked = bool(elements[getattr(QUERY, key)].text())
         if is_checked:
             is_checked = setting_use.fetch(True)
@@ -427,7 +427,7 @@ def evernote_query_last_updated_value_set_visibilities():
         v.relative.spinner.setEnabled(use_last_updated)
         if not use_last_updated:
             return
-        
+
         absolute_date = LUV.ABSOLUTE.DATE.fetch()
         absolute_date = QDate().fromString(absolute_date, 'yyyy MM dd')
         if index < EvernoteQueryLocationType.AbsoluteDate:
@@ -485,7 +485,7 @@ def generate_evernote_query():
                 tag = '"%s"' % tag
             pred += prefix + 'tag:%s ' % tag
         return pred
-            
+
     # Begin generate_evernote_query()
     query = ""
     if QUERY.USE_NOTEBOOK.fetch(False):

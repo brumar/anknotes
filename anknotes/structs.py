@@ -543,7 +543,7 @@ class EvernoteImportProgress:
         class Server:
             All = None
             New = None
-            
+
             class Existing:
                 All = None
                 UpToDate = None
@@ -561,7 +561,7 @@ class EvernoteImportProgress:
             if not anki_note_ids:
                 anki_note_ids = self._anki_note_ids_ or self.Anki.get_anknotes_note_ids()
             self.Local = self.Anki.get_evernote_guids_from_anki_note_ids(anki_note_ids)
-        
+
         def loadNew(self, server_evernote_guids=None):
             if server_evernote_guids:
                 self.Server.All = server_evernote_guids
@@ -691,7 +691,7 @@ class EvernoteImportProgress:
         """
         if not anki:
             return
-        self.GUIDs = self._GUIDs(anki, anki_note_ids)        
+        self.GUIDs = self._GUIDs(anki, anki_note_ids)
         if metadataProgress:
             server_evernote_guids = metadataProgress.Guids
         if server_evernote_guids:

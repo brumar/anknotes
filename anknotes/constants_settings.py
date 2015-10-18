@@ -1,4 +1,4 @@
-#Python Imports 
+#Python Imports
 from datetime import datetime, timedelta
 
 
@@ -27,6 +27,5 @@ with SETTINGS as s:
         a.UPDATE_EXISTING_NOTES = UpdateExistingNotes.UpdateNotesInPlace
         d.BASE = DECKS.DEFAULT
         d.EVERNOTE_NOTEBOOK_INTEGRATION = True
-        t.KEEP_TAGS = True    
+        t.KEEP_TAGS = True
         t.DELETE_EVERNOTE_QUERY_TAGS = False
-        

@@ -10,7 +10,7 @@ from anknotes.constants_standard import FILES, FOLDERS, ANKNOTES
 from anknotes.base import encode, item_to_list
 
 def write_file_contents(content, full_path, clear=False, try_encode=True, do_print=False, print_timestamp=True,
-                        print_content=None, wfc_timestamp=True, wfc_crosspost=None, get_log_full_path=None, **kwargs):        
+                        print_content=None, wfc_timestamp=True, wfc_crosspost=None, get_log_full_path=None, **kwargs):
     all_args = locals()
     if wfc_crosspost:
         del all_args['kwargs'], all_args['wfc_crosspost'], all_args['content'], all_args['full_path']
@@ -39,15 +39,15 @@ def write_file_contents(content, full_path, clear=False, try_encode=True, do_pri
             print>> fileLog, content
     if do_print:
         print content if print_timestamp or not print_content else print_content
-        
+
 def filter_logs(filename):
     def do_filter(x): return fnmatch(filename, x)
-    return (filter(do_filter, item_to_list(FILES.LOGS.ENABLED)) and not 
+    return (filter(do_filter, item_to_list(FILES.LOGS.ENABLED)) and not
             filter(do_filter, item_to_list(FILES.LOGS.DISABLED)))
-        
+
 def reset_logs(folder='', banner='', clear=True, *a, **kw):
     absolutely_unused_variable = os.system("cls")
-    keep = ['anknotes', 'api', 'automation']    
+    keep = ['anknotes', 'api', 'automation']
     folder = os.path.join(FOLDERS.LOGS, folder)
     logs = os.listdir(folder)
     for fn in logs:
@@ -63,17 +63,17 @@ def reset_logs(folder='', banner='', clear=True, *a, **kw):
                 os.unlink(full_path)
         else:
             rm_log_path(fn)
-            
+
 def rm_log_path(filename='*', subfolders_only=False, retry_errors=0, get_log_full_path=None, *args, **kwargs):
     def del_subfolder(arg=None, dirname=None, filenames=None, is_subfolder=True):
         def rmtree_error(f, p, e):
             rm_log_path.errors += [p]
-        
+
         # Begin del_subfolder
         if is_subfolder and dirname is path:
             return
-        shutil.rmtree(dirname, onerror=rmtree_error)    
-    
+        shutil.rmtree(dirname, onerror=rmtree_error)
+
     # Begin rm_log_path
     if callable(get_log_full_path):
         path = get_log_full_path(filename, filter_disabled=False)
@@ -98,5 +98,4 @@ def rm_log_path(filename='*', subfolders_only=False, retry_errors=0, get_log_ful
             write_file_contents("Unable to delete log path as requested", filename)
             return
         time.sleep(1)
-        rm_log_path(filename, subfolders_only, retry_errors + 1)    
-        
+        rm_log_path(filename, subfolders_only, retry_errors + 1)

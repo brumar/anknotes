@@ -31,35 +31,35 @@ class SafeDict(defaultdict):
 
     def __missing__(self, key):
         return '{' + key + '}'
-    
+
 def decode(str_, is_html=False, errors='strict'):
     if isinstance(str_, unicode):
-        return str_ 
+        return str_
     if isinstance(str_, str):
         return UnicodeDammit(str_, ['utf-8'], is_html=is_html).unicode_markup
-    return unicode(str_, 'utf-8', errors)    
-    
+    return unicode(str_, 'utf-8', errors)
+
 def decode_html(str_):
-    return decode(str_, True)        
-    
+    return decode(str_, True)
+
 def encode(str_):
     if isinstance(str_, unicode):
         return str_.encode('utf-8')
-    return str_    
-    
+    return str_
+
 def is_str(str_):
     return str_ and is_str_type(str_)
-    
+
 def is_str_type(str_):
     return isinstance(str_, (str, unicode))
-    
+
 def is_seq_type(*a):
     for item in a:
         if not isinstance(item, (list, tuple)):
             return False
     return True
-    
-def is_dict_type(*a):    
+
+def is_dict_type(*a):
     for item in a:
         if not isinstance(item, dict) or hasattr(item, '__dict__'):
             return False
@@ -70,11 +70,11 @@ def call(func, *a, **kw):
         return func
     spec=inspect.getargspec(func)
     if not spec.varargs:
-        a = a[:len(spec.args)]            
+        a = a[:len(spec.args)]
     if not spec.keywords:
         kw = {key:value for key, value in kw.items() if key in spec.args}
-    return func(*a, **kw)        
-    
+    return func(*a, **kw)
+
 def fmt(str_, recursion=None, *a, **kw):
     """
     :type str_: str | unicode
@@ -98,7 +98,7 @@ def pad_digits(*a, **kw):
     if len(conv) is 1:
         return conv[0]
     return conv
-    
+
 def str_safe(str_, prefix=''):
     repr_ = str_.__repr__()
     try:
@@ -117,11 +117,11 @@ def str_split_case(str_, ignore_underscore=False):
             word = ''
         word += chr
     return words + [word]
-    
+
 def str_capitalize(str_, phrase_delimiter='.', word_delimiter='_'):
     phrases = str_.split(phrase_delimiter)
     return ''.join(''.join([word.capitalize() for word in phrase.split(word_delimiter)]) for phrase in phrases)
-    
+
 def in_delimited_str(key, str_, chr='|', case_insensitive=True):
     if case_insensitive:
         key = key.lower()
@@ -166,7 +166,7 @@ def matches_list(item, lst):
         if fnmatch(item, value) or fnmatch(item + 's', value):
             return index + 1
     return 0
-    
+
 def get_default_value(cls, default=None):
     if default is not None:
         return default
@@ -177,21 +177,21 @@ def get_default_value(cls, default=None):
     elif cls is bool:
         return False
     return None
-    
+
 def key_transform(mapping, key, all=False):
     key_lower = key.lower()
     match = [k for k in (mapping if isinstance(mapping, Iterable) and not all else dir(mapping)) if k.lower() == key_lower]
     return match and match[0] or key
-    
+
 def delete_keys(mapping, keys_to_delete):
     if not isinstance(keys_to_delete, list):
         keys_to_delete = item_to_list(keys_to_delete, chrs=' *,')
     for key in keys_to_delete:
         key = key_transform(mapping, key)
         if key in mapping:
-            del mapping[key]    
+            del mapping[key]
 
-def ank_prop(self, keys, fget=None, fset=None, fdel=None, doc=None):        
+def ank_prop(self, keys, fget=None, fset=None, fdel=None, doc=None):
     for key in list(keys):
         all_args=locals()
         args = {}
@@ -199,7 +199,7 @@ def ank_prop(self, keys, fget=None, fset=None, fdel=None, doc=None):
             property_ = getattr(self.__class__, key)
         except AttributeError:
             property_ = property()
-        
+
         for v in ['fget', 'fset', 'fdel']:
             args[v] = all_args[v]
             if not args[v]:
@@ -207,11 +207,11 @@ def ank_prop(self, keys, fget=None, fset=None, fdel=None, doc=None):
             if is_str(args[v]):
                 args[v] = getattr(self.__class__, args[v])
             if isinstance(args[v], property):
-                args[v] = getattr(args[v], v)                
+                args[v] = getattr(args[v], v)
         if not doc:
             doc = property_.__doc__
         if not doc:
-            doc = fget.__doc__            
+            doc = fget.__doc__
         args['doc'] = doc
         property_ = property(**args)
         setattr(self.__class__, key, property_)

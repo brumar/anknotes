@@ -11,13 +11,13 @@ class DictCaseInsensitive(DictAnk):
         mro = self._get_arg_(a, int, 'mro', kw)
         # self.log_init('DCI', mro, a, kw)
         super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
-            
+
     def _key_transform_(self, key, keys=None, all=False, attrs=False):
         mapping = keys or self
         if attrs:
-            mapping, all = dir(mapping.__class__), False            
+            mapping, all = dir(mapping.__class__), False
         return key_transform(mapping, key, all=all)
-        
+
 class DictNumeric(DictCaseInsensitive):
     _default_value_ = 0
     def __init__(self, *a, **kw):
@@ -27,19 +27,19 @@ class DictNumeric(DictCaseInsensitive):
         cls_mro = cls.mro()[mro]
         # self.log_init('DNum', mro, a, kw)
         super(cls_mro, self).__init__(mro+1, *a, **kw)
-        
+
     def _convert_(self, val=None):
         def _check_(val):
             return val if isinstance(val, (int, long, float)) else None
         value = val is not None
-        if not value: 
+        if not value:
             val = self
         if _check_(val):
-            return val        
-        if isinstance(val, (DictNumeric)):            
+            return val
+        if isinstance(val, (DictNumeric)):
             return _check_(value and val.getDefault() or val.getDefaultAttr()) or _check_(val.getValueAttr()) or self._default_value_
         return self._default_value_
-        
+
     @property
     def sum(self):
         def_val = self._convert_()
@@ -50,35 +50,35 @@ class DictNumeric(DictCaseInsensitive):
         if sum == int(sum):
             return int(sum)
         return sum
-        
+
     def increment(self, val=1, negate=False, **kwargs):
         new_count = self.__add__(val, negate, True)
         self.setDefault(new_count)
         return self
 
-    step = increment        
+    step = increment
     def __bool__(self): return self.__simplify__() > 0
     def __div__(self, y): return self.__simplify__() / y
     def __rdiv__(self, y): return 1 / self.__div__(y)
     __truediv__ = __div__
-    
-    def __mul__(self, y): return y * self.__simplify__()       
-    __rmul__ = __mul__
-    
-    def __add__(self, y, negate=False, increment=False): return self.__simplify__(increment) + y * (-1 if negate else 1) 
-    def __sub__ (self, y): return self.__add__(y, True)        
-    def __rsub__ (self, y): return self.__sub__(y) * -1
-    def __isub__ (self, y): return self.increment(y, True)        
-        
-    default_override = sum        
 
-        
+    def __mul__(self, y): return y * self.__simplify__()
+    __rmul__ = __mul__
+
+    def __add__(self, y, negate=False, increment=False): return self.__simplify__(increment) + y * (-1 if negate else 1)
+    def __sub__ (self, y): return self.__add__(y, True)
+    def __rsub__ (self, y): return self.__sub__(y) * -1
+    def __isub__ (self, y): return self.increment(y, True)
+
+    default_override = sum
+
+
 class DictString(DictCaseInsensitive):
-    _default_ = '_label_name_'    
+    _default_ = '_label_name_'
     _default_value_ = ''
-    _value_ = ''        
-    
-    def __init__(self, *a, **kw):        
+    _value_ = ''
+
+    def __init__(self, *a, **kw):
         a = list(a)
         mro = self._get_arg_(a, int, 'mro', kw)
         cls = self.__class__
@@ -88,26 +88,26 @@ class DictString(DictCaseInsensitive):
         super(cls_mro, self).__init__(mro+1, *a, **kw)
         cls_mro.setSecondary = cls_mro.setValueAttr
         cls_mro.getSecondary = cls_mro.getValueAttr
-    
+
     def getDefault(self):
         lbl = str_capitalize(self.label.full)
         return lbl[:1].lower() + lbl[1:]
-        
+
 class DictSettings(DictString):
     _cls_missing_attrs_ = True
-    def __init__(self, *a, **kw):        
+    def __init__(self, *a, **kw):
         a = list(a)
         mro = self._get_arg_(a, int, 'mro', kw)
         # self.log_init('DSET', mro, a, kw)
         super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
-    
+
     @property
     def mw(self):
         global mw
         if mw is None and in_anki():
             from aqt import mw
         return mw
-    
+
     def fetch(self, default=''):
         mw = self.mw
         if not mw:
@@ -116,10 +116,10 @@ class DictSettings(DictString):
         if default_value is None:
             default_value = default
         return mw.col.conf.get(self.getDefault(), default_value)
-    
+
     def save(self, value):
         mw = self.mw
-        if not mw:            
+        if not mw:
             raise Exception("Attempted to save from DictSettings without mw instance")
         mw.col.conf[self.getDefault()] = value
         mw.col.setMod()

@@ -26,7 +26,7 @@ from aqt.utils import getText
 
 def create_subnotes(guids):
     def create_subnote(guid):
-        def process_lists(note, lst, levels=None, names=None):                            
+        def process_lists(note, lst, levels=None, names=None):
             def add_log_entry(title, content, filename=None, prefix_content=True, title_pad=16, **kw):
                 names_padded = u''.join(map(lambda x: (x+':').ljust(33) + ' ', names[1:-1])) + names[-1]
                 fmts = dict(levels_pad=u'\t' * level, levels=u'.'.join(map(str, levels)),
@@ -46,7 +46,7 @@ def create_subnotes(guids):
             def process_tag():
                 def get_log_fn():
                     return u'.'.join(map(str, levels)) + u' - ' + u'-'.join(names[1:])
-                def log_tag():                    
+                def log_tag():
                     if not lst_items.contents:
                         add_log_entry('NO TOP TEXT', decode_html(lst_items.contents), crosspost='no_top_text')
                     if lst_items.name in list_tag_names:
@@ -67,14 +67,14 @@ def create_subnotes(guids):
                         add_log_entry('SUBNOTE', sublist.heading)
                         add_log_entry('', sublist.heading, '..\\subnotes\\process_tag', crosspost=subnote_fn)
                         add_log_entry('{levels}', '{names_padded}', subnote_shared, prefix_content=False, title_pad=13)
-                        l.go(decode_html(sublist.subnote), subnote_fn) 
+                        l.go(decode_html(sublist.subnote), subnote_fn)
 
                 def add_note(sublist, new_levels, new_names):
                     subnote_html = decode_html(sublist.subnote)
                     log_fn = u'..\\subnotes\\add_note*\\' + get_log_fn()
                     add_log_entry('SUBNOTE', '{levels_str} {names}: \n%s\n' % subnote_html, '..\\subnotes\\add_note', crosspost=log_fn, prefix_content=False)
-                    myNotes.append([new_levels, new_names, subnote_html])                
-                
+                    myNotes.append([new_levels, new_names, subnote_html])
+
                 def process_list_item(contents):
                     def check_subnote(li, sublist):
                         def check_heading_flags():
@@ -93,7 +93,7 @@ def create_subnotes(guids):
                             return sublist
                         sublist.heading = strip_tags(decode_html(''.join(sublist.list_items)), True).strip()
                         sublist.base_title = u': '.join(names).replace(title + ': ', '')
-                        sublist.is_reversible = not matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE) 
+                        sublist.is_reversible = not matches_list(sublist.heading, HEADINGS.NOT_REVERSIBLE)
                         check_heading_flags()
                         if "`" in sublist.heading_flags:
                             sublist.is_reversible = not sublist.is_reversible
@@ -102,17 +102,17 @@ def create_subnotes(guids):
                         if not sublist.is_subnote:
                             return sublist
                         sublist.subnote = li
-                        return sublist                    
-                    
+                        return sublist
+
                     # Begin process_list_item()
                     sublist = DictCaseInsensitive(is_subnote=False, list_items=[])
                     for li in contents:
                         sublist = check_subnote(li, sublist)
                         if sublist.is_subnote:
                             break
-                    return sublist                        
-                
-                # Begin process_tag()                
+                    return sublist
+
+                # Begin process_tag()
                 new_levels = levels[:]
                 new_names = names[:]
                 if lst_items.name in list_tag_names:
@@ -120,8 +120,8 @@ def create_subnotes(guids):
                     new_names.append('CHILD ' + lst_items.name.upper())
                 elif lst_items.name == 'li':
                     levels[-1] = new_levels[-1] = levels[-1] + 1
-                    sublist = process_list_item(lst_items.contents)                    
-                    if sublist.is_subnote:                        
+                    sublist = process_list_item(lst_items.contents)
+                    if sublist.is_subnote:
                         names[-1] = new_names[-1] = sublist.heading
                         add_note(sublist, new_levels, new_names)
                     else:

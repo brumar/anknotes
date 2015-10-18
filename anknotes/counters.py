@@ -7,26 +7,26 @@ from anknotes.dicts_base import DictKey
 
 class Counter(DictNumeric):
     _override_default_ = False
-    _default_ = '_count_'    
+    _default_ = '_count_'
     _count_ = 0
     _my_aggregates_ = 'max|max_allowed'
     _my_attrs_ = '_count_'
-    
-    def __init__(self, *a, **kw):        
-        a = list(a)        
+
+    def __init__(self, *a, **kw):
+        a = list(a)
         mro = self._get_arg_(a, int, 'mro', kw)
         cls = self.__class__
         # # self.log_init('Cnt', mro, a, kw)
         super(cls.mro()[mro], self).__init__(mro+1, *a, **kw)
         self.prop(['count', 'cnt'], 'default')
         self.__class__.default_override = self.__class__.sum
-        
+
     def setCount(self, value):
         self._count_ = value
-        
+
     def getCount(self):
         return self._count_
-    
+
     def getDefault(self, allow_override=True):
         if allow_override and self._override_default_:
             return self.default_override
@@ -36,13 +36,13 @@ class Counter(DictNumeric):
 class EvernoteCounter(Counter):
     _mro_offset_ = 1
     _default_override_ = True
-    
+
     def __init__(self, *a, **kw):
         a = list(a)
         mro = self._get_arg_(a, int, 'mro', kw)
         # # self.log_init('ENCnt', mro, a, kw)
         super(self.__class__.mro()[mro], self).__init__(mro+1, *a, **kw)
-        
+
     @property
     def success(self):
         return self.created + self.updated
@@ -99,5 +99,4 @@ class EvernoteCounter(Counter):
              self.__repr__(),
              ' ',
              self.make_banner(title + ": Aggregates"),
-             self.aggregateSummary(False)]
- 
+             self.aggregateSummary(False)])

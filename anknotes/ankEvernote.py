@@ -301,7 +301,7 @@ class Evernote(object):
                 ourNote.notebookGuid = parentNotebook.guid
             elif hasattr(parentNotebook, 'Guid'):
                 ourNote.notebookGuid = parentNotebook.Guid
-            elif is_str(parentNotebook): 
+            elif is_str(parentNotebook):
                 ourNote.notebookGuid = parentNotebook
 
         ## Attempt to create note in Evernote account

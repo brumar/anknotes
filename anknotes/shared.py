@@ -89,7 +89,7 @@ def check_evernote_guid_is_valid(guid):
     return ankDB().exists(where="guid = '%s'" % guid)
 
 
-def escape_regex(str_): 
+def escape_regex(str_):
     return re.sub(r"(?sx)(\(|\||\))", r"\\\1", str_)
 
 

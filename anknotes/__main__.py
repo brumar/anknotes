@@ -11,7 +11,7 @@ except ImportError:
     from sqlite3 import dbapi2 as sqlite
     is_pysqlite = False
 
-    
+
 ### Anknotes Shared Imports
 from anknotes.imports import in_anki
 from anknotes.shared import *
@@ -279,7 +279,7 @@ def anknotes_profile_loaded():
         # write_file_contents('%s: anknotes_profile_loaded: update_anknotes_nids' % __name__, 'load')
         update_anknotes_nids()
     # write_file_contents('%s: anknotes_profile_loaded: import_timer_toggle' % __name__, 'load')
-    import_timer_toggle()    
+    import_timer_toggle()
     if ANKNOTES.DEVELOPER_MODE.AUTOMATED:
         '''
          For testing purposes only!
@@ -290,7 +290,7 @@ def anknotes_profile_loaded():
         # menu.lxml_test()
         # menu.see_also([8])
         # menu.see_also(upload=False)
-        reset_everything(False)        
+        reset_everything(False)
         # menu.see_also(set(range(0,10)) - {3,4,8})
         # ankDB().InitSeeAlso(True)
         # menu.resync_with_local_db()
@@ -353,15 +353,15 @@ def anknotes_execute(self, sql, *a, **kw):
     write_file_contents(log_text + '\n\n', 'sql\\execute')
     self.ank_lastquery = sql
 
-def anknotes_onload():            
+def anknotes_onload():
     # write_file_contents('%s: anknotes_onload' % __name__, 'load')
     if in_anki():
-        addHook("profileLoaded", anknotes_profile_loaded)        
+        addHook("profileLoaded", anknotes_profile_loaded)
         if ANKNOTES.HOOKS.DB:
             DB.scalar = anknotes_scalar # wrap(DB.scalar, anknotes_scalar, "before")
             DB.execute = wrap(DB.execute, anknotes_execute, "before")
         if ANKNOTES.HOOKS.SEARCH:
-            addHook("search", anknotes_search_hook)    
+            addHook("search", anknotes_search_hook)
             Finder._query = wrap(Finder._query, anknotes_finder_query_wrap, "around")
             Finder.findCards = wrap(Finder.findCards, anknotes_finder_findCards_wrap, "around")
             browser.Browser._systemTagTree = wrap(browser.Browser._systemTagTree, anknotes_browser_tagtree_wrap, "around")

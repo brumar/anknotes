@@ -96,10 +96,10 @@ class Dict(dict):
         if item not in self and item in dir(self):
             return super(Dict, self).__getattr__(item)
         return self.__getitem__(item)
-        
+
     def _new_instance_(self, *a, **kw):
         return (self.__class__.mro()[self._mro_offset_] if '_mro_offset_' in dir(self.__class__) else self.__class__)(*a, **kw)
-        
+
     def __getitem__(self, name):
         """
         This is called when the Dict is accessed by []. E.g.
@@ -117,7 +117,7 @@ class Dict(dict):
         del self[name]
 
     _re_pattern = re.compile('[a-zA-Z_][a-zA-Z0-9_]*')
-    
+
     def log(self, str_, method, do_print=True, prefix=''):
         cls = self.__class__
         str_lbl = self.label.full if self.label else ''
@@ -126,7 +126,7 @@ class Dict(dict):
         str_ = prefix + '%17s %-20s %s' % ('<%s>' % cls.__name__, str_lbl, str_)
         if do_print:
             print str_
-        write_file_contents(str_, 'Dicts\\%s\\%s' % (cls.__name__, method))  
+        write_file_contents(str_, 'Dicts\\%s\\%s' % (cls.__name__, method))
 
     def log_action(self, method, action, name, value, key=None, via=None, extra='', log_self=False):
         if key in ['_my_attrs_','_override_default_']:
@@ -141,10 +141,10 @@ class Dict(dict):
         log_str += 'to %10s%s %s' % (extra, type, str(value))
         if log_self:
             log_str += ' \n\n Self:  ' + repr(self)
-        self.log(log_str, method); 
-    
+        self.log(log_str, method);
+
     def log_init(self, type, mro, a, kw):
-        cls = self.__class__        
+        cls = self.__class__
         mro_name = cls.mro()[mro].__name__
         mro_name = (':' + mro_name) if mro_name != cls.__name__ and mro_name != type else ''
         log_str =  "Init: %s%s #%d" % (type, mro_name, mro)
@@ -155,7 +155,7 @@ class Dict(dict):
     def clear_logs(self):
         name=self.__class__.__name__
         reset_logs('Dicts' + os.path.sep + name, self.make_banner(name))
-    
+
     @staticmethod
     def get_default_value(cls, default=None):
         if default is not None:
@@ -166,8 +166,8 @@ class Dict(dict):
             return 0
         elif cls is bool:
             return False
-        return None    
-    
+        return None
+
     def _get_arg_(self, a, cls=None, key=None, kw=None, default=None):
         if cls is None:
             cls = (str, unicode)
@@ -179,26 +179,26 @@ class Dict(dict):
             del kw[key]
         else:
             val = self.get_default_value(cls, default)
-        return val        
+        return val
 
     def _key_transform_(self, key, keys=None, all=False, attrs=False):
         return key
-        
+
     def _key_transform_all_(self, key, keys=None):
         return self._key_transform_(key, keys, all=True)
-        
+
     def _key_transform_attrs_(self, key, keys=None):
         return self._key_transform_(key, keys, attrs=True)
 
     def __contains__(self, item):
         key = self._key_transform_(item)
         return key in self._dict_keys_()
-    
+
     def _is_obj_attr_(self, key):
         keys = self._obj_attrs_()
         key = self._key_transform_(key, keys)
         return key in keys
-    
+
     def _dict_keys_(self):
         dict_keys = []
         for k in self.keys():
@@ -207,10 +207,10 @@ class Dict(dict):
                 if m:
                     dict_keys.append(m.string)
         return dict_keys
-        
+
     def _obj_attrs_(self):
         return list(dir(self.__class__))
-    
+
     def __dir__(self):
         """
         Return a list of addict object attributes.
@@ -219,7 +219,7 @@ class Dict(dict):
         letter or underscore).  Also includes attributes of parent dict class.
         """
         return self._dict_keys_() + self._obj_attrs_()
-    
+
     def _ipython_display_(self):
         print(str(self))  # pragma: no cover
 

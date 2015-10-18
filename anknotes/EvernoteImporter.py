@@ -54,7 +54,7 @@ class EvernoteImporter:
         return (self.ManualGUIDs is not None and len(self.ManualGUIDs) > 0)
 
     def __init(self):
-        self.updateExistingNotes = SETTINGS.ANKI.UPDATE_EXISTING_NOTES.fetch(UpdateExistingNotes.UpdateNotesInPlace)                                                   
+        self.updateExistingNotes = SETTINGS.ANKI.UPDATE_EXISTING_NOTES.fetch(UpdateExistingNotes.UpdateNotesInPlace)
         self.ManualGUIDs = None
 
     def override_evernote_metadata(self):
@@ -182,7 +182,7 @@ class EvernoteImporter:
         SETTINGS.EVERNOTE.LAST_IMPORT.save(datetime.now().strftime(ANKNOTES.DATE_FORMAT))
         lastImportStr = get_friendly_interval_string(lastImport)
         if lastImportStr:
-            lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr        
+            lastImportStr = ' [LAST IMPORT: %s]' % lastImportStr
         log_str = "  > Starting Evernote Import:           Page %3s                     Query: %s" % (
                   '#' + str(self.currentPage), settings.generate_evernote_query())
         log_banner(log_str.ljust(ANKNOTES.FORMATTING.TEXT_LENGTH-len(lastImportStr)) + lastImportStr, append_newline=False,

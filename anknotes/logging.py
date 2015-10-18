@@ -457,8 +457,8 @@ def log_sql(content, a=None, kw=None, self=None, sql_fn_prefix='', **kwargs):
     else:
         for stmt in ' WHERE , VALUES '.split(','):
             i = table.find(stmt)
-            if i > -1: 
-                table = table[:i]    
+            if i > -1:
+                table = table[:i]
         found = (-1, None)
         for stmt in ' FROM , INTO , UPDATE , TABLE '.split(','):
             i = table.find(stmt)
@@ -466,7 +466,7 @@ def log_sql(content, a=None, kw=None, self=None, sql_fn_prefix='', **kwargs):
                 continue
             if i > found[0] > -1:
                 continue
-            found = (i, stmt)        
+            found = (i, stmt)
         if found[0] > -1:
             table = table[found[0] + len(found[1]):].strip()
         if ' ' in table:

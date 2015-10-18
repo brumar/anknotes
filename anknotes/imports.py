@@ -8,7 +8,7 @@ etree = None
 
 def in_anki():
     return 'anki' in sys.modules
-    
+
 def import_module(name, path=None, sublevels=2, path_suffix=''):
     print "Import " + str(path) + " Level " + str(sublevels)
     if path is None:

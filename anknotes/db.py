@@ -7,7 +7,7 @@ try:
     from pysqlite2 import dbapi2 as sqlite
 except ImportError:
     from sqlite3 import dbapi2 as sqlite
-    
+
 ### For PyCharm code completion
 # from anknotes import _sqlite3
 
@@ -23,7 +23,7 @@ from anknotes.imports import in_anki
 if in_anki():
     from aqt import mw
     from anki.utils import ids2str, splitFields
-    
+
 ankNotesDBInstance = None
 dbLocal = False
 
@@ -422,14 +422,14 @@ class ank_DB(object):
             if key in kw:
                 del kw[key]
         return sql
-        
+
     def _create_query_(self, sql, **kw):
         if not self._is_stmt_(sql, 'select'):
             sql = 'SELECT {columns} FROM {t} WHERE ' + sql
         sql = self._fmt_query_(sql, **kw)
         if 'order' in kw and 'order by' not in sql.lower():
             sql += ' ORDER BY ' + kw['order']
-            del kw['order']        
+            del kw['order']
         return sql
 
     def executemany(self, sql, data, **kw):
@@ -583,4 +583,3 @@ class ank_DB(object):
             self.InitTags(force)
         if table == '*' or table == TABLES.EVERNOTE.NOTEBOOKS:
             self.InitNotebooks(force)
-            

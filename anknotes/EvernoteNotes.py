@@ -107,7 +107,7 @@ class EvernoteNotes:
             self.addDBNote(dbNote)
 
     def addDbQuery(self, sql_query, order=''):
-        if not sql_query: 
+        if not sql_query:
             sql_query = '1'
         if self.baseQuery and self.baseQuery != '1':
             if sql_query == '1':
