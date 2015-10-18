@@ -24,6 +24,8 @@ def write_file_contents(content, full_path, clear=False, try_encode=True, do_pri
             if full_path is False:
                 return
         else:
+            if not filter_logs(full_path):
+                return
             full_path = os.path.abspath(os.path.join(FOLDERS.LOGS, full_path + '.log'))
             base_path = os.path.dirname(full_path)
             if not os.path.exists(base_path):
