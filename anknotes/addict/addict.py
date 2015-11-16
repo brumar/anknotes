@@ -2,7 +2,8 @@ from inspect import isgenerator
 import re
 import os
 import copy
-from anknotes.base import is_dict_type, item_to_list
+from anknotes.base import is_dict_type, item_to_list, is_seq_type
+
 
 class Dict(dict):
     """
@@ -157,7 +158,7 @@ class Dict(dict):
             cls = (str, unicode)
         if a and isinstance(a[0], cls):
             val = a[0]
-            del a[0]
+            #del a[0]
         elif kw and key in kw:
             val = kw[key]
             del kw[key]

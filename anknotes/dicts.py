@@ -84,6 +84,7 @@ class DictString(DictCaseInsensitive):
         lbl = str_capitalize(self.label.full)
         return lbl[:1].lower() + lbl[1:]
 
+
 class DictSettings(DictString):
     _cls_missing_attrs_ = True
     def __init__(self, *a, **kw):
