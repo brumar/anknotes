@@ -186,7 +186,7 @@ class Evernote:
                 consumer_secret='965f1873e4df583c',
                 sandbox=False
             )
-            request_token = client.get_request_token('https://fap-studios.de/anknotes/index.html')
+            request_token = client.get_request_token('http://brunomart.in/anknotes/index.html')
             url = client.get_authorize_url(request_token)
             showInfo("We will open a Evernote Tab in your browser so you can allow access to your account")
             openLink(url)
