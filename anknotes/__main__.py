@@ -1,5 +1,5 @@
 import os
-
+import base64
 # from thrift.Thrift import *
 from evernote.edam.notestore.ttypes import NoteFilter, NotesMetadataResultSpec
 from evernote.edam.error.ttypes import EDAMSystemException, EDAMErrorCode
@@ -28,7 +28,7 @@ CONTENT_FIELD_NAME = 'content'
 GUID_FIELD_NAME = 'Evernote GUID'
 
 SETTING_UPDATE_EXISTING_NOTES = 'evernoteUpdateExistingNotes'
-SETTING_TOKEN = 'evernoteToken'
+SETTING_TOKEN = 'evernoteToken_encoded'
 SETTING_KEEP_TAGS = 'evernoteKeepTags'
 SETTING_TAGS_TO_IMPORT = 'evernoteTagsToImport'
 SETTING_DEFAULT_TAG = 'evernoteDefaultTag'
@@ -191,13 +191,16 @@ class Evernote:
             showInfo("We will open a Evernote Tab in your browser so you can allow access to your account")
             openLink(url)
             oauth_verifier = getText(prompt="Please copy the code that showed up, after allowing access, in here")[0]
+            secret_key = getText(prompt="protect your value with a password, it will be asked each time you import your notes")[0]
             auth_token = client.get_access_token(
                 request_token.get('oauth_token'),
                 request_token.get('oauth_token_secret'),
                 oauth_verifier)
-            mw.col.conf[SETTING_TOKEN] = auth_token
+            mw.col.conf[SETTING_TOKEN] = encode(secret_key, auth_token)
         else:
-            auth_token = mw.col.conf.get(SETTING_TOKEN, False)
+            secret_key = getText(prompt="password")[0]
+            auth_token_encoded = mw.col.conf.get(SETTING_TOKEN, False)
+            auth_token = decode(secret_key, auth_token_encoded)
         self.token = auth_token
         self.client = EvernoteClient(token=auth_token, sandbox=False)
         self.noteStore = self.client.get_note_store()
@@ -258,6 +261,8 @@ class Controller:
         self.evernote = Evernote()
 
     def proceed(self):
+        if self.evernoteTags=="":
+            show_tooltip("Warning : No tag to import has been specified in the preferences, that may result into empty imports")
         anki_ids = self.anki.get_cards_id_from_tag(self.ankiTag)
         anki_guids = self.anki.get_guids_from_anki_id(anki_ids)
         evernote_guids = self.get_evernote_guids_from_tag(self.evernoteTags)
@@ -302,6 +307,25 @@ class Controller:
 
 def show_tooltip(text, time_out=3000):
     aqt.utils.tooltip(text, time_out)
+
+# Vigenere_cipher
+# ref : https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
+def encode(key, clear):
+    enc = []
+    for i in range(len(clear)):
+        key_c = key[i % len(key)]
+        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
+        enc.append(enc_c)
+    return base64.urlsafe_b64encode("".join(enc))
+
+def decode(key, enc):
+    dec = []
+    enc = base64.urlsafe_b64decode(enc)
+    for i in range(len(enc)):
+        key_c = key[i % len(key)]
+        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+        dec.append(dec_c)
+    return "".join(dec)
 
 
 def main():
