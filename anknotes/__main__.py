@@ -319,6 +319,8 @@ def encode(key, clear):
     return base64.urlsafe_b64encode("".join(enc))
 
 def decode(key, enc):
+    if not isinstance(enc, str):
+        enc = enc.encode('ascii', 'ignore')
     dec = []
     enc = base64.urlsafe_b64decode(enc)
     for i in range(len(enc)):
