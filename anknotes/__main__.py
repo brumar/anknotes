@@ -383,9 +383,11 @@ def setup_evernote(self):
     layout.insertWidget(int(layout.count()) + 1, keep_evernote_tags)
 
     # Update Existing Notes
+    updated_label = QLabel("Behavior if a note is already imported:")
     update_existing_notes = QComboBox()
-    update_existing_notes.addItems(["Ignore Existing Notes", "Update Existing Notes In-Place",
-                                    "Delete and Re-Add Existing Notes"])
+    update_existing_notes.addItems(["Ignore (do nothing)",
+                                    "Update (raise API usage, but useful if you tend to edit your cards in Evernote)",
+                                    "Reset (same as Update, but cards are rescheduled)"])
     update_existing_notes.setCurrentIndex(mw.col.conf.get(SETTING_UPDATE_EXISTING_NOTES,
                                                           UpdateExistingNotes.UpdateNotesInPlace))
     update_existing_notes.activated.connect(update_evernote_update_existing_notes)
