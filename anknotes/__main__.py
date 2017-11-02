@@ -11,7 +11,7 @@ import aqt
 from anki.hooks import wrap
 from aqt.preferences import Preferences
 from aqt.utils import showInfo, getText, openLink, getOnlyText
-from aqt.qt import QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox, QComboBox, QSpacerItem, QSizePolicy, QWidget
+from aqt.qt import QPushButton, QLineEdit, QLabel, QVBoxLayout, QGroupBox, SIGNAL, QCheckBox, QComboBox, QSpacerItem, QSizePolicy, QWidget
 from aqt import mw
 # from pprint import pprint
 
@@ -391,6 +391,10 @@ def setup_evernote(self):
     update_existing_notes.activated.connect(update_evernote_update_existing_notes)
     layout.insertWidget(int(layout.count()) + 1, update_existing_notes)
 
+    deletebutton = QPushButton(_("Reset Account"), clicked=remove_token)
+    layout.insertWidget(int(layout.count()) + 1, deletebutton)
+
+
     # Vertical Spacer
     vertical_spacer = QSpacerItem(20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
     layout.addItem(vertical_spacer)
@@ -415,5 +419,9 @@ def update_evernote_keep_tags():
 
 def update_evernote_update_existing_notes(index):
     mw.col.conf[SETTING_UPDATE_EXISTING_NOTES] = index
+
+def remove_token(*args, **kwargs):
+    mw.col.conf[SETTING_TOKEN]=False
+    show_tooltip("your token has been deleted")
 
 Preferences.setupOptions = wrap(Preferences.setupOptions, setup_evernote)
