@@ -384,6 +384,7 @@ def setup_evernote(self):
 
     # Update Existing Notes
     updated_label = QLabel("Behavior if a note is already imported:")
+    layout.insertWidget(int(layout.count()) + 1, updated_label)
     update_existing_notes = QComboBox()
     update_existing_notes.addItems(["Ignore (do nothing)",
                                     "Update (raise API usage, but useful if you tend to edit your cards in Evernote)",
