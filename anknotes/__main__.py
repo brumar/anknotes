@@ -79,6 +79,7 @@ class Anki:
         return note.id
 
     def add_note(self, deck_name, model_name, fields, tags=list()):
+        tags = ensure_ascii_tags(tags)
         note = self.create_note(deck_name, model_name, fields, tags)
         if note is not None:
             collection = self.collection()
@@ -329,6 +330,16 @@ def decode(key, enc):
         dec.append(dec_c)
     return "".join(dec)
 
+
+def ensure_ascii_tags(tags):
+    new_tags = []
+    for tag in tags[:]:
+        if not isinstance(tag, str):
+            new_tags.append(tag.encode('ascii', 'ignore'))
+        else:
+            new_tags.append(tag)
+    return new_tags
+        
 
 def main():
     controller = Controller()
