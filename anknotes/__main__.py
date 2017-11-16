@@ -19,6 +19,7 @@ from aqt import mw
 # Note: This class was adapted from the Real-Time_Import_for_use_with_the_Rikaisama_Firefox_Extension plug-in
 # by cb4960@gmail.com
 # .. itself adapted from Yomichan plugin by Alex Yatskov.
+from anknotes.evernote.edam.error.ttypes import EDAMUserException
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 EVERNOTE_MODEL = 'evernote_note'
@@ -203,7 +204,12 @@ class Evernote:
             auth_token_encoded = mw.col.conf.get(SETTING_TOKEN, False)
             auth_token = decode(secret_key, auth_token_encoded)
         self.token = auth_token
-        self.client = EvernoteClient(token=auth_token, sandbox=False)
+        try:
+            self.client = EvernoteClient(token=auth_token, sandbox=False)
+        except EDAMSystemException, e:
+            if e.errorCode == 2:
+                show_tooltip("Problem with your token, did you enter the good password ?")
+                raise
         self.noteStore = self.client.get_note_store()
 
     def find_tag_guid(self, tag):
@@ -243,7 +249,7 @@ class Evernote:
         except EDAMSystemException, e:
             if e.errorCode == EDAMErrorCode.RATE_LIMIT_REACHED:
                 m, s = divmod(e.rateLimitDuration, 60)
-                showInfo("Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
+                show_tooltip("Rate limit has been reached. We will save the notes downloaded thus far.\r\n"
                          "Please retry your request in {} min".format("%d:%02d" % (m, s)))
                 return None
             raise
